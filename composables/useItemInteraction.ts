@@ -9,6 +9,11 @@ interface Position {
   height: number
 }
 
+interface Point {
+  x: number
+  y: number
+}
+
 export function useItemInteraction(
   position: Position,
   onUpdate: (updates: Partial<Position>) => void,
@@ -21,7 +26,7 @@ export function useItemInteraction(
   const boardStore = useBoardStore()
   const isMoving = ref(false)
   const isResizing = ref(false)
-  const startPos = ref({ x: 0, y: 0 })
+  const startPos = ref<Point>({ x: 0, y: 0 })
   const initialPos = ref({ ...position })
   const currentPos = ref({ ...position })
   const resizeHandle = ref<string | null>(null)
@@ -29,7 +34,6 @@ export function useItemInteraction(
   // Watch for external position changes
   watch(() => position, (newPos) => {
     if (!isMoving.value && !isResizing.value) {
-      // Preserve size if not explicitly changed
       currentPos.value = {
         x: newPos.x,
         y: newPos.y,
@@ -45,33 +49,52 @@ export function useItemInteraction(
     height: `${currentPos.value.height}px`,
   }))
 
-  function startMove(e: MouseEvent) {
-    if (e.button !== 0) return // Only handle left mouse button
-    isMoving.value = true
-    initialPos.value = { ...currentPos.value }
-    startPos.value = {
+  function getEventCoordinates(e: MouseEvent | TouchEvent): Point {
+    if ('touches' in e) {
+      const touch = e.touches[0]
+      return {
+        x: touch.clientX,
+        y: touch.clientY
+      }
+    }
+    return {
       x: e.clientX,
       y: e.clientY
     }
   }
 
-  function startResize(handle: string, e: MouseEvent) {
-    if (e.button !== 0) return // Only handle left mouse button
+  function startMove(e: MouseEvent | TouchEvent) {
+    if ('button' in e && e.button !== 0) return
+    e.stopPropagation()
+    e.preventDefault()
+    
+    isMoving.value = true
+    initialPos.value = { ...currentPos.value }
+    startPos.value = getEventCoordinates(e)
+  }
+
+  function startResize(handle: string, e: MouseEvent | TouchEvent) {
+    if ('button' in e && e.button !== 0) return
+    e.stopPropagation()
+    e.preventDefault()
+    
     isResizing.value = true
     resizeHandle.value = handle
     initialPos.value = { ...currentPos.value }
-    startPos.value = {
-      x: e.clientX,
-      y: e.clientY
-    }
+    startPos.value = getEventCoordinates(e)
   }
 
-  function move(e: MouseEvent) {
+  function move(e: MouseEvent | TouchEvent) {
+    if (!isMoving.value && !isResizing.value) return
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const coords = getEventCoordinates(e)
     const scale = boardStore.scale
 
     if (isMoving.value) {
-      const dx = (e.clientX - startPos.value.x)
-      const dy = (e.clientY - startPos.value.y)
+      const dx = (coords.x - startPos.value.x)
+      const dy = (coords.y - startPos.value.y)
 
       const newX = Math.round((initialPos.value.x + dx / scale) / options.grid) * options.grid
       const newY = Math.round((initialPos.value.y + dy / scale) / options.grid) * options.grid
@@ -86,8 +109,8 @@ export function useItemInteraction(
     }
 
     if (isResizing.value && resizeHandle.value) {
-      const dx = (e.clientX - startPos.value.x)
-      const dy = (e.clientY - startPos.value.y)
+      const dx = (coords.x - startPos.value.x)
+      const dy = (coords.y - startPos.value.y)
       const newPos = { ...initialPos.value }
       const handle = resizeHandle.value
 
@@ -126,8 +149,11 @@ export function useItemInteraction(
 
   // Set up event listeners
   useEventListener(window, 'mousemove', move)
+  useEventListener(window, 'touchmove', move)
   useEventListener(window, 'mouseup', stopInteraction)
   useEventListener(window, 'mouseleave', stopInteraction)
+  useEventListener(window, 'touchend', stopInteraction)
+  useEventListener(window, 'touchcancel', stopInteraction)
 
   return {
     style,

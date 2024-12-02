@@ -52,7 +52,22 @@ export interface LinkItem extends BaseBoardItem {
   content: RegularLinkContent | OEmbedContent;
 }
 
-export type BoardItem = StickyNote | TodoList | LinkItem;
+export interface TimerItem extends BaseBoardItem {
+  kind: 'timer';
+  content: {
+    timerType?: 'Focus' | 'Short Break' | 'Long Break';
+    duration?: number;
+  };
+}
+
+export interface TextWidget extends BaseBoardItem {
+  kind: 'text';
+  content: {
+    text: string;
+  };
+}
+
+export type BoardItem = StickyNote | TodoList | LinkItem | TimerItem | TextWidget;
 
 export interface Board {
   board_id: string;

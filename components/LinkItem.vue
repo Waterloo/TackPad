@@ -1,5 +1,5 @@
 <template>
-  <div class="p-4 h-full flex flex-col">
+  <div class="h-full flex flex-col bg-white p-4 rounded-lg">
     <!-- Regular Link Content -->
     <template v-if="!isOEmbed">
       <img 

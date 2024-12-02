@@ -1,14 +1,13 @@
 <template>
-  <div 
+  <div
     class="w-full h-full flex flex-col relative"
     :style="{ backgroundColor: color }"
   >
-  
-      <ColorPicker
-        v-model="color"
-        @update:model-value="updateColor"
-        v-if="props.isSelected"
-      />
+    <ColorPicker
+      v-model="color"
+      @update:model-value="updateColor"
+      v-if="props.isSelected"
+    />
 
     <textarea
       v-if="isEditing"
@@ -25,57 +24,63 @@
       class="w-full h-full p-6 text-xl font-medium leading-tight whitespace-pre-wrap"
       @dblclick.stop="startEditing"
     >
-      {{ text || 'Enter your note' }}
+      {{ text || "Enter your note" }}
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
-import { useBoardStore } from '~/stores/board'
-import ColorPicker from '~/components/ColorPicker.vue'
+import { ref, watch, nextTick } from "vue";
+import { useBoardStore } from "~/stores/board";
+import ColorPicker from "~/components/ColorPicker.vue";
 
 const props = defineProps<{
-  itemId: string
-  initialText?: string
-  initialColor?: string
-  isSelected: boolean
-}>()
+  itemId: string;
+  initialText?: string;
+  initialColor?: string;
+  isSelected: boolean;
+}>();
 
-const boardStore = useBoardStore()
-const text = ref(props.initialText || '')
-const color = ref(props.initialColor || '#FFD700')
-const isEditing = ref(false)
-const textArea = ref<HTMLTextAreaElement | null>(null)
+const boardStore = useBoardStore();
+const text = ref(props.initialText || "");
+const color = ref(props.initialColor || "#FFD700");
+const isEditing = ref(false);
+const textArea = ref<HTMLTextAreaElement | null>(null);
 
 async function startEditing() {
-  isEditing.value = true
-  await nextTick()
-  textArea.value?.focus()
+  isEditing.value = true;
+  await nextTick();
+  textArea.value?.focus();
 }
 
 function updateText(e: Event) {
-  const target = e.target as HTMLTextAreaElement
-  text.value = target.value
-  boardStore.updateItem(props.itemId, { text: text.value })
+  const target = e.target as HTMLTextAreaElement;
+  text.value = target.value;
+  boardStore.updateItem(props.itemId, { text: text.value });
 }
 
 function updateColor(newColor: string) {
-  color.value = newColor
-  boardStore.updateItem(props.itemId, { color: newColor })
+  color.value = newColor;
+  boardStore.updateItem(props.itemId, { color: newColor });
 }
 
-watch(() => props.initialText, (newText) => {
-  if (newText !== undefined) {
-    text.value = newText
+watch(
+  () => props.initialText,
+  (newText) => {
+    if (newText !== undefined) {
+      text.value = newText;
+    }
   }
-})
+);
 
-watch(() => props.initialColor, (newColor) => {
-  if (newColor !== undefined) {
-    color.value = newColor
+watch(
+  () => props.initialColor,
+  (newColor) => {
+    if (newColor !== undefined) {
+      color.value = newColor;
+    }
   }
-})
+);
 </script>
 
 <style scoped>

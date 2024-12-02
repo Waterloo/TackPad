@@ -1,14 +1,19 @@
 <template>
   <div
     ref="itemRef"
-    class="board-item absolute shadow-lg rounded-lg"
+    class="board-item absolute  rounded-lg"
     :class="{ 
       'ring-2 ring-blue-500': isSelected,
       'select-none': isMoving || isResizing,
-      'cursor-move': !isResizing
+      'cursor-move': !isResizing,
+      'shadow-lg': props.shadow ?? true
     }"
-    :style="style"
+    :style="[
+      style,
+      { touchAction: 'none' }
+    ]"
     @mousedown.stop="startMove"
+    @touchstart.stop.prevent="startMove"
     @click.stop="$emit('select', itemId)"
   >
     <div class="w-full h-full">
@@ -19,8 +24,12 @@
         v-for="handle in resizeHandles"
         :key="handle"
         class="resize-handle"
-        :class="[`resize-handle-${handle}`]"
+        :class="[
+          `resize-handle-${handle}`,
+          'touch-handle'
+        ]"
         @mousedown.stop="(e) => startResize(handle, e)"
+        @touchstart.stop.prevent="(e) => startResize(handle, e)"
       />
     </template>
   </div>
@@ -38,6 +47,7 @@ const props = defineProps<{
   }
   itemId: string
   isSelected: boolean
+  shadow?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -69,8 +79,11 @@ const resizeHandles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
 
 <style scoped>
 .board-item {
-  background: white;
+  /* background: white; */
   z-index: 10;
+  -webkit-user-select: none;
+  user-select: none;
+  will-change: transform;
 }
 
 .board-item:hover {
@@ -85,6 +98,7 @@ const resizeHandles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
   border: 2px solid #4299e1;
   border-radius: 50%;
   z-index: 20;
+  will-change: transform;
 }
 
 .resize-handle-n {
@@ -137,5 +151,13 @@ const resizeHandles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
   bottom: -8px;
   left: -8px;
   cursor: nesw-resize;
+}
+
+@media (max-width: 768px) {
+  .touch-handle {
+    width: 24px;
+    height: 24px;
+    transform: translate(-50%, -50%);
+  }
 }
 </style>

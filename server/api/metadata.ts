@@ -247,16 +247,28 @@ async function fetchHtmlMetadataWithTimeout(url: string) {
   }
 }
 
+function decodeHtmlEntities(str: string): string {
+  return str.replace(/&quot;/g, '"')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&#039;/g, "'")
+            .replace(/&apos;/g, "'")
+            .replace(/&#x27;/g, "'")
+            .replace(/&nbsp;/g, ' ');
+}
+
 function extractMetaContent(html: string, name: string): string {
   const titleMatch = html.match(new RegExp(`<title[^>]*>(.*?)</title>`))
   if (name === 'title' && titleMatch) {
-    return titleMatch[1].trim()
+    return decodeHtmlEntities(titleMatch[1].trim());
   }
 
   const ogMatch = html.match(new RegExp(`<meta\\s+(?:property|name)=["'](?:og:)?${name}["']\\s+content=["']([^"']+)["']`, 'i'))
   const nameMatch = html.match(new RegExp(`<meta\\s+name=["']${name}["']\\s+content=["']([^"']+)["']`, 'i'))
   
-  return (ogMatch?.[1] || nameMatch?.[1] || '').trim()
+  const content = ogMatch?.[1] || nameMatch?.[1] || '';
+  return decodeHtmlEntities(content.trim());
 }
 
 function extractOgTags(html: string): Record<string, string> {

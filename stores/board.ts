@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { customAlphabet } from 'nanoid'
 import { debounce } from 'lodash'
 
-import type { Board, BoardItem, StickyNote, TodoList, Task, LinkItem } from '~/types/board'
+import type { Board, BoardItem, StickyNote, TodoList, Task, LinkItem, TimerItem, TextWidget } from '~/types/board'
 
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
 
@@ -247,6 +247,30 @@ export const useBoardStore = defineStore('board', () => {
     }
   }
 
+  const addTimer = (
+    position: { x: number; y: number; width?: number; height?: number }
+  ) => {
+    if (!board.value) return
+
+    const newTimer: TimerItem = {
+      id: `TIMER-${nanoid(10)}`,
+      kind: 'timer',
+      x_position: position.x,
+      y_position: position.y,
+      width: position.width ?? 300,
+      height: position.height ?? 300,
+      content: {
+        timerType: 'Focus',
+        duration: 25
+      }
+    }
+
+    board.value.data.items.push(newTimer)
+    selectedId.value = newTimer.id
+    debouncedSaveBoard()
+    return newTimer
+  }
+
   const addTask = async (listId: string, content: string | {text: string, completed?: boolean}) => {
     if (!board.value) return
     const list = board.value.data.items.find(item => 
@@ -289,6 +313,28 @@ export const useBoardStore = defineStore('board', () => {
       task.content = content
       await debouncedSaveBoard()
     }
+  }
+
+  const addTextWidget = (
+    position: { x: number; y: number; width?: number; height?: number }
+  ) => {
+    if (!board.value) return null
+
+    const textWidget: TextWidget = {
+      id: nanoid(),
+      kind: 'text',
+      x_position: position.x,
+      y_position: position.y,
+      width: position.width || 200,
+      height: position.height || 64,
+      content: {
+        text: 'Double click to edit text'
+      }
+    }
+
+    board.value.data.items.push(textWidget)
+    debouncedSaveBoard()
+    return textWidget
   }
 
   const saveBoard = async () => {
@@ -334,6 +380,8 @@ export const useBoardStore = defineStore('board', () => {
     addNote,
     addTodoList,
     addLinkItem,
+    addTimer,
+    addTextWidget,
     addTask,
     updateTask,
     saveBoard,

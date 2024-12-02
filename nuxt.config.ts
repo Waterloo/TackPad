@@ -2,7 +2,7 @@ export default defineNuxtConfig({
   devtools:{
     enabled: true
   },
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxthub/core'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxthub/core', '@nuxt/fonts'],
 
   runtimeConfig: {
     public: {
