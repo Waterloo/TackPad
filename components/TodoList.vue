@@ -14,12 +14,12 @@
             ref="titleInput"
           />
         </div>
-        <div 
-          v-else 
+        <div
+          v-else
           class="w-full cursor-pointer break-words"
           @dblclick="startTitleEdit"
         >
-          <p 
+          <p
             class="font-semibold px-1 transition-all duration-200"
             :class="titleSizeClass"
             ref="titleDisplay"
@@ -29,8 +29,8 @@
         </div>
       </div>
     </div>
-    
-    <div class="p-4 pt-0 overflow-auto" style="max-height: calc(100% - 64px);">
+
+    <div class="p-4 pt-0 overflow-auto" style="max-height: calc(100% - 64px)">
       <div class="bg-gray-50 rounded-lg mb-4 flex items-center">
         <input
           type="text"
@@ -41,7 +41,7 @@
           @mousedown.stop
           @keydown.delete.stop
         />
-        <button 
+        <button
           @click.stop="addNewTask"
           class="p-4 text-blue-600 hover:text-blue-800"
         >
@@ -50,12 +50,12 @@
       </div>
 
       <ul class="space-y-4 overflow-y-auto">
-        <li 
-          v-for="task in list.content.tasks" 
-          :key="task.task_id" 
+        <li
+          v-for="task in list.content.tasks"
+          :key="task.task_id"
           class="flex gap-3"
         >
-          <button 
+          <button
             class="w-6 h-6 rounded border-2 border-blue-600 flex items-center justify-center flex-shrink-0"
             :class="{ 'bg-blue-600': task.completed }"
             @click.stop="toggleTask(task)"
@@ -84,9 +84,12 @@
             @keyup.enter="saveTaskEdit(task)"
             @keyup.esc="cancelTaskEdit"
             @mousedown.stop
+            @keydown.stop
+            @keyup.stop
+            @keypress.stop
             ref="editInput"
           />
-          <span 
+          <span
             v-else
             class="flex-grow cursor-pointer"
             :class="{ 'line-through text-gray-400': task.completed }"
@@ -95,7 +98,7 @@
             {{ task.content }}
           </span>
           <span>
-            <button 
+            <button
               @click.stop="deleteTask(task)"
               class="text-red-500 hover:text-red-600"
             >
@@ -109,113 +112,116 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed } from 'vue'
-import { useBoardStore } from '~/stores/board'
-import type { TodoList, Task } from '~/types/board'
+import { ref, nextTick, computed } from "vue";
+import { useBoardStore } from "~/stores/board";
+import type { TodoList, Task } from "~/types/board";
 
 const props = defineProps<{
-  list: TodoList
-  isSelected: boolean
-}>()
+  list: TodoList;
+  isSelected: boolean;
+}>();
 
-const boardStore = useBoardStore()
-const localTitle = ref(props.list.content.title)
-const isEditingTitle = ref(false)
-const titleInput = ref<HTMLInputElement | null>(null)
-const titleDisplay = ref<HTMLElement | null>(null)
-const newTask = ref('')
-const editingTaskId = ref<string | null>(null)
-const editingContent = ref('')
-const editInput = ref<HTMLInputElement | null>(null)
+const boardStore = useBoardStore();
+const localTitle = ref(props.list.content.title);
+const isEditingTitle = ref(false);
+const titleInput = ref<HTMLInputElement | null>(null);
+const titleDisplay = ref<HTMLElement | null>(null);
+const newTask = ref("");
+const editingTaskId = ref<string | null>(null);
+const editingContent = ref("");
+const editInput = ref<HTMLInputElement | null>(null);
 
 const titleSizeClass = computed(() => {
-  const lines = titleDisplay.value ? 
-    Math.floor(titleDisplay.value.scrollHeight / parseInt(getComputedStyle(titleDisplay.value).lineHeight)) : 1
-  
+  const lines = titleDisplay.value
+    ? Math.floor(
+        titleDisplay.value.scrollHeight /
+          parseInt(getComputedStyle(titleDisplay.value).lineHeight)
+      )
+    : 1;
+
   // Adjust size based on both length and number of lines
-  if (lines > 2) return 'text-base'
-  if (lines > 1) return 'text-lg'
-  if (localTitle.value.length > 100) return 'text-base'
-  if (localTitle.value.length > 50) return 'text-lg'
-  return 'text-xl'
-})
+  if (lines > 2) return "text-base";
+  if (lines > 1) return "text-lg";
+  if (localTitle.value.length > 100) return "text-base";
+  if (localTitle.value.length > 50) return "text-lg";
+  return "text-xl";
+});
 
 function startTitleEdit() {
-  isEditingTitle.value = true
+  isEditingTitle.value = true;
   nextTick(() => {
-    titleInput.value?.focus()
-  })
+    titleInput.value?.focus();
+  });
 }
 
 function saveTitle() {
-  if (localTitle.value.trim() === '') {
-    localTitle.value = props.list.content.title
+  if (localTitle.value.trim() === "") {
+    localTitle.value = props.list.content.title;
   } else if (localTitle.value !== props.list.content.title) {
     boardStore.updateItem(props.list.id, {
       content: {
         ...props.list.content,
-        title: localTitle.value
-      }
-    })
+        title: localTitle.value,
+      },
+    });
   }
-  isEditingTitle.value = false
+  isEditingTitle.value = false;
 }
 
 function cancelTitleEdit() {
-  localTitle.value = props.list.content.title
-  isEditingTitle.value = false
+  localTitle.value = props.list.content.title;
+  isEditingTitle.value = false;
 }
 
 function updateTitle() {
-  if (localTitle.value === props.list.content.title) return
+  if (localTitle.value === props.list.content.title) return;
   boardStore.updateItem(props.list.id, {
     content: {
       ...props.list.content,
-      title: localTitle.value
-    }
-  })
+      title: localTitle.value,
+    },
+  });
 }
 
 function addNewTask() {
-  if (!newTask.value.trim()) return
-  boardStore.addTask(props.list.id, newTask.value)
-  newTask.value = ''
+  if (!newTask.value.trim()) return;
+  boardStore.addTask(props.list.id, newTask.value);
+  newTask.value = "";
 }
 function deleteTask(task: Task) {
-  boardStore.deleteTask(props.list.id, task.task_id)
+  boardStore.deleteTask(props.list.id, task.task_id);
 }
 
 function toggleTask(task: Task) {
-  task.completed = !task.completed
+  task.completed = !task.completed;
   boardStore.updateItem(props.list.id, {
     content: {
       ...props.list.content,
-      tasks: [...props.list.content.tasks]
-    }
-  })
+      tasks: [...props.list.content.tasks],
+    },
+  });
 }
 
 function startEditing(task: Task) {
-  editingTaskId.value = task.task_id
-  editingContent.value = task.content
-  nextTick(()=> {
-    editInput.value[0].focus()
-  })
-  
+  editingTaskId.value = task.task_id;
+  editingContent.value = task.content;
+  nextTick(() => {
+    editInput.value[0].focus();
+  });
 }
 
 function saveTaskEdit(task: Task) {
-  if (editingTaskId.value === null) return
-  if (editingContent.value.trim() !== '') {
-    boardStore.updateTask(props.list.id, task.task_id, editingContent.value)
+  if (editingTaskId.value === null) return;
+  if (editingContent.value.trim() !== "") {
+    boardStore.updateTask(props.list.id, task.task_id, editingContent.value);
   }
-  editingTaskId.value = null
-  editingContent.value = ''
+  editingTaskId.value = null;
+  editingContent.value = "";
 }
 
 function cancelTaskEdit() {
-  editingTaskId.value = null
-  editingContent.value = ''
+  editingTaskId.value = null;
+  editingContent.value = "";
 }
 </script>
 

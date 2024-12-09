@@ -17,6 +17,9 @@
       @input="updateText"
       @blur="isEditing = false"
       @mousedown.stop
+      @keydown.stop
+      @keyup.stop
+      @keypress.stop
       ref="textArea"
     />
     <div

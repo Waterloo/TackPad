@@ -1,7 +1,7 @@
 <template>
   <div
     ref="boardRef"
-    class="fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden"
+    class="fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden break-all"
     :style="{ touchAction: 'none' }"
     @mousedown.stop="startPan"
     @touchstart.stop.prevent="startPan"

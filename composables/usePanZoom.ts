@@ -12,6 +12,7 @@ export function usePanZoom() {
   const isPanning = ref(false);
   const lastScale = ref(1);
   const initialDistance = ref(0);
+  const isSpacePressed = ref(false);
 
   const gesture = useGesture();
 
@@ -40,11 +41,35 @@ export function usePanZoom() {
     translateY.value = centerY - zoomPoint.y * newScale;
   };
 
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.code === 'Space' && !isSpacePressed.value) {
+      e.preventDefault();
+      isSpacePressed.value = true;
+      document.body.style.cursor = 'grab';
+    }
+  };
+
+  const handleKeyUp = (e: KeyboardEvent) => {
+    if (e.code === 'Space') {
+      if(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      e.preventDefault();
+      isSpacePressed.value = false;
+      document.body.style.cursor = 'default';
+    }
+  };
+
   const startPan = (e: MouseEvent | TouchEvent) => {
-    if (e instanceof MouseEvent && e.button !== 0) return;
-    if (e.target !== e.currentTarget) return;
+    if (e instanceof MouseEvent) {
+      if (e.button !== 0) return;
+      // Allow panning when space is pressed or middle click
+      if (!isSpacePressed.value && e.target !== e.currentTarget) return;
+    }
+    if (e instanceof TouchEvent && e.target !== e.currentTarget) return;
 
     isPanning.value = true;
+    if (isSpacePressed.value) {
+      document.body.style.cursor = 'grabbing';
+    }
     if (e instanceof TouchEvent && e.touches.length === 2) {
       initialDistance.value = gesture.scale.value;
     }
@@ -87,6 +112,11 @@ export function usePanZoom() {
     isPanning.value = false;
     lastScale.value = 1;
     initialDistance.value = 0;
+    if (isSpacePressed.value) {
+      document.body.style.cursor = 'grab';
+    } else {
+      document.body.style.cursor = 'default';
+    }
     gesture.end();
   };
 
@@ -117,13 +147,16 @@ export function usePanZoom() {
   useEventListener(window, 'mouseleave', endPan);
   useEventListener(window, 'touchend', endPan);
   useEventListener(window, 'touchcancel', endPan);
+  useEventListener(window, 'keydown', handleKeyDown);
+  useEventListener(window, 'keyup', handleKeyUp);
   useEventListener(window, 'keydown', handleKeyboardZoom);
 
   return {
-    scale,
-    translateX,
-    translateY,
+    scale: computed(() => scale.value),
+    translateX: computed(() => translateX.value),
+    translateY: computed(() => translateY.value),
     isPanning,
+    isSpacePressed,
     startPan,
     pan,
     endPan,
