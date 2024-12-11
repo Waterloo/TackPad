@@ -12,7 +12,7 @@
     <textarea
       v-if="isEditing"
       v-model="text"
-      class="w-full h-full p-6 bg-transparent resize-none focus:outline-none text-xl font-medium leading-tight"
+      class="w-full h-full p-6 bg-transparent resize-none focus:outline-none text-lg font-medium leading-tight"
       placeholder="Enter your note"
       @input="updateText"
       @blur="isEditing = false"

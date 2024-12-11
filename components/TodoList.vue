@@ -31,11 +31,11 @@
     </div>
     
     <div class="p-4 pt-0 overflow-auto" style="max-height: calc(100% - 64px);">
-      <div class="bg-gray-50 rounded-lg mb-4 flex items-center">
+      <div class="bg-gray-100 rounded-lg mt-5 mb-5 flex items-center rounded-md">
         <input
           type="text"
           placeholder="Add a new task"
-          class="w-full p-4 bg-gray-50 focus:outline-none text-gray-600"
+          class="w-full p-4 bg-gray-100 focus:outline-none text-gray-600"
           v-model="newTask"
           @keyup.enter="addNewTask"
           @mousedown.stop
@@ -45,7 +45,7 @@
           @click.stop="addNewTask"
           class="p-4 text-blue-600 hover:text-blue-800"
         >
-          <span class="text-3xl">+</span>
+          <img src="/icons/Add-Circle.svg" alt="">
         </button>
       </div>
 
@@ -88,7 +88,7 @@
           />
           <span 
             v-else
-            class="flex-grow cursor-pointer"
+            class="flex-grow cursor-pointer text-base"
             :class="{ 'line-through text-gray-400': task.completed }"
             @dblclick.stop="startEditing(task)"
           >

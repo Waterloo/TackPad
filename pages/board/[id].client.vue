@@ -1,7 +1,7 @@
 <template>
   <div
     ref="boardRef"
-    class="fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden"
+    class="board fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden"
     :style="{ touchAction: 'none' }"
     @mousedown.stop="startPan"
     @touchstart.stop.prevent="startPan"
@@ -83,23 +83,47 @@
     </div>
 
     <!-- Fixed Controls -->
-    <div class="fixed bottom-4 right-4 flex gap-2 items-center">
-      <button class="bg-white p-3 rounded-lg shadow-lg hover:bg-gray-50" @click.stop="addTimer">
-        Add Timer
+    <div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 flex items-center bg-white rounded-xl shadow-lg px-2 sm:px-4 py-1 sm:py-2 gap-2 sm:gap-6">
+      <button 
+        class="p-1.5 sm:p-2 text-gray-600 hover:text-green-600 hover:bg-gray-50 rounded-full transition-colors"
+        @click.stop="addTodoList"
+        title="Add Todo List"
+      >
+        <img src="/icons/todo.svg" class="h-5 w-5 sm:h-6 sm:w-6" alt="Todo List" />
       </button>
-      <button class="bg-white p-3 rounded-lg shadow-lg hover:bg-gray-50" @click.stop="addNote">
-        Add Note
+      
+      <button 
+        class="p-1.5 sm:p-2 text-gray-600 hover:text-yellow-600 hover:bg-gray-50 rounded-full transition-colors"
+        @click.stop="addNote"
+        title="Add Note"
+      >
+        <img src="/icons/notes.svg" class="h-5 w-5 sm:h-6 sm:w-6" alt="Notes" />
       </button>
-      <button class="bg-white p-3 rounded-lg shadow-lg hover:bg-gray-50" @click.stop="addTodoList">
-        Add Todo List
+      
+      <button 
+        class="p-1.5 sm:p-2 text-gray-600 hover:text-purple-600 hover:bg-gray-50 rounded-full transition-colors"
+        @click.stop="addTextWidget"
+        title="Add Text Widget"
+      >
+        <img src="/icons/text.svg" class="h-5 w-5 sm:h-6 sm:w-6" alt="Text Widget" />
       </button>
-      <button class="bg-white p-3 rounded-lg shadow-lg hover:bg-gray-50" @click.stop="addTextWidget">
-        Add Text Widget
+      
+      <button 
+        class="p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-full transition-colors"
+        @click.stop="addTimer"
+        title="Add Timer"
+      >
+        <img src="/icons/timer.svg" class="h-5 w-5 sm:h-6 sm:w-6" alt="Timer" />
       </button>
-      <a @click.prevent :href="getBookMarkURL()" class="bg-white p-3 rounded-lg shadow-lg hover:bg-gray-50">
-        Bookmarklet
+
+      <a 
+        @click.prevent 
+        :href="getBookMarkURL()" 
+        class="p-1.5 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-full transition-colors cursor-pointer"
+        title="Add Bookmark"
+      >
+        <img src="/icons/bookmark.svg" class="h-5 w-5 sm:h-6 sm:w-6" alt="Bookmark" />
       </a>
-      <button class="bg-white p-3 rounded-lg shadow-lg hover:bg-gray-50" @click="showPasswordDialog">🔒</button>
     </div>
     <dialog class="p-4 w-80 md:w-96" ref="passwordRef">
       <button @click="closePasswordDialog" class="absolute top-2 right-2 text-2xl text-gray-500 hover:text-gray-700">
@@ -477,5 +501,9 @@ return encodeURI(bookmarkletURI)
 <style>
 .board-container {
   will-change: transform;
+  font-family: "Figtree", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
 }
 </style>
