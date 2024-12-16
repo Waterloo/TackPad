@@ -10,8 +10,7 @@
       'shadow-lg': props.shadow ?? true
     }"
     :style="[
-      style,
-      { touchAction: 'none' }
+      style
     ]"
     @mousedown.stop="startMove"
     @touchstart.stop.prevent="startMove"
