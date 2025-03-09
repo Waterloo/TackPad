@@ -25,28 +25,27 @@ export const useBoardStore = defineStore('board', () => {
 
     const route = useRoute()
     loading.value = true
+    
+    // Case: 'load' - Load the latest board from local storage
+    if(boardId === 'load'){
+      const existingBoardIds = Object.keys(boards.value)
+      if (existingBoardIds.length > 0) {
+        const lastBoardId = boards.value[existingBoardIds[existingBoardIds.length - 1]].board_id
+        await navigateTo(`/board/${lastBoardId}`)
+        return 
+      } else {
+        // No boards in local storage, redirect to create
+        await navigateTo('/board/create')
+        return
+      }
+    }
 
     try {
-      // If 'load' is passed, try to load the last board from localStorage
-      if (boardId === 'laod') {
-        const existingBoardIds = Object.keys(boards.value)
-        
-        if (existingBoardIds.length > 0) {
-          // Get the last board ID from localStorage
-          const lastBoardId = existingBoardIds[existingBoardIds.length - 1]
-          // Navigate to the last board
-          await navigateTo(`/board/${lastBoardId}`)
-          return
-        }
-        // If no boards in localStorage, proceed with creating a new board
-        boardId = 'create'
-      }
-
-      // Attempt to load the specified board (or create a new one)
+      // Case: 'create' or specific board ID - fetch from API
       const response = await fetch(`/api/board/${boardId}`)
       if (!response.ok) throw new Error('Failed to load board')
       const raw = await response.json()
-
+      
       if(raw.data.encrypted){
         if(!password.value){
           await usePasswordDialog().showPasswordDialog()
@@ -62,12 +61,14 @@ export const useBoardStore = defineStore('board', () => {
         board.value = raw
       }
 
+      // Save to local storage
       boards.value[board.value!.board_id] = {
         board_id: board.value!.board_id, 
         title: board.value?.data.title || 'New TackPad'
       }
   
-      if(route.params.id !== board.value?.board_id){
+      // Redirect if needed (for 'create' or when board ID doesn't match route)
+      if(boardId === 'create' || route.params.id !== board.value?.board_id){
         await navigateTo(`/board/${board.value?.board_id}`)
       }
       
