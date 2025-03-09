@@ -21,15 +21,32 @@ export const useBoardStore = defineStore('board', () => {
   const boards = useLocalStorage<Boards>('boards', {})
 
   // Actions
-  const initializeBoard = async (boardId: string = 'create') => {
+  const initializeBoard = async (boardId: string = 'load') => {
 
     const route = useRoute()
     loading.value = true
 
     try {
+      // If 'load' is passed, try to load the last board from localStorage
+      if (boardId === 'laod') {
+        const existingBoardIds = Object.keys(boards.value)
+        
+        if (existingBoardIds.length > 0) {
+          // Get the last board ID from localStorage
+          const lastBoardId = existingBoardIds[existingBoardIds.length - 1]
+          // Navigate to the last board
+          await navigateTo(`/board/${lastBoardId}`)
+          return
+        }
+        // If no boards in localStorage, proceed with creating a new board
+        boardId = 'create'
+      }
+
+      // Attempt to load the specified board (or create a new one)
       const response = await fetch(`/api/board/${boardId}`)
       if (!response.ok) throw new Error('Failed to load board')
       const raw = await response.json()
+
       if(raw.data.encrypted){
         if(!password.value){
           await usePasswordDialog().showPasswordDialog()
