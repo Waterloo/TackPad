@@ -1,3 +1,5 @@
+// types/board.ts
+// Base types for board items
 export interface Task {
   task_id: string;
   content: string;
@@ -12,6 +14,7 @@ interface BaseBoardItem {
   height: number;
 }
 
+// Sticky Note types
 export interface StickyNote extends BaseBoardItem {
   kind: 'note';
   content: {
@@ -20,6 +23,7 @@ export interface StickyNote extends BaseBoardItem {
   };
 }
 
+// Todo List types
 export interface TodoList extends BaseBoardItem {
   kind: 'todo';
   content: {
@@ -28,7 +32,7 @@ export interface TodoList extends BaseBoardItem {
   };
 }
 
-
+// Link types
 interface BaseContent {
   url: string;
 }
@@ -52,6 +56,7 @@ export interface LinkItem extends BaseBoardItem {
   content: RegularLinkContent | OEmbedContent;
 }
 
+// Timer types
 export interface TimerItem extends BaseBoardItem {
   kind: 'timer';
   content: {
@@ -60,6 +65,7 @@ export interface TimerItem extends BaseBoardItem {
   };
 }
 
+// Text widget types
 export interface TextWidget extends BaseBoardItem {
   kind: 'text';
   content: {
@@ -67,6 +73,7 @@ export interface TextWidget extends BaseBoardItem {
   };
 }
 
+// Combined types
 export type BoardItem = StickyNote | TodoList | LinkItem | TimerItem | TextWidget;
 
 export interface Board {
@@ -75,4 +82,23 @@ export interface Board {
     title?: string;
     items: BoardItem[];
   }
+}
+
+// Position type used in multiple places
+export interface Position {
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+}
+
+// Board metadata type
+export interface BoardMetadata {
+  board_id: string;
+  title: string;
+}
+
+// Type for collection of boards
+export type Boards = {
+  [key: string]: BoardMetadata;
 }

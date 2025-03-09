@@ -32,6 +32,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from "vue";
 import { useBoardStore } from "~/stores/board";
+import { useNoteStore } from "~/stores/noteStore";
 import ColorPicker from "~/components/ColorPicker.vue";
 
 const props = defineProps<{
@@ -42,6 +43,7 @@ const props = defineProps<{
 }>();
 
 const boardStore = useBoardStore();
+const noteStore = useNoteStore();
 const text = ref(props.initialText || "");
 const color = ref(props.initialColor || "#FFD700");
 const isEditing = ref(false);
@@ -56,12 +58,12 @@ async function startEditing() {
 function updateText(e: Event) {
   const target = e.target as HTMLTextAreaElement;
   text.value = target.value;
-  boardStore.updateItem(props.itemId, { text: text.value });
+  noteStore.updateNoteContent(props.itemId, { text: text.value });
 }
 
 function updateColor(newColor: string) {
   color.value = newColor;
-  boardStore.updateItem(props.itemId, { color: newColor });
+  noteStore.updateNoteContent(props.itemId, { color: newColor });
 }
 
 watch(

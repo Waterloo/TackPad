@@ -31,7 +31,7 @@
     </div>
     
     <div class="p-4 pt-0 overflow-auto" style="max-height: calc(100% - 64px);">
-      <div class="bg-gray-100 rounded-lg mt-5 mb-5 flex items-center rounded-md">
+      <div class="bg-gray-100 rounded-lg mt-5 mb-5 flex items-center ">
         <input
           type="text"
           placeholder="Add a new task"
@@ -111,6 +111,7 @@
 <script setup lang="ts">
 import { ref, nextTick, computed } from 'vue'
 import { useBoardStore } from '~/stores/board'
+import { useTodoStore } from '~/stores/todoStore'
 import type { TodoList, Task } from '~/types/board'
 
 const props = defineProps<{
@@ -119,6 +120,7 @@ const props = defineProps<{
 }>()
 
 const boardStore = useBoardStore()
+const todoStore = useTodoStore()
 const localTitle = ref(props.list.content.title)
 const isEditingTitle = ref(false)
 const titleInput = ref<HTMLInputElement | null>(null)
@@ -151,12 +153,7 @@ function saveTitle() {
   if (localTitle.value.trim() === '') {
     localTitle.value = props.list.content.title
   } else if (localTitle.value !== props.list.content.title) {
-    boardStore.updateItem(props.list.id, {
-      content: {
-        ...props.list.content,
-        title: localTitle.value
-      }
-    })
+    todoStore.updateTodoTitle(props.list.id, localTitle.value)
   }
   isEditingTitle.value = false
 }
@@ -166,48 +163,32 @@ function cancelTitleEdit() {
   isEditingTitle.value = false
 }
 
-function updateTitle() {
-  if (localTitle.value === props.list.content.title) return
-  boardStore.updateItem(props.list.id, {
-    content: {
-      ...props.list.content,
-      title: localTitle.value
-    }
-  })
-}
-
 function addNewTask() {
   if (!newTask.value.trim()) return
-  boardStore.addTask(props.list.id, newTask.value)
+  todoStore.addTask(props.list.id, newTask.value)
   newTask.value = ''
 }
+
 function deleteTask(task: Task) {
-  boardStore.deleteTask(props.list.id, task.task_id)
+  todoStore.deleteTask(props.list.id, task.task_id)
 }
 
 function toggleTask(task: Task) {
-  task.completed = !task.completed
-  boardStore.updateItem(props.list.id, {
-    content: {
-      ...props.list.content,
-      tasks: [...props.list.content.tasks]
-    }
-  })
+  todoStore.toggleTaskCompletion(props.list.id, task.task_id)
 }
 
 function startEditing(task: Task) {
   editingTaskId.value = task.task_id
   editingContent.value = task.content
   nextTick(()=> {
-    editInput.value[0].focus()
+    editInput.value?.focus()
   })
-  
 }
 
 function saveTaskEdit(task: Task) {
   if (editingTaskId.value === null) return
   if (editingContent.value.trim() !== '') {
-    boardStore.updateTask(props.list.id, task.task_id, editingContent.value)
+    todoStore.updateTask(props.list.id, task.task_id, editingContent.value)
   }
   editingTaskId.value = null
   editingContent.value = ''

@@ -65,8 +65,6 @@ export function useItemInteraction(
 
   function startMove(e: MouseEvent | TouchEvent) {
     if ('button' in e && e.button !== 0) return
-    e.stopPropagation()
-    e.preventDefault()
     
     isMoving.value = true
     initialPos.value = { ...currentPos.value }
@@ -75,8 +73,6 @@ export function useItemInteraction(
 
   function startResize(handle: string, e: MouseEvent | TouchEvent) {
     if ('button' in e && e.button !== 0) return
-    e.stopPropagation()
-    e.preventDefault()
     
     isResizing.value = true
     resizeHandle.value = handle
@@ -86,8 +82,6 @@ export function useItemInteraction(
 
   function move(e: MouseEvent | TouchEvent) {
     if (!isMoving.value && !isResizing.value) return
-    e.preventDefault()
-    e.stopPropagation()
     
     const coords = getEventCoordinates(e)
     const scale = boardStore.scale
@@ -147,20 +141,13 @@ export function useItemInteraction(
     resizeHandle.value = null
   }
 
-  // Set up event listeners
-  useEventListener(window, 'mousemove', move)
-  useEventListener(window, 'touchmove', move)
-  useEventListener(window, 'mouseup', stopInteraction)
-  useEventListener(window, 'mouseleave', stopInteraction)
-  useEventListener(window, 'touchend', stopInteraction)
-  useEventListener(window, 'touchcancel', stopInteraction)
-
   return {
     style,
     isMoving,
     isResizing,
     startMove,
     startResize,
+    move,
     stopInteraction
   }
 }
