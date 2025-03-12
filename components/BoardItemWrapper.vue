@@ -9,8 +9,7 @@
       'shadow-lg': props.shadow ?? true
     }"
     :style="[
-      style,
-      { touchAction: 'none' }
+      style
     ]"
     @mousedown.stop="(e: MouseEvent) => !spacePressed && startItemMove(e)"
     @touchstart.stop="startItemMove"
