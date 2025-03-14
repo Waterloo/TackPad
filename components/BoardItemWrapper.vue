@@ -1,7 +1,8 @@
 <template>
   <div
+    @wheel.stop
     ref="itemRef"
-    class="board-item absolute rounded-lg"
+    class="board-item absolute  rounded-lg"
     :class="{ 
       'ring-2 ring-blue-500': isSelected,
       'select-none': isMoving || isResizing,
@@ -12,14 +13,8 @@
       style,
       { touchAction: 'none' }
     ]"
-    @mousedown.stop="(e: MouseEvent) => !spacePressed && startItemMove(e)"
-    @touchstart.stop="startItemMove"
-    @mousemove.stop="handleMove"
-    @touchmove.stop="handleMove"
-    @mouseup.stop="stopItemInteraction"
-    @touchend.stop="stopItemInteraction"
-    @mouseleave.stop="stopItemInteraction"
-    @touchcancel.stop="stopItemInteraction"
+    @mousedown.stop="startMove"
+    @touchstart.stop.prevent="startMove"
     @click.stop="$emit('select', itemId)"
   >
     <div class="w-full h-full">
@@ -34,8 +29,8 @@
           `resize-handle-${handle}`,
           'touch-handle'
         ]"
-        @mousedown.stop="(e: MouseEvent) => !spacePressed && startItemResize(handle, e)"
-        @touchstart.stop="(e: TouchEvent) => startItemResize(handle, e)"
+        @mousedown.stop="(e) => startResize(handle, e)"
+        @touchstart.stop.prevent="(e) => startResize(handle, e)"
       />
     </template>
   </div>
@@ -43,7 +38,6 @@
 
 <script setup lang="ts">
 import { useItemInteraction } from '~/composables/useItemInteraction'
-import { usePanZoom } from '~/composables/usePanZoom'
 
 const props = defineProps<{
   position: {
@@ -62,17 +56,14 @@ const emit = defineEmits<{
   (e: 'update:position', updates: Partial<typeof props.position>): void
 }>()
 
-const { spacePressed } = usePanZoom()
-
 const {
   style,
   isMoving,
   isResizing,
   startMove,
-  startResize,
-  move,
-  stopInteraction
+  startResize
 } = useItemInteraction(props.position, (updates) => {
+  // Ensure we pass all position properties when updating
   const updatedPosition = {
     ...props.position,
     ...updates
@@ -83,25 +74,6 @@ const {
   minHeight: 200,
   grid: 1
 })
-
-const startItemMove = (e: MouseEvent | TouchEvent) => {
-  if (spacePressed.value) return
-  startMove(e)
-}
-
-const startItemResize = (handle: string, e: MouseEvent | TouchEvent) => {
-  if (spacePressed.value) return
-  startResize(handle, e)
-}
-
-const handleMove = (e: MouseEvent | TouchEvent) => {
-  if (spacePressed.value) return
-  move(e)
-}
-
-const stopItemInteraction = () => {
-  stopInteraction()
-}
 
 const resizeHandles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
 </script>

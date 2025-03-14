@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { useEventListener } from '@vueuse/core';
+import { useGesture } from './useGesture';
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 1;
@@ -11,24 +12,8 @@ export function usePanZoom() {
   const isPanning = ref(false);
   const lastScale = ref(1);
   const initialDistance = ref(0);
-  const spacePressed = ref(false);
-  const lastX = ref(0);
-  const lastY = ref(0);
-  const isTouchDevice = ref(false);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.code === 'Space' && !spacePressed.value && !e.repeat && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
-      spacePressed.value = true;
-      e.preventDefault();
-    }
-  };
-
-  const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.code === 'Space') {
-      spacePressed.value = false;
-      isPanning.value = false;
-    }
-  };
+  const gesture = useGesture();
 
   const handleZoom = (e: WheelEvent) => {
     if (!e.ctrlKey && e.deltaY % 1 === 0) return;
@@ -40,55 +25,41 @@ export function usePanZoom() {
 
   const updateZoom = (delta: number, centerX: number, centerY: number) => {
     const newScale = Math.min(Math.max(MIN_ZOOM, scale.value * delta), MAX_ZOOM);
-    if (newScale === scale.value) return;
     
+    // Only update if the new scale is within bounds
+    if (newScale === scale.value) return;
+    console.log('Zooming', newScale);
     const zoomPoint = {
       x: (centerX - translateX.value) / scale.value,
       y: (centerY - translateY.value) / scale.value
     };
 
     scale.value = newScale;
+    
     translateX.value = centerX - zoomPoint.x * newScale;
     translateY.value = centerY - zoomPoint.y * newScale;
   };
 
   const startPan = (e: MouseEvent | TouchEvent) => {
-    if (e instanceof TouchEvent) {
-      isTouchDevice.value = true;
-      if (e.touches.length === 2) {
-        initialDistance.value = Math.hypot(
-          e.touches[1].clientX - e.touches[0].clientX,
-          e.touches[1].clientY - e.touches[0].clientY
-        );
-        lastScale.value = 1;
-        isPanning.value = true;
-        const pos = {
-          x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-          y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-        };
-        lastX.value = pos.x;
-        lastY.value = pos.y;
-      }
-      return;
-    }
+    if (e instanceof MouseEvent && e.button !== 0) return;
+    if (e.target !== e.currentTarget) return;
 
-    // Mouse interaction
-    if (e.button !== 0 || !spacePressed.value) return;
     isPanning.value = true;
-    lastX.value = e.clientX;
-    lastY.value = e.clientY;
+    if (e instanceof TouchEvent && e.touches.length === 2) {
+      initialDistance.value = gesture.scale.value;
+    }
+    gesture.start(e);
   };
 
-  const pan = (e: MouseEvent | TouchEvent) => {
-    if (!isPanning.value && e instanceof MouseEvent) return;
+  const pan = (e: MouseEvent | TouchEvent | WheelEvent) => {
+    if (!isPanning.value && !(e instanceof WheelEvent)) return;
 
     if (e instanceof TouchEvent) {
+      e.preventDefault();
+      gesture.move(e);
+
       if (e.touches.length === 2) {
-        const currentDistance = Math.hypot(
-          e.touches[1].clientX - e.touches[0].clientX,
-          e.touches[1].clientY - e.touches[0].clientY
-        );
-        
+        const currentDistance = gesture.scale.value;
         if (initialDistance.value > 0) {
           const delta = currentDistance / initialDistance.value;
           if (Math.abs(delta - lastScale.value) > 0.01) {
@@ -96,50 +67,63 @@ export function usePanZoom() {
             const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
             updateZoom(delta / lastScale.value, centerX, centerY);
             lastScale.value = delta;
-
-            // Update pan position
-            translateX.value += centerX - lastX.value;
-            translateY.value += centerY - lastY.value;
-            lastX.value = centerX;
-            lastY.value = centerY;
           }
         }
+      } else if (e.touches.length === 1) {
+        translateX.value += gesture.delta.value.x;
+        translateY.value += gesture.delta.value.y;
       }
-      return;
+    } else if (e instanceof WheelEvent && !e.ctrlKey) {
+      translateX.value = translateX.value - e.deltaX;
+      translateY.value = translateY.value - e.deltaY;
+    } else if (isPanning.value && e instanceof MouseEvent) {
+      gesture.move(e);
+      translateX.value += gesture.delta.value.x;
+      translateY.value += gesture.delta.value.y;
     }
-
-    // Mouse interaction
-    if (!spacePressed.value) {
-      isPanning.value = false;
-      return;
-    }
-
-    const deltaX = e.clientX - lastX.value;
-    const deltaY = e.clientY - lastY.value;
-    translateX.value += deltaX;
-    translateY.value += deltaY;
-    lastX.value = e.clientX;
-    lastY.value = e.clientY;
   };
 
   const endPan = () => {
     isPanning.value = false;
     lastScale.value = 1;
     initialDistance.value = 0;
+    gesture.end();
+  };
+
+  const handleKeyboardZoom = (e: KeyboardEvent) => {
+    // Ignore if user is typing in an input field
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+    const key = e.key;
+    if (key === '+' || key === '=') {
+      e.preventDefault();
+      // Zoom in - use center of the viewport as the zoom point
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      updateZoom(1.1, centerX, centerY);
+    } else if (key === '-' || key === '_') {
+      e.preventDefault();
+      // Zoom out - use center of the viewport as the zoom point
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      updateZoom(0.9, centerX, centerY);
+    }
   };
 
   // Set up event listeners
-  useEventListener(window, 'keydown', handleKeyDown);
-  useEventListener(window, 'keyup', handleKeyUp);
-  useEventListener(window, 'wheel', handleZoom, { passive: false });
+  useEventListener(window, 'mousemove', pan);
+  useEventListener(window, 'touchmove', pan, { passive: false });
+  useEventListener(window, 'mouseup', endPan);
+  useEventListener(window, 'mouseleave', endPan);
+  useEventListener(window, 'touchend', endPan);
+  useEventListener(window, 'touchcancel', endPan);
+  useEventListener(window, 'keydown', handleKeyboardZoom);
 
   return {
     scale,
     translateX,
     translateY,
     isPanning,
-    spacePressed,
-    isTouchDevice,
     startPan,
     pan,
     endPan,
