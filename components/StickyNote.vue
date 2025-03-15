@@ -9,7 +9,7 @@
       v-if="props.isSelected"
     />
 
-    <textarea
+    <!-- <textarea
       v-if="isEditing"
       v-model="text"
       class="w-full h-full p-6 bg-transparent resize-none focus:outline-none text-lg font-medium leading-tight"
@@ -25,7 +25,8 @@
       @dblclick.stop="startEditing"
     >
       {{ text || "Enter your note" }}
-    </div>
+    </div> -->
+    <StickyEditor @update="updateText" :value="text"/>
   </div>
 </template>
 
@@ -55,10 +56,8 @@ async function startEditing() {
   textArea.value?.focus();
 }
 
-function updateText(e: Event) {
-  const target = e.target as HTMLTextAreaElement;
-  text.value = target.value;
-  noteStore.updateNoteContent(props.itemId, { text: text.value });
+function updateText(text: string) {
+  noteStore.updateNoteContent(props.itemId, { text: text });
 }
 
 function updateColor(newColor: string) {

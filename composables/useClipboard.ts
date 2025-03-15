@@ -13,10 +13,12 @@ export function useClipboard() {
     const { updateItemPosition } = useItemManagement();
 
   const handlePaste = async (e: ClipboardEvent) => {
+    
     // Ignore if user is typing in an input field
     if (
       document.activeElement instanceof HTMLInputElement ||
-      document.activeElement instanceof HTMLTextAreaElement
+      document.activeElement instanceof HTMLTextAreaElement ||
+      !(document.activeElement?.classList.contains('board'))
     ) {
       return;
     }

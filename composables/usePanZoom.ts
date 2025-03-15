@@ -29,7 +29,7 @@ export function usePanZoom() {
   const gesture = useGesture();
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.code === 'Space' && !spacePressed.value && !e.repeat && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+    if (e.code === 'Space' && !spacePressed.value && !e.repeat && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement) && !(e.target?.classList.contains('tiptap'))) {
       spacePressed.value = true;
       e.preventDefault();
     }
