@@ -264,7 +264,7 @@ const closeMenu = () => {
   width: 10px;
   height: 10px;
   background: transparent;
-  border-bottom-right-radius: 10px;
+  border-bottom-right-radius: 5px;
   border-right: 4px solid rgba(0, 0, 0, 0.1);
   border-bottom: 4px solid rgba(0, 0, 0, 0.1);
   border-top: none;
