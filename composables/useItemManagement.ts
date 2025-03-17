@@ -17,7 +17,7 @@ export function useItemManagement() {
     return noteStore.addNote('New note...', {
       x: position.x,
       y: position.y,
-      color: 'yellow',
+      color: '#FFD700',
       width: 300,
       height: 200,
       lock: false,

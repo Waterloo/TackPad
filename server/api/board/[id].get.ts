@@ -35,7 +35,14 @@ async function getWelcomeBoard(board_id: string) {
         id: `STICKY-${nanoid(10)}`,
         kind: 'note',
         content: {
-          text: 'Welcome to your board!\nTry adding more notes and todo lists.',
+          text: ` <h1>Welcome to your board!</h1>
+  <p>Try adding more notes and todo lists.</p>
+  <h2>Quick Tips:</h2>
+  <ul>
+    <li>
+      <p>Double-click to edit notes</p>
+    </li>
+    </ul>`,
           color: '#FFD700'
         },
         x_position: 100,
