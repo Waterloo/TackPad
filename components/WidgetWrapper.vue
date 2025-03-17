@@ -92,6 +92,7 @@ const closeMenu = () => {
     @pointercancel.stop="stopInteraction"
     @pointerleave.stop="stopInteraction"
     @click.stop="$emit('select', props.itemId)"
+    @wheel="(e) => isSelected ? e.stopPropagation() : e.preventDefault()"
   >
     <div class="widget-header-minimal">
       <div
