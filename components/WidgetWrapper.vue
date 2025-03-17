@@ -92,8 +92,9 @@ const closeMenu = () => {
     @pointercancel.stop="stopInteraction"
     @pointerleave.stop="stopInteraction"
     @click.stop="$emit('select', props.itemId)"
-    @wheel="(e) => isSelected ? e.stopPropagation() : e.preventDefault()"
+    @wheel="(e) => isSelected ? e.stopPropagation() : e.preventDefault() // prevent panning when scrolled inside widget"
   >
+
     <div class="widget-header-minimal">
       <div
         v-if="!props.isLocked"
