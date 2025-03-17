@@ -106,7 +106,7 @@ const closeMenu = () => {
         title="More Options"
       >
         <transition name="fade">
-          <div v-if="isSelected" class="widget-menu rounded-xl shadow-lg">
+          <div v-if="isSelected && !isMoving" class="widget-menu rounded-xl shadow-lg">
             <button
               @click.stop="handleMenuAction('delete', $event)"
               class="menu-item"
