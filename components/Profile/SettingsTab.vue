@@ -14,7 +14,6 @@ const colorScheme = ref('system') // 'light', 'dark', or 'system'
 onMounted(() => {
   // Get saved preference from localStorage
   const savedScheme = localStorage.getItem('color-scheme')
-  
   if (savedScheme) {
     colorScheme.value = savedScheme
     applyColorScheme(savedScheme)
@@ -139,7 +138,9 @@ function handleDeleteBoard() {
         </div>
       </div>
     </div>
-    <div v-if="!isOldBoard && isOwner">
+
+    <div v-if="isOldBoard!== true && isOwner === true">
+      
       <div>
         <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
         Delete Board

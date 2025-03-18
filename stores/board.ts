@@ -51,7 +51,7 @@ export const useBoardStore = defineStore('board', () => {
       const raw = await response.json()
       const boardData = raw.data
       const settingsData = raw.settings
-      isOldBoard.value = raw.isOldBoard
+      isOldBoard.value = raw.OldBoard
       isOwner.value = raw.isOwner
       settings.value = settingsData
 
@@ -180,6 +180,8 @@ export const useBoardStore = defineStore('board', () => {
     selectedId,
     scale,
     password,
+    isOldBoard,
+    isOwner,
 
     // Actions
     initializeBoard,
