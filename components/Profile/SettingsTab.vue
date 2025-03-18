@@ -1,6 +1,12 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import DeleteBoardModal from './Delete.vue'
+import { useBoardStore } from '~/stores/board'
 
+const boardStore = useBoardStore()
+
+const isOldBoard = computed(() => boardStore.isOldBoard)
+const isOwner = computed(() => boardStore.isOwner)
 // Color scheme settings
 const colorScheme = ref('system') // 'light', 'dark', or 'system'
 
@@ -37,6 +43,12 @@ const applyColorScheme = (scheme) => {
     root.classList.toggle('dark', scheme === 'dark')
   }
 }
+let deleteOpen = ref(false)
+
+const {deleteBoard} = useBoard()
+function handleDeleteBoard() {
+  deleteBoard()
+  }
 </script>
 
 <template>
@@ -127,6 +139,24 @@ const applyColorScheme = (scheme) => {
         </div>
       </div>
     </div>
+    <div v-if="!isOldBoard && isOwner">
+      <div>
+        <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+        Delete Board
+      </h3>
+      <button
+        @click="deleteOpen = true"
+        class="delete-button"
+      >
+        Delete Board
+      </button>
+      <DeleteBoardModal
+        v-model="deleteOpen"
+        @delete-board="handleDeleteBoard"
+      />
+      </div>
+      
+    </div>
   </div>
 </template>
 
@@ -134,4 +164,16 @@ const applyColorScheme = (scheme) => {
 .settings-tab {
   min-height: 300px;
 }
+
+.delete-button {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  background-color: #EF4444;
+  color: white;
+  border: none;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
 </style>
