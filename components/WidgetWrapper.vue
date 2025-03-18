@@ -92,7 +92,9 @@ const closeMenu = () => {
     @pointercancel.stop="stopInteraction"
     @pointerleave.stop="stopInteraction"
     @click.stop="$emit('select', props.itemId)"
+    @wheel="(e) => isSelected ? e.stopPropagation() : e.preventDefault()"
   >
+
     <div class="widget-header-minimal">
       <div
         v-if="!props.isLocked"
@@ -106,7 +108,7 @@ const closeMenu = () => {
         title="More Options"
       >
         <transition name="fade">
-          <div v-if="isSelected" class="widget-menu rounded-xl shadow-lg">
+          <div v-if="isSelected && !isMoving" class="widget-menu rounded-xl shadow-lg">
             <button
               @click.stop="handleMenuAction('delete', $event)"
               class="menu-item"
@@ -264,7 +266,7 @@ const closeMenu = () => {
   width: 10px;
   height: 10px;
   background: transparent;
-  border-bottom-right-radius: 10px;
+  border-bottom-right-radius: 5px;
   border-right: 4px solid rgba(0, 0, 0, 0.1);
   border-bottom: 4px solid rgba(0, 0, 0, 0.1);
   border-top: none;
