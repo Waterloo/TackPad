@@ -4,6 +4,7 @@ import { BOARDS } from '~/server/database/schema';
 import { Board } from '~/types/board';
 
 export default defineEventHandler(async (event) => {
+  
   const boardId = event.context.params?.id;
 
   if (!boardId) {

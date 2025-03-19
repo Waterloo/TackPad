@@ -59,7 +59,7 @@
       </button>
   
       <a
-        @click.prevent="getBookMarkURL()"
+        :href="getBookMarkURL()"
         class="flex group p-1.5 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-full transition-colors cursor-pointer"
         title="Add Bookmark"
       >

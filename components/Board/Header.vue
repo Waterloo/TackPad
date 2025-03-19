@@ -39,12 +39,12 @@
           Create New TackPad +
         </NuxtLink>
       </div>
+     
     </div>
   </template>
   
   <script setup lang="ts">
   import { useBoard } from '~/composables/useBoard';
-  
   const { 
     boardStore, 
     editTitle, 

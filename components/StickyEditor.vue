@@ -1,5 +1,5 @@
 <template>
-    <editor-content :editor="editor" class="h-full px-1"/>
+    <editor-content :editor="editor" class="h-full px-1 overflow-auto"/>
   </template>
   
   <script setup>

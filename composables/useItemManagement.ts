@@ -4,6 +4,7 @@ import {useTodoStore} from '~/stores/todoStore'
 import {useTimerStore} from '~/stores/timerStore'
 import {useTextWidgetStore} from '~/stores/textWidgetStore'
 import { useItemStore } from '~/stores/itemStore';
+import { usePanZoom } from '~/composables/usePanZoom';
 
 export function useItemManagement() {
   const boardStore = useBoardStore();
@@ -12,12 +13,14 @@ export function useItemManagement() {
     const timerStore = useTimerStore();
     const textWidgetStore=useTextWidgetStore()
     const itemStore = useItemStore()
+    const { scale, translateX, translateY } = usePanZoom();
+    
   const addNote = () => {
-    const position = calculateCenterPosition(300, 200);
+    const position = calculateCenterPosition(300, 200, 'note');
     return noteStore.addNote('New note...', {
       x: position.x,
       y: position.y,
-      color: 'yellow',
+      color: '#FFD700',
       width: 300,
       height: 200,
       lock: false,
@@ -25,7 +28,7 @@ export function useItemManagement() {
   };
 
   const addTodoList = () => {
-    const position = calculateCenterPosition(300, 300);
+    const position = calculateCenterPosition(300, 300, 'todo');
     return todoStore.addTodoList({
       x: position.x,
       y: position.y,
@@ -36,7 +39,7 @@ export function useItemManagement() {
   };
 
   const addTimer = () => {
-    const position = calculateCenterPosition(300, 150);
+    const position = calculateCenterPosition(300, 150, 'timer');
     return timerStore.addTimer({
       x: position.x,
       y: position.y,
@@ -47,7 +50,7 @@ export function useItemManagement() {
   };
 
   const addTextWidget = () => {
-    const position = calculateCenterPosition(300, 100);
+    const position = calculateCenterPosition(300, 100, 'text');
     return textWidgetStore.addTextWidget({
       x: position.x,
       y: position.y,
@@ -85,11 +88,39 @@ export function useItemManagement() {
   };
 
   // Helper function to calculate center position
-  const calculateCenterPosition = (width: number, height: number) => {
-    // This should be adjusted based on the current view position and scale
+  const calculateCenterPosition = (width: number, height: number, itemType: string = '') => {
+    // Get the current viewport center in board coordinates
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Convert screen coordinates to board coordinates 
+    // (taking into account current pan and zoom)
+    const screenCenterX = viewportWidth / 2;
+    const screenCenterY = viewportHeight / 2;
+    
+    // Calculate the board coordinates for the center of the screen
+    const boardCenterX = (screenCenterX - translateX.value) / scale.value;
+    const boardCenterY = (screenCenterY - translateY.value) / scale.value;
+    
+    // Check for existing items of the same type to avoid stacking
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    if (boardStore.board?.data.items && itemType) {
+      const sameTypeItems = boardStore.board.data.items.filter(item => item.kind === itemType);
+      
+      // Apply a subtle offset if there are items of the same type
+      if (sameTypeItems.length > 0) {
+        // Calculate offset based on the number of existing items
+        // This creates a cascading effect for items of the same type
+        offsetX = 25 * (sameTypeItems.length % 4); // Modulo to limit horizontal spread
+        offsetY = 25 * Math.floor(sameTypeItems.length / 4); // Divide to create rows
+      }
+    }
+    
     return {
-      x: -width / 2,
-      y: -height / 2,
+      x: boardCenterX - width / 2 + offsetX,
+      y: boardCenterY - height / 2 + offsetY,
     };
   };
 

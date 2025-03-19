@@ -69,6 +69,8 @@ definePageMeta({
   alias: '/'
 })
 
+const deleteItemConfirm = ref(false);
+
 </script>
 <template>
  <div
@@ -118,7 +120,7 @@ definePageMeta({
             @select="boardStore.setSelectedId"
             @update:position="(updates:Object) => updateItemPosition(item.id, updates)"
             :shadow="item.kind === 'text'"
-            @delete="handleDelete"
+            @delete="deleteItemConfirm = true"
             @lock="(locked:boolean) => toggleLock(item.id, locked)"
           >
             <StickyNote
@@ -169,6 +171,7 @@ definePageMeta({
     
     <BoardPasswordDialog />
     <OfflineIndicator />
+    <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
   </div>
 </template>
 <style scoped>

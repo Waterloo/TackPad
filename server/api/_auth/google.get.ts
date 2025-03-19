@@ -17,6 +17,7 @@ export default defineOAuthGoogleEventHandler({
       user: {
         name: user.name,
         providerID: user.sub,
+        username: null,
         email: user.email,
       },
       loggedInAt: new Date()
@@ -27,6 +28,7 @@ export default defineOAuthGoogleEventHandler({
         id: nanoid(),
         firstName: user.name || '',
         email: user.email,
+        username: null,
         providerID: user.sub,
         authProvider: 'google',
         createdAt: new Date().toISOString()

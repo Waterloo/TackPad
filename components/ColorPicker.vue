@@ -1,12 +1,12 @@
 <template>
   <div 
-    class="absolute bottom-full left-0 mb-2 bg-white rounded-lg shadow-lg p-2 flex gap-2"
+    class="flex gap-2 h-full items-center px-2 relative"
     @click.stop
   >
-    <button
+      <button
       v-for="color in colors"
       :key="color"
-      class="w-6 h-6 rounded-full border border-gray-200 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="w-4 h-4 rounded-full border border-gray-200 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500"
       :style="{ backgroundColor: color }"
       :class="{ 'ring-2 ring-blue-500': modelValue === color }"
       :aria-label="`Select ${getColorName(color)} color`"
