@@ -14,6 +14,7 @@ export default defineOAuthGitHubEventHandler({ config: {
       await setUserSession(event, {
         user: {
           name: user.login,
+          username: null,
           providerID: user.id,
           email: user.email
         },
@@ -25,6 +26,7 @@ export default defineOAuthGitHubEventHandler({ config: {
         await db.insert(tables.PROFILE).values({
           id: nanoid(),
           firstName: user.login || '',
+          username: null,
           email: user.email,
           authProvider: 'github',
           providerID: user.id.toString(),
