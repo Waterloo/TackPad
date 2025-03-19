@@ -1,7 +1,7 @@
 <template>
   
   <div
-    class="w-full h-full flex flex-col relative min-h-72 min-w-72"
+    class="w-full h-full flex flex-col relative min-h-72 min-w-72 py-4"
     :style="{ backgroundColor: color }"
   >
   <!-- <ColorPicker

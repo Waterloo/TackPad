@@ -5,9 +5,17 @@ export const BOARDS = sqliteTable('boards', {
     data: text("data", {mode:"json"})
 })
 
+export const BOARD_SETTINGS = sqliteTable('board_settings', {
+    board_id: text('board_id').primaryKey(),
+    user_token: text('user_token'),
+    profile_id: text('profile_id'),
+    last_accessed: text('last_accessed')
+})
+
 export const PROFILE = sqliteTable('Profile', {
     id: text('id').primaryKey(),
     firstName: text('firstName'),
+    username: text('username').unique(),
     email: text('email'),
     authProvider: text('authProvider'),
     providerID: text('providerID'),
