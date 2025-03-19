@@ -108,7 +108,7 @@ const closeMenu = () => {
         title="More Options"
       >
         <transition name="fade">
-          <div v-if="isSelected && !isMoving" class="widget-menu rounded-xl shadow-lg">
+          <div v-show="isSelected && !isMoving" class="widget-menu rounded-xl shadow-lg">
             <button
               @click.stop="handleMenuAction('delete', $event)"
               class="menu-item"
@@ -129,6 +129,8 @@ const closeMenu = () => {
                 class="h-4 w-4 sm:h-4 sm:w-4"
               />
             </button>
+
+            <div class="widget-custom-item" :class="props.itemId"></div>
           </div>
         </transition>
       </div>
@@ -292,13 +294,14 @@ const closeMenu = () => {
   border-radius: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   z-index: 20;
-  overflow: hidden;
+  /* overflow: hidden; */
+  width: auto;
   display: flex;
 }
 
 .menu-item {
   display: block;
-  width: 100%;
+  width: max-content;
   padding: 8px 12px;
   text-align: left;
   border: none;
