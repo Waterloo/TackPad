@@ -15,6 +15,7 @@ export const BOARD_SETTINGS = sqliteTable('board_settings', {
 export const PROFILE = sqliteTable('Profile', {
     id: text('id').primaryKey(),
     firstName: text('firstName'),
+    username: text('username').unique(),
     email: text('email'),
     authProvider: text('authProvider'),
     providerID: text('providerID'),

@@ -42,9 +42,14 @@ export default defineEventHandler(async (event) => {
       profile_id: null,
       last_accessed: new Date().toISOString()
     };
-    
-    await db.insert(BOARD_SETTINGS).values(newSettings);
-    responseSettings = [newSettings];
+    // handle conflict
+    const insertResult = await db.insert(BOARD_SETTINGS)
+      .values(newSettings)
+      .onConflictDoNothing({ target: BOARD_SETTINGS.board_id });
+
+    responseSettings = insertResult.rowsAffected > 0 
+      ? [newSettings]
+      : await db.select().from(BOARD_SETTINGS).where(eq(BOARD_SETTINGS.board_id, id));
     
     oldBoard = false;
   } else if (boardExists && !settingsExist) {

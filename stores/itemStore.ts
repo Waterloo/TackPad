@@ -7,6 +7,12 @@ export const useItemStore = defineStore('items', () => {
   // Get reference to the board store
   const boardStore = useBoardStore()
   
+
+  const getItemById = (itemId: string) => {
+    if (!boardStore.board) return null
+    return boardStore.board.data.items.find(item => item.id === itemId)
+  }
+
   // Generic update item function
   const updateItem = (itemId: string, updates: Partial<BoardItem>) => {
     if (!boardStore.board) return
@@ -38,6 +44,7 @@ export const useItemStore = defineStore('items', () => {
   
   return {
     updateItem,
-    updateItemPosition
+    updateItemPosition,
+    getItemById
   }
 })

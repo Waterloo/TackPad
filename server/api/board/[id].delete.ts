@@ -46,8 +46,9 @@ export default defineEventHandler(async (event) => {
   
   // If we reach here, user is authorized to delete the board
   try {
-    // Delete both board and settings
+    // Delete board settings first
     await db.delete(BOARD_SETTINGS).where(eq(BOARD_SETTINGS.board_id, id));
+    // Delete the board
     await db.delete(BOARDS).where(eq(BOARDS.board_id, id));
     
     return {
