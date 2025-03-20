@@ -1,4 +1,4 @@
-import { sqliteTable, text, SQLiteBlobJson } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, SQLiteBlobJson, integer } from 'drizzle-orm/sqlite-core'
 
 export const BOARDS = sqliteTable('boards', {
     board_id: text('board_id').primaryKey(),
@@ -6,10 +6,14 @@ export const BOARDS = sqliteTable('boards', {
 })
 
 export const BOARD_SETTINGS = sqliteTable('board_settings', {
-    board_id: text('board_id').primaryKey(),
+    id: text('id').primaryKey().unique(),
+    board_id: text('board_id'),
     user_token: text('user_token'),
     profile_id: text('profile_id'),
-    last_accessed: text('last_accessed')
+    title: text('title'),
+    is_owner: integer('is_owner', { mode: 'boolean' }).default(false),
+    read_only: integer('read_only', { mode: 'boolean' }).default(false),
+    last_accessed: text('last_accessed'),
 })
 
 export const PROFILE = sqliteTable('Profile', {

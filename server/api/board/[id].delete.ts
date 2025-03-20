@@ -1,10 +1,13 @@
 import { BOARDS, BOARD_SETTINGS } from '~/server/database/schema';
 import { useDrizzle } from '~/server/utils/drizzle';
 import { verifyUserToken } from '~/server/utils/tokenManagement';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
+  const profileId = event.context.session?.secure?.profile_id || null;
+
   const id = decodeURIComponent(event.context.params?.id || '');
+  
   if (!id) {
     throw createError({
       statusCode: 400,
@@ -23,20 +26,33 @@ export default defineEventHandler(async (event) => {
     });
   }
   
-  // Check if settings exist
-  const settings = await db.select().from(BOARD_SETTINGS).where(eq(BOARD_SETTINGS.board_id, id)).limit(1);
+  // Find the owner settings for this board
+  const ownerSettings = await db.select()
+    .from(BOARD_SETTINGS)
+    .where(
+      and(
+        eq(BOARD_SETTINGS.board_id, id),
+        eq(BOARD_SETTINGS.is_owner, true)
+      )
+    )
+    .limit(1);
   
-  // If board exists but has no settings (oldBoard), we can't verify ownership
-  // Decision: Either prevent deletion or allow it (depending on your security requirements)
-  if (settings.length === 0) {
+  // Check if the board has an owner
+  if (ownerSettings.length === 0) {
     throw createError({
       statusCode: 403,
       message: 'Cannot delete boards without ownership information'
     });
   }
   
-  // Verify user is the owner of this board
-  const isOwner = verifyUserToken(event, settings[0].user_token);
+  // Verify if current user is the owner
+  let isOwner = false;
+  if (profileId && ownerSettings[0].profile_id) {
+    isOwner = profileId === ownerSettings[0].profile_id;
+  } else {
+    isOwner = verifyUserToken(event, ownerSettings[0].user_token);
+  }
+  
   if (!isOwner) {
     throw createError({
       statusCode: 403,
@@ -46,8 +62,9 @@ export default defineEventHandler(async (event) => {
   
   // If we reach here, user is authorized to delete the board
   try {
-    // Delete board settings first
+    // Delete all settings for this board
     await db.delete(BOARD_SETTINGS).where(eq(BOARD_SETTINGS.board_id, id));
+    
     // Delete the board
     await db.delete(BOARDS).where(eq(BOARDS.board_id, id));
     

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `board_settings_id_unique` ON `board_settings` (`id`);
