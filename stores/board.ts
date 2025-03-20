@@ -166,7 +166,7 @@ export const useBoardStore = defineStore('board', () => {
     }
   }
   // Create debounced version of saveBoard
-  const debouncedSaveBoard = debounce(saveBoard, 1000)
+  const debouncedSaveBoard = debounce(saveBoard, 6000)
   
   useHead({
     title: computed(() => `${(board.value?.data.title || 'TackPad')} | TackPad`),
