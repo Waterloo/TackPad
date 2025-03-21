@@ -6,7 +6,7 @@ export const BOARDS = sqliteTable('boards', {
 })
 
 export const BOARD_SETTINGS = sqliteTable('board_settings', {
-    id: text('id').primaryKey().unique(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
     board_id: text('board_id'),
     user_token: text('user_token'),
     profile_id: text('profile_id'),
