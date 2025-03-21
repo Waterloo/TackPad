@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import DeleteBoardModal from './Delete.vue'
 import { useBoardStore } from '~/stores/board'
 
@@ -7,6 +7,16 @@ const boardStore = useBoardStore()
 
 const isOldBoard = computed(() => boardStore.isOldBoard)
 const isOwner = computed(() => boardStore.isOwner)
+const boardSettings = computed(() => boardStore.boardSettings || {})
+
+// Toggle handler for board settings
+const updateBoardSetting = (key, value) => {
+  if (!isOwner.value || isOldBoard.value) return
+  
+  const update = { [key]: value }
+  boardStore.updateSettings(update)
+}
+
 // Color scheme settings
 const colorScheme = ref('system') // 'light', 'dark', or 'system'
 
@@ -135,6 +145,36 @@ function handleDeleteBoard() {
               </span>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Board Settings Section -->
+    <div v-if="!isOldBoard && isOwner">
+      <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+        Board Settings
+      </h3>
+      
+      <div class="space-y-4">
+        <!-- Read-only mode toggle -->
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Read-only Mode
+            </h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              When enabled, only you can modify the board.
+            </p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              class="sr-only peer" 
+              :checked="boardSettings.read_only"
+              @change="updateBoardSetting('read_only', !boardSettings.read_only)"
+            >
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+          </label>
         </div>
       </div>
     </div>

@@ -18,7 +18,10 @@
           @keypress.enter="startEditingTitle"
           tabindex="1"
         >
-          {{ boardStore.board?.data.title || 'New TackPad' }}
+          {{ boardStore.board?.data.title || 'New TackPad' }} 
+          <div>
+        <span v-if="!isOwner&&isReadOnly" class="text-gray-500 text-sm">(Read Only)</span>
+       </div>
         </h1>
         <input 
           v-else 
@@ -26,7 +29,9 @@
           :value="boardStore.board?.data.title || 'New TackPad'" 
           @blur="(e: FocusEvent) => saveTitle((e.target as HTMLInputElement).value)"
         />
+      
       </div>
+      
       <div class="items py-2 flex flex-col gap-2" v-if="isBoardListOpen">
         <div 
           class="text-sm cursor-pointer" 
@@ -45,6 +50,11 @@
   
   <script setup lang="ts">
   import { useBoard } from '~/composables/useBoard';
+
+  defineProps<{
+    isOwner: boolean,
+    isReadOnly: boolean
+  }>();
   const { 
     boardStore, 
     editTitle, 

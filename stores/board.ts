@@ -22,6 +22,7 @@ export const useBoardStore = defineStore('board', () => {
   const password = ref(null)
   const boards = useLocalStorage<Boards>('boards', {})
   const settings = useLocalStorage<BoardSettings>('settings', {})
+  const boardSettings = computed(() => settings.value[board.value?.board_id || ''])
 
   // Get route at the store level
   const route = useRoute()
@@ -53,9 +54,6 @@ export const useBoardStore = defineStore('board', () => {
       const settingsData = raw.settings
       isOldBoard.value = raw.OldBoard
       isOwner.value = raw.isOwner
-      settings.value = settingsData
-
-      
       if(boardData.data.encrypted){
         if(!password.value){
           await usePasswordDialog().showPasswordDialog()
@@ -76,6 +74,7 @@ export const useBoardStore = defineStore('board', () => {
         board_id: board.value!.board_id, 
         title: board.value?.data.title || 'New TackPad'
       }
+      settings.value[board.value!.board_id] = settingsData
   
       // Redirect if needed (for 'create' or when board ID doesn't match route)
       if(boardId === 'create' || (route?.params?.id && route.params.id !== board.value?.board_id)){
@@ -117,6 +116,11 @@ export const useBoardStore = defineStore('board', () => {
 
   const saveBoard = async () => {
     if (!board.value) return
+    if (boardSettings.value?.read_only && !isOldBoard.value && !isOwner.value){
+      navigateTo(`/board/${board.value?.board_id}?error=true&title=Board+is+read+only&message=Board+is+read+only+no+actions+you+perform+will+be+saved&actionLink={"url":"/board/${board.value?.board_id}","text":"Go+Back"}`)
+      initializeBoard(board.value?.board_id)
+      return
+    }
 
     let {data, board_id} = unref(board.value)
     let encrypted: any | null = null;
@@ -133,12 +137,43 @@ export const useBoardStore = defineStore('board', () => {
       })
 
       if (!response.ok) throw new Error('Failed to save board')
+      
+      // Get response data including updated settings
+      const responseData = await response.json()
+      
+      // Update local settings if settings were returned
+      if (responseData.settings) {
+        settings.value[board_id] = responseData.settings
+      }
     } catch (err) {
       error.value = 'Failed to save board'
       console.error(err)
     }
   }
+  const updateSettings = async (update: any) => {
+    if (!board.value) return
+    if(!boardSettings.value) return
 
+    try {
+      const response = await fetch(`/api/settings/${boardSettings.value.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(update)
+      })
+      
+      if (!response.ok) throw new Error('Failed to update settings')
+      
+      // Get the updated settings from the response
+      const updatedSettings = await response.json()
+      
+      // Update local settings
+      settings.value[board.value.board_id] = updatedSettings
+      
+    } catch(err) {
+      error.value = 'Failed to update settings'
+      console.error(err)
+    }
+  }
 
   const deleteBoard = async () => {
     if (!board.value) return
@@ -182,7 +217,7 @@ export const useBoardStore = defineStore('board', () => {
     password,
     isOldBoard,
     isOwner,
-
+    boardSettings,
     // Actions
     initializeBoard,
     setSelectedId,
@@ -192,6 +227,7 @@ export const useBoardStore = defineStore('board', () => {
     saveBoard,
     deleteBoard,
     debouncedSaveBoard,
+    updateSettings,
     boards: computed(() => boards.value),
   }
 })

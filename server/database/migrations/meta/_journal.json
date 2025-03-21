@@ -57,6 +57,13 @@
       "when": 1742439055378,
       "tag": "0007_pale_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1742491717665,
+      "tag": "0008_smooth_madripoor",
+      "breakpoints": true
     }
   ]
 }

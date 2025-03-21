@@ -33,6 +33,17 @@ const { handlePaste } = useClipboard();
 
 const boardRef = ref<HTMLElement | null>(null);
 
+const boardSettings = computed(() => boardStore.boardSettings);
+
+
+const errorModal = computed(() => {
+  return {
+    modelValue: Boolean(route.query.error) || false,
+    title: route.query.title as string || 'Error',
+    message: route.query.message as string || 'An error occurred',
+    actionLink:`/board/${route.params.id}` || null
+  };
+});
 
 
 // Initialize board
@@ -53,6 +64,8 @@ onMounted(async () => {
   
   // Ensure the board element has focus to capture keyboard events
   boardRef.value?.focus();
+
+ 
 });
 
 // Initialize global shortcuts
@@ -103,6 +116,7 @@ const deleteItemConfirm = ref(false);
       <div
         class="relative w-full h-full"
         :style="{ transform: 'translate(50%, 50%)' }"
+        :key="errorModal.modelValue"
       >
         <template v-if="boardStore.board?.data.items">
           <WidgetWrapper
@@ -117,11 +131,14 @@ const deleteItemConfirm = ref(false);
             }"
             :is-selected="boardStore.selectedId === item.id"
             :is-locked="item.lock"
+            :is-read-only="boardSettings?.read_only"
+            :is-owner="boardSettings?.is_owner"
             @select="boardStore.setSelectedId"
             @update:position="(updates:Object) => updateItemPosition(item.id, updates)"
             :shadow="item.kind === 'text'"
             @delete="deleteItemConfirm = true"
             @lock="(locked:boolean) => toggleLock(item.id, locked)"
+            
           >
             <StickyNote
               v-if="item.kind === 'note'"
@@ -164,12 +181,13 @@ const deleteItemConfirm = ref(false);
       </div>
     </div>
 
-    <BoardHeader />
+    <BoardHeader :isOwner="boardSettings?.is_owner" :isReadOnly="boardSettings?.read_only" />
     <BoardToolbar />
   
       <ProfilePopup />
     
     <BoardPasswordDialog />
+    <BoardError v-model="errorModal.modelValue" :title="errorModal.title" :message="errorModal.message" :action-link="errorModal.actionLink"  />
     <OfflineIndicator />
     <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
   </div>

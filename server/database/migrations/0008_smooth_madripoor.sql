@@ -1,0 +1,1 @@
+ALTER TABLE `board_settings` ADD `last_modified` text;

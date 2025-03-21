@@ -10,6 +10,8 @@ const props = defineProps<{
   };
   itemId: string;
   isSelected: boolean;
+  isReadOnly?: boolean;
+  isOwner?: boolean;
   shadow?: boolean;
   isLocked?: boolean;
 }>();
@@ -94,6 +96,7 @@ const closeMenu = () => {
     @click.stop="$emit('select', props.itemId)"
     @wheel="(e) => isSelected ? e.stopPropagation() : e.preventDefault()"
   >
+ 
 
     <div class="widget-header-minimal">
       <div
@@ -106,6 +109,7 @@ const closeMenu = () => {
       <div
         class="widget-controls w-full flex justify-between"
         title="More Options"
+        :class="isReadOnly && !isOwner ? 'hidden' : 'block'"
       >
         <transition name="fade">
           <div v-show="isSelected && !isMoving" class="widget-menu rounded-xl shadow-lg">
@@ -135,7 +139,8 @@ const closeMenu = () => {
         </transition>
       </div>
     </div>
-    <div class="widget-content">
+    <div class="widget-content" :class="{'widget-read-only': isReadOnly&&!isOwner}">
+      
       <slot></slot>
     </div>
     <div
@@ -206,6 +211,10 @@ const closeMenu = () => {
 
 .widget-container.widget-locked {
   cursor: default;
+}
+
+.widget-read-only {
+  pointer-events: none;
 }
 
 .widget-header-minimal {

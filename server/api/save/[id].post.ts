@@ -30,13 +30,14 @@ export default defineEventHandler(async (event) => {
    .limit(1);
 
    if(ownerSettings.length > 0 && ownerSettings[0].read_only === true){
-    if(!profileId) {
+    if(profileId) {
       if(ownerSettings[0].profile_id !== profileId) {
         throw createError({
           statusCode: 403,
           message: 'Unauthorized: Only the board owner can save this board'
         });
       }
+      
     }else{
      const isOwner = verifyUserToken(event, ownerSettings[0].user_token);
      if(!isOwner) {
@@ -50,9 +51,39 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event) as Board;
 
-  await useDrizzle().insert(BOARDS).values(body).onConflictDoUpdate({ target: BOARDS.board_id, set: { data: body.data } })
+  await db.insert(BOARDS).values(body).onConflictDoUpdate({ target: BOARDS.board_id, set: { data: body.data } })
+  if(profileId) {
+    await db.update(BOARD_SETTINGS).set({ last_modified: new Date().toISOString() }).where(and(eq(BOARD_SETTINGS.board_id, boardId), eq(BOARD_SETTINGS.profile_id, profileId)))
+  }else{
+    await db.update(BOARD_SETTINGS).set({ last_modified: new Date().toISOString() }).where(and(eq(BOARD_SETTINGS.board_id, boardId), eq(BOARD_SETTINGS.user_token, userToken)))
+  }
+  
+  // Get user's specific settings for this board
+  let userSettings;
+  if (profileId) {
+    userSettings = await db.select()
+      .from(BOARD_SETTINGS)
+      .where(
+        and(
+          eq(BOARD_SETTINGS.board_id, boardId),
+          eq(BOARD_SETTINGS.profile_id, profileId)
+        )
+      )
+      .limit(1);
+  } else if (userToken) {
+    userSettings = await db.select()
+      .from(BOARD_SETTINGS)
+      .where(
+        and(
+          eq(BOARD_SETTINGS.board_id, boardId),
+          eq(BOARD_SETTINGS.user_token, userToken)
+        )
+      )
+      .limit(1);
+  }
 
   return {
-    success: true
+    success: true,
+    settings: userSettings && userSettings.length > 0 ? userSettings[0] : null
   };
 });

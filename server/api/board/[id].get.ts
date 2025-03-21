@@ -4,169 +4,153 @@ import { BOARDS, BOARD_SETTINGS } from '~/server/database/schema';
 import { useDrizzle } from '~/server/utils/drizzle';
 import { setupUserToken, verifyUserToken } from '~/server/utils/tokenManagement';
 import { eq, desc, and, or } from 'drizzle-orm';
-const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
+import Content from '~/layouts/content.vue';
+const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10);
 
-export default defineEventHandler(async (event) => {
-  const id = decodeURIComponent(event.context.params?.id || '');
-  if (!id) {
+export default defineEventHandler(async(event)=>{
+  const id = decodeURIComponent(event.context.params?.id||'')
+  
+  // check for id
+  if(!id){
     throw createError({
-      statusCode: 400,
-      message: 'Board ID is required'
-    });
+      statusCode:400,
+      message:'Board ID is required'
+    })
   }
 
   const db = useDrizzle();
   const userToken = setupUserToken(event);
-  
-  // Get profile ID if user is logged in
-  const profileId = event.context.session?.secure?.profileId || null;
-  
-  // Check if board exists first
-  const board = await db.select().from(BOARDS).where(eq(BOARDS.board_id, id)).limit(1);
-  const boardExists = board.length > 0;
-  
-  // Check if settings exist for this board and user (either by token or profile ID)
-  const settings = await db.select()
-    .from(BOARD_SETTINGS)
-    .where(
-      and(
-        eq(BOARD_SETTINGS.board_id, id),
-        or(
-          eq(BOARD_SETTINGS.user_token, userToken),
-          profileId ? eq(BOARD_SETTINGS.profile_id, profileId) : undefined
-        )
-      )
-    )
-    .limit(1);
-  
-  const settingsExist = settings.length > 0;
-  
-  // Check if any settings exist for this board (to determine if it's an old board)
-  const anySettings = await db.select()
-    .from(BOARD_SETTINGS)
-    .where(eq(BOARD_SETTINGS.board_id, id))
-    .limit(1);
-  
-  const hasAnySettings = anySettings.length > 0;
-  
-  let responseData;
-  let responseSettings;
-  let oldBoard = false;
-  let isOwner = false;
-  
-  if (!boardExists) {
-    // Case 2: Board doesn't exist - create a new board and settings
-    const newBoard = await getWelcomeBoard(id);
-    responseData = newBoard;
-    
-    // Create new settings
-    const newSettings = {
-      id: nanoid(),
-      board_id: newBoard.board_id,
-      title: newBoard.data.title,
-      user_token: userToken,
-      profile_id: profileId,
-      is_owner: true,
-      last_accessed: new Date().toISOString(),
-      last_modified: new Date().toISOString()
-    };
-    
-    // Insert new settings with proper primary key handling
-    await db.insert(BOARD_SETTINGS)
-      .values(newSettings)
-      .onConflictDoUpdate({ 
-        target: [BOARD_SETTINGS.id],
-        set: { 
-          user_token: userToken,
-          profile_id: profileId,
-          last_accessed: new Date().toISOString() 
-        } 
-      });
+  const profileId = event.context.session?.secure?.profileId || null
 
-    responseSettings = [newSettings];
-    isOwner = true;
-    oldBoard = false;
-  } else if (boardExists && !hasAnySettings) {
-    // This is an old board with no settings at all - mark as oldBoard = true
-    responseData = board[0];
-    responseSettings = [{
-      id: nanoid(),
-      board_id: id,
-      title: responseData.data.title,
-      user_token: userToken,
-      profile_id: profileId,
-      is_owner: true, // Default to owner for backward compatibility
-      last_accessed: new Date().toISOString(),
-      last_modified: new Date().toISOString()
-    }];
-    isOwner = true;
-    oldBoard = true;
-  } else if (boardExists && !settingsExist) {
-    // Case 3: Board exists with settings, but this user has no settings for it yet
-    responseData = board[0];
+
+  // check if board exists
+
+  const board = await db.select().from(BOARDS).where(eq(BOARDS.board_id,id)).limit(1)
+
+  // list of boards belong to this user
+  const userBoards = await getUserBoards(db, userToken, profileId);
+
+  // CASE 1 board doesnt exist
+
+  if(board.length===0){
     
-    // Check if anyone owns this board
-    const ownerSettings = await db.select()
-      .from(BOARD_SETTINGS)
-      .where(
-        and(
-          eq(BOARD_SETTINGS.board_id, id),
-          eq(BOARD_SETTINGS.is_owner, true)
-        )
-      )
-      .limit(1);
+    // create new board
+    const newBoard = await getWelcomeBoard(id)
     
-    // Create settings for this user (non-owner if the board already has an owner)
+    // create a new settings
+
     const newSettings = {
-      id: nanoid(),
-      board_id: id,
-      title: responseData.data.title,
-      user_token: userToken,
-      profile_id: profileId,
-      is_owner: ownerSettings.length === 0, // Only set as owner if no owner exists
-      last_accessed: new Date().toISOString(),
-      last_modified: new Date().toISOString()
-    };
+      id:nanoid(),
+      board_id:newBoard.board_id,
+      title:newBoard.data.title,
+      user_token:userToken,
+      profile_id:profileId,
+      is_owner:true,
+      read_only:false,
+      last_accessed:new Date().toISOString(),
+      last_modified:new Date().toISOString()
+    }
+
+    await db.insert(BOARD_SETTINGS).values(newSettings)
+
     
-    // Insert new settings with proper primary key handling
-    await db.insert(BOARD_SETTINGS)
-      .values(newSettings)
-      .onConflictDoUpdate({ 
-        target: [BOARD_SETTINGS.id],
-        set: { 
-          user_token: userToken,
-          profile_id: profileId,
-          last_accessed: new Date().toISOString() 
-        } 
-      });
-    
-    responseSettings = [newSettings];
-    isOwner = newSettings.is_owner;
-    oldBoard = false;
-  } else {
-    // Case 1: Both board and settings exist for this user
-    responseData = board[0];
-    
-    // Update last_accessed time
-    await db.update(BOARD_SETTINGS)
-      .set({ 
-        last_accessed: new Date().toISOString(),
-        profile_id: profileId // Update profile ID if user has logged in
-      })
-      .where(
-        and(
-          eq(BOARD_SETTINGS.board_id, id),
-          eq(BOARD_SETTINGS.user_token, userToken)
+
+    return{
+      data:newBoard,
+      settings:newSettings,
+      userBoards:userBoards,
+      oldBoard:false,
+      isOwner:true
+    }
+  }
+// CASE 2 Board Exists
+
+const boardData = board[0]
+
+
+  // check for owner settings
+
+  const ownerSettings = await db.select()
+        .from(BOARD_SETTINGS)
+        .where(
+          and(
+            eq(BOARD_SETTINGS.board_id, id),
+            eq(BOARD_SETTINGS.is_owner, true)
+          )
         )
-      );
-    
-    responseSettings = settings;
-    isOwner = settings[0].is_owner;
-    oldBoard = false;
+        .limit(1);
+
+  //CASE 2 A no ownerSettings found means old board
+  if(ownerSettings.length ===0){
+    return{
+      data:boardData,
+      settings:{},
+      userBoards:userBoards,
+      oldBoard:true,
+      isOwner:true
+    }
   }
   
-  // Get all boards this user has accessed (for history/recent boards)
-  const userBoards = await db.select()
+  // check for user specific settings
+  const userSettings = await db.select().from(BOARD_SETTINGS).where(and(eq(BOARD_SETTINGS.board_id,id),or(eq(BOARD_SETTINGS.user_token,userToken),profileId ? eq(BOARD_SETTINGS.profile_id,profileId):undefined))).limit(1)
+
+  // CASE 2B owner settings exists user accessing for first time
+  if(userSettings.length==0){
+    const newSettings = {
+      id: nanoid(),
+      board_id: id,
+      title: boardData.data.title,
+      user_token: userToken,
+      profile_id: profileId,
+      read_only:ownerSettings[0]?.read_only || false,
+      is_owner: false,
+      last_accessed: new Date().toISOString(),
+      last_modified: new Date().toISOString()
+    };
+    await db.insert(BOARD_SETTINGS).values(newSettings)
+    return{
+      oldBoard:false,
+      isOwner:false,
+      data:boardData,
+      settings:newSettings,
+      userBoards:userBoards
+    }
+  }
+//  CASE 3 user settings exists
+
+const userSettingsData = userSettings[0]
+
+// updated last accessed time and profile id if logged in
+// Update object for settings
+const updateData = {
+  last_accessed: new Date().toISOString()
+};
+
+// Only update profile_id if it exists
+if(profileId) {
+  updateData.profile_id = profileId;
+}
+
+// Updated to use the specific setting id
+await db.update(BOARD_SETTINGS)
+  .set(updateData)
+  .where(eq(BOARD_SETTINGS.id, userSettingsData.id)); 
+
+return{
+  data:boardData,
+  settings:userSettingsData,
+  userBoards:userBoards,
+  oldBoard:false,
+  isOwner:userSettingsData.is_owner
+}
+})
+
+
+
+
+// Helper function to get user boards
+async function getUserBoards(db, userToken, profileId) {
+  return await db.select()
     .from(BOARD_SETTINGS)
     .where(
       or(
@@ -175,15 +159,7 @@ export default defineEventHandler(async (event) => {
       )
     )
     .orderBy(desc(BOARD_SETTINGS.last_accessed));
-  
-  return {
-    data: responseData,
-    settings: responseSettings[0],
-    userBoards: userBoards,
-    oldBoard: oldBoard,
-    isOwner: isOwner
-  };
-});
+}
 function makeUrlSafe(str: string): string {
   return str
     .toLowerCase()

@@ -14,6 +14,7 @@ export const BOARD_SETTINGS = sqliteTable('board_settings', {
     is_owner: integer('is_owner', { mode: 'boolean' }).default(false),
     read_only: integer('read_only', { mode: 'boolean' }).default(false),
     last_accessed: text('last_accessed'),
+    last_modified: text('last_modified')
 })
 
 export const PROFILE = sqliteTable('Profile', {

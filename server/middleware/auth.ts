@@ -1,4 +1,4 @@
-const PUBLIC_ROUTES = ['/api/_auth', '/api/board', '/api/bookmark','/api/metadata','/api/save']
+const PUBLIC_ROUTES = ['/api/_auth', '/api/board', '/api/bookmark','/api/metadata','/api/save','/api/settings']
 
 export default defineEventHandler(async (event) => {
   // Skip auth check during prerendering
