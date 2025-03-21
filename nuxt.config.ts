@@ -20,6 +20,13 @@ export default defineNuxtConfig({
         clientSecret: '...',
         redirectURL: '...'
       }
+    },
+    storage: {
+        bucket: "",
+        endpoint: "",
+        accessKeyId: "",
+        secretAccessKey: "",
+        region: ""
     }
   },
   hub:{
