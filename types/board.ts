@@ -74,8 +74,16 @@ export interface TextWidget extends BaseBoardItem {
   };
 }
 
+export interface ImageItem extends BaseBoardItem {
+  kind: 'image';
+  content: {
+    url: string;
+    status?: 'pending' | 'failed' | 'success';
+  };
+}
+
 // Combined types
-export type BoardItem = StickyNote | TodoList | LinkItem | TimerItem | TextWidget;
+export type BoardItem = StickyNote | TodoList | LinkItem | TimerItem | TextWidget | ImageItem;
 
 export interface Board {
   board_id: string;

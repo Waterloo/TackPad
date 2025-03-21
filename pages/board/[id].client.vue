@@ -159,6 +159,12 @@ const deleteItemConfirm = ref(false);
               :is-selected="boardStore.selectedId === item.id"
               @update:text="(text:string) => textWidgetStore.updateTextWidgetContent(item.id, text)"
             />
+            <ImageWidget
+              v-else-if="item.kind === 'image'"
+              :item-id="item.id"
+              :src="item.content.url"
+              :is-selected="boardStore.selectedId === item.id"
+            />
           </WidgetWrapper>
         </template>
       </div>

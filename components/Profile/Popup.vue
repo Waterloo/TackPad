@@ -1,5 +1,4 @@
 <script setup>
-import { ref, onMounted, onUnmounted, defineExpose } from 'vue'
 import UserTab from './UserTab.vue'
 import SettingsTab from './SettingsTab.vue'
 

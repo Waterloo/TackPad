@@ -5,11 +5,11 @@ export default defineNitroPlugin(() => {
 
   const tackpadStorage = createStorage({
     driver: s3Driver({
-      bucket: 'tackpad',
-      endpoint: 'https://s3.us-east-005.backblazeb2.com',
-      accessKeyId: '005b3d5b7e808b80000000001',
-      secretAccessKey: 'K005ErZ3ChKTNJzDE86JG46ta3mrg7s',
-      region: 'us-east-005'
+      bucket: process.env.STORAGE_BUCKET!,
+      endpoint: process.env.STORAGE_ENDPOINT!,
+      accessKeyId: process.env.STORAGE_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY!,
+      region: process.env.STORAGE_REGION!
     })
   })
 

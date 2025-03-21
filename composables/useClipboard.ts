@@ -11,6 +11,7 @@ export function useClipboard() {
     const textWidgetStore = useTextWidgetStore();
     const linkStore = useLinkStore();
     const { updateItemPosition } = useItemManagement();
+    const imageStore = useImageStore();
 
   const handlePaste = async (e: ClipboardEvent) => {
     
@@ -54,8 +55,8 @@ export function useClipboard() {
           x: position.x,
           y: position.y,
           color: 'yellow',
-          width: 300,
-          height: 200,
+          width: 216,
+          height: 216,
         });
       } else {
         const position = calculateCenterPosition(300, 100);
@@ -74,15 +75,16 @@ export function useClipboard() {
 
     // Check for images
     const items = clipboardData.items;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.type.indexOf('image') !== -1) {
-        const blob = item.getAsFile();
-        if (blob) {
-          // Handle image paste (this would need to be implemented)
-          console.log('Image pasted, handling not implemented yet');
-        }
+    const fileGroups = [...items].reduce((acc, item) => {
+      if(item.type.indexOf('image') !== -1) {
+        acc.image = acc.image ? [...acc.image, item.getAsFile()] : [item.getAsFile()];
       }
+      return acc
+    } , {} as Record<string, any>)
+
+    console.log(fileGroups)
+      if(fileGroups.image) {
+      await imageStore.addImage(fileGroups.image);
     }
   };
 

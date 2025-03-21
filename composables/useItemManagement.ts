@@ -16,13 +16,13 @@ export function useItemManagement() {
     const { scale, translateX, translateY } = usePanZoom();
     
   const addNote = () => {
-    const position = calculateCenterPosition(300, 200, 'note');
+    const position = calculateCenterPosition(200, 200, 'note');
     return noteStore.addNote('New note...', {
       x: position.x,
       y: position.y,
       color: '#FFD700',
-      width: 300,
-      height: 200,
+      width: 216,
+      height: 216,
       lock: false,
     });
   };

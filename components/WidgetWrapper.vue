@@ -41,8 +41,8 @@ const {
     emit("update:position", updatedPosition);
   },
   {
-    minWidth: 200,
-    minHeight: 200,
+    minWidth: 160,
+    minHeight: 120,
     grid: 1,
   }
 );
@@ -161,8 +161,8 @@ const closeMenu = () => {
 }
 
 .widget-container {
-  min-width: 320px;
-  min-height: 240px;
+  min-width: 160px;
+  min-height:120px;
   width: fit-content;
   height: fit-content;
   position: absolute;

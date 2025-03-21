@@ -22,8 +22,8 @@ export function useInteractions(
   options: Options = {}
 ) {
   const {
-    minWidth = 200,
-    minHeight = 200,
+    minWidth = 160,
+    minHeight = 120,
     grid = 1,
   } = options;
 
