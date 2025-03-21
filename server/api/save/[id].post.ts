@@ -52,6 +52,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event) as Board;
 
   await db.insert(BOARDS).values(body).onConflictDoUpdate({ target: BOARDS.board_id, set: { data: body.data } })
+  
   if(profileId) {
     await db.update(BOARD_SETTINGS).set({ last_modified: new Date().toISOString() }).where(and(eq(BOARD_SETTINGS.board_id, boardId), eq(BOARD_SETTINGS.profile_id, profileId)))
   }else{
