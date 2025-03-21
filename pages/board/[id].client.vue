@@ -68,6 +68,8 @@ definePageMeta({
   alias: '/'
 })
 
+const deleteItemConfirm = ref(false);
+
 </script>
 <template>
  <div
@@ -117,7 +119,7 @@ definePageMeta({
             @select="boardStore.setSelectedId"
             @update:position="(updates:Object) => updateItemPosition(item.id, updates)"
             :shadow="item.kind === 'text'"
-            @delete="handleDelete"
+            @delete="deleteItemConfirm = true"
             @lock="(locked:boolean) => toggleLock(item.id, locked)"
           >
             <StickyNote
@@ -168,11 +170,42 @@ definePageMeta({
     
     <BoardPasswordDialog />
     <OfflineIndicator />
+    <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
     <ZoomControls class="fixed right-2 bottom-2 z-10" />
   </div>
 </template>
+<style scoped>
+html, body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
 
-<style>
+/* Global scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox scrollbar styles */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
 .board-container {
   will-change: transform;
   transition: transform 0.3s ease;

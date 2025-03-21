@@ -20,7 +20,7 @@ const {
 } = useMiniMap()
 
 // State to track if minimap is visible
-const isMinimapVisible = ref(true)
+const isMinimapVisible = ref(false)
 
 // Toggle minimap visibility
 const toggleMinimap = () => {

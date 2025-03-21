@@ -90,6 +90,7 @@ export const useTodo = (list: TodoList) => {
     editingTaskId.value = null
     editingContent.value = ''
   }
+
   
   // Drag and drop functions
   const dragStart = (index: number, event: DragEvent) => {

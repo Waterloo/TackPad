@@ -1,7 +1,11 @@
 import { customAlphabet } from 'nanoid';
-import { BOARDS } from '~/server/database/schema';
+import { getRandomBoardName } from '~/server/utils/boardNames';
+import { BOARDS, BOARD_SETTINGS } from '~/server/database/schema';
 import { useDrizzle } from '~/server/utils/drizzle';
+import { setupUserToken, verifyUserToken } from '~/server/utils/tokenManagement';
+import { eq } from 'drizzle-orm';
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
+
 export default defineEventHandler(async (event) => {
   const id = decodeURIComponent(event.context.params?.id || '');
   if (!id) {
@@ -10,10 +14,72 @@ export default defineEventHandler(async (event) => {
       message: 'Board ID is required'
     });
   }
-  const board = await useDrizzle().select().from(tables.BOARDS).where(eq(BOARDS.board_id, id)).limit(1)
-  // For development, return a board with some initial items
-  const data = board[0] ?? await getWelcomeBoard(id)
-  return data;
+
+  const db = useDrizzle();
+  const userToken = setupUserToken(event);
+  
+  // Check if board exists first
+  const board = await db.select().from(BOARDS).where(eq(BOARDS.board_id, id)).limit(1);
+  const boardExists = board.length > 0;
+  
+  // Check if settings exist
+  const settings = await db.select().from(BOARD_SETTINGS).where(eq(BOARD_SETTINGS.board_id, id)).limit(1);
+  const settingsExist = settings.length > 0;
+  
+  let responseData;
+  let responseSettings;
+  let oldBoard = false;
+  let isOwner = false;
+  
+  if (!boardExists) {
+    // Case 2: Board doesn't exist - create a new board and settings
+    const newBoard = await getWelcomeBoard(id);
+    responseData = newBoard;
+    
+    // Create new settings
+    const newSettings = {
+      board_id: newBoard.board_id,
+      user_token: userToken,
+      profile_id: null,
+      last_accessed: new Date().toISOString()
+    };
+    // handle conflict
+    const insertResult = await db.insert(BOARD_SETTINGS)
+      .values(newSettings)
+      .onConflictDoNothing({ target: BOARD_SETTINGS.board_id });
+
+    responseSettings = insertResult.rowsAffected > 0 
+      ? [newSettings]
+      : await db.select().from(BOARD_SETTINGS).where(eq(BOARD_SETTINGS.board_id, id));
+    
+    oldBoard = false;
+  } else if (boardExists && !settingsExist) {
+    // Case 3: Board exists but settings don't - return oldBoard: true
+    responseData = board[0];
+    responseSettings = [];
+    oldBoard = true;
+  } else {
+    // Case 1: Both board and settings exist
+    responseData = board[0];
+    responseSettings = settings;
+    
+    // Update last_accessed time
+    await db.update(BOARD_SETTINGS)
+      .set({ last_accessed: new Date().toISOString() })
+      .where(eq(BOARD_SETTINGS.board_id, id));
+      
+    // Check if user is the owner of this board
+    isOwner = verifyUserToken(event, settings[0].user_token);
+    
+    oldBoard = false;
+  }
+  
+  return {
+    data: responseData,
+    settings: responseSettings,
+    oldBoard: oldBoard,
+    isOwner: isOwner
+  };
 });
 
 function makeUrlSafe(str: string): string {
@@ -30,12 +96,19 @@ async function getWelcomeBoard(board_id: string) {
   const board = {
     board_id: board_id === 'create' ? `BOARD-${nanoid(10)}` : makeUrlSafe(decodeURIComponent(board_id)),
     data: {
-      title: 'Untitled TackPad',
+      title: getRandomBoardName(),
       items: [{
         id: `STICKY-${nanoid(10)}`,
         kind: 'note',
         content: {
-          text: 'Welcome to your board!\nTry adding more notes and todo lists.',
+          text: ` <h1>Welcome to your board!</h1>
+  <p>Try adding more notes and todo lists.</p>
+  <h2>Quick Tips:</h2>
+  <ul>
+    <li>
+      <p>Double-click to edit notes</p>
+    </li>
+    </ul>`,
           color: '#FFD700'
         },
         x_position: 100,

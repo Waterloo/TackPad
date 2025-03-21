@@ -17,11 +17,14 @@ export const useBoardStore = defineStore('board', () => {
   const error = ref<string | null>(null)
   const selectedId = ref<string | null>(null)
   const scale = ref(1)
+  const isOldBoard = ref(false)
+  const isOwner = ref(false)
   const translateX = ref(0)
   const translateY = ref(0)
   const ZOOM_LEVEL = ref(1) // New reference for tracking zoom levels (1 = overview zoom level)
   const password = ref(null)
   const boards = useLocalStorage<Boards>('boards', {})
+  const settings = useLocalStorage<BoardSettings>('settings', {})
 
   const fromListId = ref<string | null>(null)
   const toListId = ref<string | null>(null)
@@ -53,20 +56,26 @@ export const useBoardStore = defineStore('board', () => {
       const response = await fetch(`/api/board/${boardId}`)
       if (!response.ok) throw new Error('Failed to load board')
       const raw = await response.json()
+      const boardData = raw.data
+      const settingsData = raw.settings
+      isOldBoard.value = raw.OldBoard
+      isOwner.value = raw.isOwner
+      settings.value = settingsData
+
       
-      if(raw.data.encrypted){
+      if(boardData.data.encrypted){
         if(!password.value){
           await usePasswordDialog().showPasswordDialog()
         }
         try{
-          board.value = { board_id: raw.board_id, data: await decrypt(raw.data, password.value!)}
+          board.value = { board_id: boardData.board_id, data: await decrypt(boardData.data, password.value!)}
         } catch(e) {
           console.error(e)
           alert("Error decrypting")
           window.location.reload()
         }
       } else {
-        board.value = raw
+        board.value = boardData
       }
 
       // Save to local storage
@@ -149,16 +158,39 @@ export const useBoardStore = defineStore('board', () => {
     }
   }
 
+
+  const deleteBoard = async () => {
+    if (!board.value) return
+    
+    try {
+      const response = await fetch(`/api/board/${board.value.board_id}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Failed to delete board')
+      
+      // Remove board from local storage
+      delete boards.value[board.value.board_id]
+      board.value = null
+      selectedId.value = null
+      // redirect to old board
+      const lastBoardId = Object.keys(boards.value).pop()
+      if(lastBoardId) {
+        await navigateTo(`/board/${lastBoardId}`)
+      }else{
+        await navigateTo('/home')
+      }
+    } catch (err) {
+      error.value = 'Failed to delete board'
+      console.error(err)
+    }
+  }
   // Create debounced version of saveBoard
   const debouncedSaveBoard = debounce(saveBoard, 1000)
   
   useHead({
     title: computed(() => `${(board.value?.data.title || 'TackPad')} | TackPad`),
   })
-  // initializeBoard()
-  // if (useRoute().path === '/') {
-  //   initializeBoard()
-  // }
+
   return {
     // State
     board,
@@ -170,6 +202,8 @@ export const useBoardStore = defineStore('board', () => {
     translateY,
     ZOOM_LEVEL,
     password,
+    isOldBoard,
+    isOwner,
     fromListId,
     toListId,
     draggedTask,
@@ -184,6 +218,7 @@ export const useBoardStore = defineStore('board', () => {
     deleteSelected,
     setBoardTitle,
     saveBoard,
+    deleteBoard,
     debouncedSaveBoard,
     boards: computed(() => boards.value),
   }
