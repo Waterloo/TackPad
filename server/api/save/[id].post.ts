@@ -2,10 +2,11 @@ import { IndexColumn } from 'drizzle-orm/sqlite-core';
 import { values } from 'lodash';
 import { BOARDS, BOARD_SETTINGS } from '~/server/database/schema';
 import { Board } from '~/types/board';
-import { setupUserToken,verifyUserToken } from '~/server/utils/tokenManagement';
+import { setupUserToken, verifyUserToken } from '~/server/utils/tokenManagement';
+import { eq, and, or } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  const profileId = event.context.session?.secure?.profile_id || null;
+  const profileId = event.context.session?.secure?.profileId || null;
   const userToken = setupUserToken(event);
   const boardId = event.context.params?.id;
 
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
         });
       }
       
-    }else{
+    } else {
      const isOwner = verifyUserToken(event, ownerSettings[0].user_token);
      if(!isOwner) {
       throw createError({
@@ -51,40 +52,55 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event) as Board;
 
-  await db.insert(BOARDS).values(body).onConflictDoUpdate({ target: BOARDS.board_id, set: { data: body.data } })
+  // Save the board data
+  await db.insert(BOARDS).values(body).onConflictDoUpdate({ target: BOARDS.board_id, set: { data: body.data } });
   
-  if(profileId) {
-    await db.update(BOARD_SETTINGS).set({ last_modified: new Date().toISOString() }).where(and(eq(BOARD_SETTINGS.board_id, boardId), eq(BOARD_SETTINGS.profile_id, profileId)))
-  }else{
-    await db.update(BOARD_SETTINGS).set({ last_modified: new Date().toISOString() }).where(and(eq(BOARD_SETTINGS.board_id, boardId), eq(BOARD_SETTINGS.user_token, userToken)))
-  }
-  
-  // Get user's specific settings for this board
-  let userSettings;
-  if (profileId) {
-    userSettings = await db.select()
-      .from(BOARD_SETTINGS)
-      .where(
-        and(
-          eq(BOARD_SETTINGS.board_id, boardId),
-          eq(BOARD_SETTINGS.profile_id, profileId)
+  // Get user's specific settings for this board first (to check if it exists)
+  const userSettings = await db.select()
+    .from(BOARD_SETTINGS)
+    .where(
+      and(
+        eq(BOARD_SETTINGS.board_id, boardId),
+        or(
+          eq(BOARD_SETTINGS.user_token, userToken),
+          profileId ? eq(BOARD_SETTINGS.profile_id, profileId) : undefined
         )
       )
-      .limit(1);
-  } else if (userToken) {
-    userSettings = await db.select()
-      .from(BOARD_SETTINGS)
-      .where(
-        and(
-          eq(BOARD_SETTINGS.board_id, boardId),
-          eq(BOARD_SETTINGS.user_token, userToken)
+    )
+    .limit(1);
+  
+  // Update the last_modified time and title if it changed
+  if (userSettings && userSettings.length > 0) {
+    const updateData = { 
+      last_modified: new Date().toISOString()
+    };
+    
+    // Update title if it changed
+    if (body.data.title && body.data.title !== userSettings[0].title) {
+      updateData.title = body.data.title;
+    }
+    
+    await db.update(BOARD_SETTINGS)
+      .set(updateData)
+      .where(eq(BOARD_SETTINGS.id, userSettings[0].id));
+  }
+  
+  // Get updated settings after changes
+  const updatedSettings = await db.select()
+    .from(BOARD_SETTINGS)
+    .where(
+      and(
+        eq(BOARD_SETTINGS.board_id, boardId),
+        or(
+          eq(BOARD_SETTINGS.user_token, userToken),
+          profileId ? eq(BOARD_SETTINGS.profile_id, profileId) : undefined
         )
       )
-      .limit(1);
-  }
+    )
+    .limit(1);
 
   return {
     success: true,
-    settings: userSettings && userSettings.length > 0 ? userSettings[0] : null
+    settings: updatedSettings && updatedSettings.length > 0 ? updatedSettings[0] : null
   };
 });
