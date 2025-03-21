@@ -1,3 +1,4 @@
+import { boolean } from 'drizzle-orm/mysql-core'
 import { sqliteTable, text, SQLiteBlobJson, integer } from 'drizzle-orm/sqlite-core'
 
 export const BOARDS = sqliteTable('boards', {
@@ -13,6 +14,7 @@ export const BOARD_SETTINGS = sqliteTable('board_settings', {
     title: text('title'),
     is_owner: integer('is_owner', { mode: 'boolean' }).default(false),
     read_only: integer('read_only', { mode: 'boolean' }).default(false),
+    is_private:integer('is_private', { mode: 'boolean' }).default(false),
     last_accessed: text('last_accessed'),
     last_modified: text('last_modified')
 })

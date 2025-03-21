@@ -1,0 +1,1 @@
+ALTER TABLE `board_settings` ADD `is_private` integer DEFAULT false;
