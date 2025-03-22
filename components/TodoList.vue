@@ -162,7 +162,6 @@ const titleDisplay = ref<HTMLElement | null>(null)
   saveTaskEdit,
   cancelTaskEdit,
 // Drag and drop functions
-dragState,
       handleDragStart,
       handleDragOver,
       handleDragEnd,

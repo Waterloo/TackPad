@@ -208,7 +208,7 @@ function handleDrop(event, listID,list) {
   } 
   // Handle same-list reordering
   else if (dragState.draggedItem !== null && dragState.targetIndex !== null) {
-    const newTasks = [list.content.tasks];
+    const newTasks = [...list.content.tasks];
     const movedItem = newTasks[dragState.draggedItem];
     
     // Remove from original position and insert at new position
@@ -381,7 +381,7 @@ function handleTouchEnd(event, listID,list) {
     );
   } else if (dragState.draggedItem !== null && dragState.targetIndex !== null) {
     // Same-list reordering
-    const newTasks = [list.content.tasks];
+    const newTasks = [...list.content.tasks];
     const movedItem = newTasks[dragState.draggedItem];
     
     newTasks.splice(dragState.draggedItem, 1);
@@ -458,7 +458,6 @@ function moveGhostElement(touchX, touchY) {
     cancelTaskEdit,
 
     // Drag and drop
-    dragState,
     handleDragStart,
     handleDragOver,
     handleDragEnd,
