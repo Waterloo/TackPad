@@ -27,7 +27,7 @@ export const useBoardStore = defineStore('board', () => {
   const settings = useLocalStorage<BoardSettings>('settings', {})
 
   const fromListId = ref<string | null>(null)
-  const toListId = ref<string | null>(null)
+  const targetIndex = ref<number | null>(null)
   const draggedTask = ref<Task | null>(null)
 
   // Get route at the store level
@@ -205,7 +205,7 @@ export const useBoardStore = defineStore('board', () => {
     isOldBoard,
     isOwner,
     fromListId,
-    toListId,
+    targetIndex,
     draggedTask,
 
     // Actions

@@ -90,329 +90,348 @@ export const useTodo = (list: TodoList) => {
     editingTaskId.value = null
     editingContent.value = ''
   }
-
+// Unified drag state
+const dragState = reactive({
+  // Common state
+  draggedItem: null,
+  targetIndex: null,
+  isDragging: false,
   
-  // Drag and drop functions
-  const dragStart = (index: number, event: DragEvent) => {
-    isDragging.value = true
-    draggedItemIndex.value = index
-    if(boardStore.fromListId === null){
-        boardStore.fromListId = list.id
-        // Store the task being dragged
-        boardStore.draggedTask = list.content.tasks[index]
-    }
-    
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', index.toString());
-      
-      // Find the drag handle element which is the direct child of the li
-      const listItem = event.currentTarget as HTMLElement;
-      if (listItem) {
-        // Calculate offset for better positioning
-        const rect = listItem.getBoundingClientRect();
-        const offsetX = event.clientX - rect.left;
-        const offsetY = event.clientY - rect.top;
-        
-        // Use the list item itself as the drag image
-        event.dataTransfer.setDragImage(listItem, offsetX, offsetY);
-      }
-    }
-  }
-
-  const drop = (dropIndex: number, event: DragEvent) => {
-    event.preventDefault()
-    
-    const target = event.target as HTMLElement
-    const targetListId = target.closest('[data-list-id]')?.dataset.listId
-   
-    if(boardStore.fromListId !== targetListId && targetListId) {
-     boardStore.toListId = targetListId 
-    }
-
-    // Handle cross-list drag and drop
-    if(boardStore.fromListId && boardStore.toListId && boardStore.draggedTask) {
-      console.log('from', boardStore.fromListId)
-      console.log('to', boardStore.toListId)
-      
-      // For the target list, add the task
-      if(list.id === boardStore.toListId) {
-        // Add task to the target list
-        todoStore.addTask(list.id, boardStore.draggedTask.content)
-        
-        // Delete from source list - do this here to ensure it happens
-        todoStore.deleteTask(boardStore.fromListId, boardStore.draggedTask.task_id)
-      }
-    } else {
-      // Same-list reordering
-      if(draggedItemIndex.value === null) return
-
-      // Create a copy of the tasks array
-      const newTasks = [...list.content.tasks]
-      
-      // Get the task that was being dragged
-      const draggedTask = newTasks[draggedItemIndex.value]
-      
-      // Remove the task from its original position
-      newTasks.splice(draggedItemIndex.value, 1)
-      
-      // Insert the task at the new position
-      newTasks.splice(dropIndex, 0, draggedTask)
-      
-      // Update the store with the new order
-      todoStore.reorderTasks(list.id, newTasks)
-    }
-    
-    // Reset the dragged item index
-    draggedItemIndex.value = null
-    isDragging.value = false
-    boardStore.fromListId = null
-    boardStore.toListId = null
-    boardStore.draggedTask = null
-  }
-
-  const dragOver = (index: number) => {
-    dropIndex.value = index
-  }
-
-  const dragEnd = () => {
-    // Clean up any drag state
-    isDragging.value = false
-    draggedItemIndex.value = null
-    dropIndex.value = null
-  }
-
-  // Touch event handlers
-  const touchStart = (index: number, event: TouchEvent) => {
-    // Store initial touch position
-    if (event.touches.length === 1) {
-      const touch = event.touches[0]
-      touchStartX.value = touch.clientX
-      touchStartY.value = touch.clientY
-      touchDraggedIndex.value = index
-      touchTarget.value = event.currentTarget as HTMLElement
-      touchListId.value = list.id
-    }
-  }
-
-  const touchMove = (event: TouchEvent) => {
-    if (!touchTarget.value || touchDraggedIndex.value === null || event.touches.length !== 1) return
-    
-    const touch = event.touches[0]
-    const deltaX = touch.clientX - touchStartX.value
-    const deltaY = touch.clientY - touchStartY.value
-    
-    // Check if we've moved enough to consider it a drag
-    if (!touchDragging.value) {
-      if (Math.abs(deltaX) > touchDragThreshold || Math.abs(deltaY) > touchDragThreshold) {
-        touchDragging.value = true
-        
-        // Set up dragging state
-        isDragging.value = true
-        draggedItemIndex.value = touchDraggedIndex.value
-        
-        // Create a visual clone for dragging
-        touchDraggedElement.value = touchTarget.value.cloneNode(true) as HTMLElement
-        document.body.appendChild(touchDraggedElement.value)
-        
-        // Style the clone
-        const rect = touchTarget.value.getBoundingClientRect()
-        touchDraggedElement.value.style.position = 'fixed'
-        touchDraggedElement.value.style.top = `${rect.top}px`
-        touchDraggedElement.value.style.left = `${rect.left}px`
-        touchDraggedElement.value.style.width = `${rect.width}px`
-        touchDraggedElement.value.style.zIndex = '1000'
-        touchDraggedElement.value.style.opacity = '0.8'
-        touchDraggedElement.value.style.pointerEvents = 'none'
-        touchDraggedElement.value.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)'
-        touchDraggedElement.value.style.transform = 'scale(1.02)'
-        
-        // Set board store state for cross-list drag
-        if (boardStore.fromListId === null) {
-          boardStore.fromListId = list.id
-          boardStore.draggedTask = list.content.tasks[touchDraggedIndex.value]
-        }
-        
-        // Add dragging class to original element
-        touchTarget.value.classList.add('dragging')
-      }
-    }
-    
-    // If we're dragging, move the clone and detect potential drop targets
-    if (touchDragging.value && touchDraggedElement.value) {
-      event.preventDefault() // Prevent scrolling while dragging
-      
-      // Move the clone
-      touchDraggedElement.value.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.02)`
-      
-      // Find the element we're hovering over
-      const elementsUnderTouch = document.elementsFromPoint(touch.clientX, touch.clientY)
-      
-      // Find list items under the touch point
-      const listItemUnderTouch = elementsUnderTouch.find(el => 
-        el.tagName === 'LI' && el.hasAttribute('draggable') && el !== touchTarget.value
-      ) as HTMLElement | undefined
-      
-      // Find list container under the touch point
-      const listContainerUnderTouch = elementsUnderTouch.find(el => 
-        el.tagName === 'UL' && el.hasAttribute('data-list-id')
-      ) as HTMLElement | undefined
-      
-      // Reset previous drop target indicators
-      document.querySelectorAll('.drag-over').forEach(el => {
-        if (el !== touchTarget.value) el.classList.remove('drag-over')
-      })
-      
-      // Handle hovering over another list item
-      if (listItemUnderTouch) {
-        const hoverIndex = Array.from(listItemUnderTouch.parentElement?.children || []).indexOf(listItemUnderTouch)
-        dropIndex.value = hoverIndex
-        listItemUnderTouch.classList.add('drag-over')
-        
-        // Get the list ID we're hovering over
-        const targetListId = listItemUnderTouch.closest('[data-list-id]')?.getAttribute('data-list-id') || null
-        if (targetListId && targetListId !== touchListId.value) {
-          boardStore.toListId = targetListId
-        }
-      } 
-      // Handle hovering over an empty list
-      else if (listContainerUnderTouch) {
-        const targetListId = listContainerUnderTouch.getAttribute('data-list-id') || null
-        const listItems = listContainerUnderTouch.querySelectorAll('li[draggable="true"]')
-        
-        if (targetListId && targetListId !== touchListId.value) {
-          boardStore.toListId = targetListId
-          
-          // If the list is empty, show drop indicator
-          if (listItems.length === 0) {
-            listContainerUnderTouch.classList.add('empty-list-drag-over')
-          }
-        }
-      }
-    }
-  }
-
-  const touchEnd = (event: TouchEvent) => {
-    if (!touchDragging.value || touchDraggedIndex.value === null) {
-      // Reset touch state without performing a drop
-      resetTouchState()
-      return
-    }
-    
-    // Find the element we're dropping onto
-    const touch = event.changedTouches[0]
-    const elementsUnderTouch = document.elementsFromPoint(touch.clientX, touch.clientY)
-    
-    // Find list item under the touch point
-    const listItemUnderTouch = elementsUnderTouch.find(el => 
-      el.tagName === 'LI' && el.hasAttribute('draggable') && el !== touchTarget.value
-    ) as HTMLElement | undefined
-    
-    // Find list container under the touch point
-    const listContainerUnderTouch = elementsUnderTouch.find(el => 
-      el.tagName === 'UL' && el.hasAttribute('data-list-id')
-    ) as HTMLElement | undefined
-    
-    if (listItemUnderTouch) {
-      // Get the index of the item we're dropping onto
-      const dropTargetIndex = Array.from(listItemUnderTouch.parentElement?.children || []).indexOf(listItemUnderTouch)
-      
-      // Get the list ID we're dropping onto
-      const targetListId = listItemUnderTouch.closest('[data-list-id]')?.getAttribute('data-list-id') || null
-      
-      if (targetListId) {
-        // Handle cross-list drop
-        if (targetListId !== touchListId.value) {
-          boardStore.toListId = targetListId
-          
-          // For the target list, add the task
-          if (boardStore.fromListId && boardStore.toListId && boardStore.draggedTask) {
-            // Add task to the target list
-            todoStore.addTask(boardStore.toListId, boardStore.draggedTask.content)
-            
-            // Delete from source list
-            todoStore.deleteTask(boardStore.fromListId, boardStore.draggedTask.task_id)
-          }
-        } else {
-          // Same-list reordering
-          // Create a copy of the tasks array
-          const newTasks = [...list.content.tasks]
-          
-          // Get the task that was being dragged
-          const draggedTask = newTasks[touchDraggedIndex.value]
-          
-          // Remove the task from its original position
-          newTasks.splice(touchDraggedIndex.value, 1)
-          
-          // Insert the task at the new position
-          newTasks.splice(dropTargetIndex, 0, draggedTask)
-          
-          // Update the store with the new order
-          todoStore.reorderTasks(list.id, newTasks)
-        }
-      }
-    } 
-    // Handle dropping onto an empty list
-    else if (listContainerUnderTouch) {
-      const targetListId = listContainerUnderTouch.getAttribute('data-list-id') || null
-      const listItems = listContainerUnderTouch.querySelectorAll('li[draggable="true"]')
-      
-      if (targetListId && targetListId !== touchListId.value && listItems.length === 0) {
-        boardStore.toListId = targetListId
-        
-        // Handle cross-list drop to empty list
-        if (boardStore.fromListId && boardStore.toListId && boardStore.draggedTask) {
-          // Add task to the target list
-          todoStore.addTask(boardStore.toListId, boardStore.draggedTask.content)
-          
-          // Delete from source list
-          todoStore.deleteTask(boardStore.fromListId, boardStore.draggedTask.task_id)
-        }
-      }
-    }
-    
+  // Element references
+  draggedElement: null,
+  ghostElement: null,
+  
+  // Touch-specific state
+  touchStartY: 0,
+  touchOffsetX: 0,
+  touchOffsetY: 0,
+  
+  // List tracking
+  currentListId: null,
+  
+  reset() {
     // Reset all state
-    resetTouchState()
-  }
-
-  const touchCancel = () => {
-    resetTouchState()
-  }
-
-  const resetTouchState = () => {
-    // Remove the dragged element clone if it exists
-    if (touchDraggedElement.value && touchDraggedElement.value.parentNode) {
-      touchDraggedElement.value.parentNode.removeChild(touchDraggedElement.value)
+    this.draggedItem = null;
+    this.targetIndex = null;
+    this.isDragging = false;
+    this.draggedElement = null;
+    this.currentListId = null;
+    
+    // Clean up ghost element
+    if (this.ghostElement) {
+      document.body.removeChild(this.ghostElement);
+      this.ghostElement = null;
     }
     
-    // Reset touch state
-    touchDragging.value = false
-    touchTarget.value?.classList.remove('dragging')
-    touchDraggedElement.value = null
-    touchDraggedIndex.value = null
-    touchListId.value = null
-    
-    // Reset drag state
-    isDragging.value = false
-    draggedItemIndex.value = null
-    dropIndex.value = null
-    
-    // Reset board store state
-    boardStore.fromListId = null
-    boardStore.toListId = null
-    boardStore.draggedTask = null
-    
-    // Remove any drag-over classes
-    document.querySelectorAll('.drag-over').forEach(el => {
-      el.classList.remove('drag-over')
-    })
-    
-    // Remove any empty-list-drag-over classes
-    document.querySelectorAll('.empty-list-drag-over').forEach(el => {
-      el.classList.remove('empty-list-drag-over')
-    })
+    // Remove all visual indicators
+    document.querySelectorAll('.dragged-item, .item-drag, .list-drop').forEach(el => {
+      el.classList.remove('dragged-item', 'item-drag', 'list-drop');
+    });
   }
+});
 
+// Mouse drag handlers
+function handleDragStart(event, listID, itemIndex, task) {
+  // Reset any previous state
+  dragState.reset();
+  
+  // Set current drag state
+  dragState.draggedItem = itemIndex;
+  dragState.currentListId = listID;
+  dragState.draggedElement = event.target;
+  
+  // Add visual indicator
+  dragState.draggedElement.classList.add('dragged-item');
+  
+  // Set board store data
+  boardStore.fromListId = listID;
+  boardStore.draggedTask = task;
+}
+
+function handleDragOver(event, listID, itemIndex) {
+  event.preventDefault(); // Ensure drop is allowed
+  
+  const targetElem = event.target;
+  
+  // Clear previous highlights first
+  document.querySelectorAll('.item-drag').forEach(el => {
+    el.classList.remove('item-drag');
+  });
+  
+  // Add highlight to current target if it's a task item
+  if (targetElem?.classList.contains('taskItem')) {
+    targetElem.classList.add('item-drag');
+  }
+  
+  // Handle list highlighting
+  const todoList = targetElem.closest('.taskContaner');
+  if (todoList) {
+    // Remove previous list highlights
+    document.querySelectorAll('.list-drop').forEach(el => {
+      el.classList.remove('list-drop');
+    });
+    
+    // Only highlight if dragging between different lists
+    if (listID !== boardStore.fromListId) {
+      todoList.classList.add('list-drop');
+    }
+  }
+  
+  // Update target indices
+  dragState.targetIndex = itemIndex;
+  boardStore.targetIndex = itemIndex;
+}
+
+function handleDragEnd() {
+  dragState.reset();
+}
+
+function handleDragLeave(event) {
+  // Only remove highlight from the element being left
+  const target = event.target;
+  if (target.classList.contains('item-drag')) {
+    target.classList.remove('item-drag');
+  }
+}
+
+function handleDrop(event, listID,list) {
+  event.preventDefault();
+  
+  // Handle cross-list move
+  if (boardStore.fromListId && boardStore.fromListId !== listID) {
+    todoStore.moveTaskBetweenLists(
+      boardStore.fromListId,
+      boardStore.draggedTask?.task_id,
+      listID,
+      boardStore.targetIndex !== null ? boardStore.targetIndex : 0
+    );
+  } 
+  // Handle same-list reordering
+  else if (dragState.draggedItem !== null && dragState.targetIndex !== null) {
+    const newTasks = [list.content.tasks];
+    const movedItem = newTasks[dragState.draggedItem];
+    
+    // Remove from original position and insert at new position
+    newTasks.splice(dragState.draggedItem, 1);
+    newTasks.splice(dragState.targetIndex, 0, movedItem);
+    
+    todoStore.reorderTasks(listID, newTasks);
+  }
+  
+  // Reset all state
+  dragState.reset();
+  boardStore.fromListId = null;
+  boardStore.draggedTask = null;
+  boardStore.targetIndex = null;
+}
+
+// Touch event handlers
+function handleTouchStart(event, listID, itemIndex, task) {
+  // Ensure we have a touch event
+  if (!event.touches || event.touches.length === 0) return;
+  
+  const touch = event.touches[0];
+  const targetElement = event.target.closest('.taskItem');
+  
+  if (!targetElement) return;
+  
+  // Store initial touch data
+  dragState.draggedItem = itemIndex;
+  dragState.currentListId = listID;
+  dragState.touchStartY = touch.clientY;
+  dragState.draggedElement = targetElement;
+  
+  // Set board store data
+  boardStore.fromListId = listID;
+  boardStore.draggedTask = task;
+  
+  // Calculate touch offset relative to element
+  const rect = targetElement.getBoundingClientRect();
+  dragState.touchOffsetX = touch.clientX - rect.left;
+  dragState.touchOffsetY = touch.clientY - rect.top;
+  
+  // Add visual indication
+  targetElement.classList.add('dragged-item');
+}
+
+function handleTouchMove(event) {
+  // Validate state
+  if (!dragState.draggedElement || dragState.draggedItem === null) return;
+  if (!event.touches || event.touches.length === 0) return;
+  
+  // Prevent scrolling while dragging
+  event.preventDefault();
+  
+  const touch = event.touches[0];
+  const touchX = touch.clientX;
+  const touchY = touch.clientY;
+  
+  // Only start dragging after a small movement threshold
+  const moved = Math.abs(touchY - dragState.touchStartY);
+  
+  if (moved > 5) {
+    if (!dragState.isDragging) {
+      dragState.isDragging = true;
+      createGhostElement(dragState.draggedElement, touchX, touchY);
+    }
+    
+    if (dragState.isDragging && dragState.ghostElement) {
+      moveGhostElement(touchX, touchY);
+    }
+    
+    // Find element under touch point (temporarily hide ghost)
+    if (dragState.ghostElement) {
+      dragState.ghostElement.style.display = 'none';
+    }
+    
+    const elemBelow = document.elementFromPoint(touchX, touchY);
+    
+    // Show ghost again
+    if (dragState.ghostElement) {
+      dragState.ghostElement.style.display = 'flex';
+    }
+    
+    if (!elemBelow) return;
+    
+    // Handle task item targeting
+    const taskItem = elemBelow.closest('.taskItem');
+    if (taskItem) {
+      // Clear previous highlights
+      document.querySelectorAll('.item-drag').forEach(el => {
+        el.classList.remove('item-drag');
+      });
+      
+      // Add highlight to current target
+      taskItem.classList.add('item-drag');
+      
+      // Get the index from the taskItem
+      const items = Array.from(taskItem.parentElement.children);
+      const hoverIndex = items.indexOf(taskItem);
+      
+      if (hoverIndex >= 0) {
+        dragState.targetIndex = hoverIndex;
+        boardStore.targetIndex = hoverIndex;
+      }
+    }
+    
+    // Handle list targeting
+    const todoList = elemBelow.closest('.taskContaner');
+    if (todoList) {
+      const listId = todoList.getAttribute('data-list-id');
+      if (listId) {
+        // Remove previous list highlights
+        document.querySelectorAll('.list-drop').forEach(el => {
+          el.classList.remove('list-drop');
+        });
+        
+        // Only highlight if dragging between different lists
+        if (listId !== boardStore.fromListId) {
+          todoList.classList.add('list-drop');
+          
+          // If list is empty, set target index to 0
+          const listItems = todoList.querySelectorAll('.taskItem');
+          if (listItems.length === 0) {
+            boardStore.targetIndex = 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+function handleTouchEnd(event, listID,list) {
+  // If we weren't actively dragging, just reset
+  if (!dragState.isDragging || dragState.draggedItem === null) {
+    dragState.reset();
+    return;
+  }
+  
+  // Determine final drop target
+  let targetListID = listID;
+  
+  if (event.changedTouches && event.changedTouches.length > 0) {
+    const touch = event.changedTouches[0];
+    
+    // Hide ghost to find element below
+    if (dragState.ghostElement) {
+      dragState.ghostElement.style.display = 'none';
+    }
+    
+    const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    if (elemBelow) {
+      const todoList = elemBelow.closest('.taskContaner');
+      if (todoList) {
+        const listId = todoList.getAttribute('data-list-id');
+        if (listId) {
+          targetListID = listId;
+        }
+      }
+    }
+  }
+  
+  // Perform the drop action
+  if (boardStore.fromListId && boardStore.fromListId !== targetListID) {
+    // Cross-list move
+    todoStore.moveTaskBetweenLists(
+      boardStore.fromListId,
+      boardStore.draggedTask?.task_id,
+      targetListID,
+      boardStore.targetIndex !== null ? boardStore.targetIndex : 0
+    );
+  } else if (dragState.draggedItem !== null && dragState.targetIndex !== null) {
+    // Same-list reordering
+    const newTasks = [list.content.tasks];
+    const movedItem = newTasks[dragState.draggedItem];
+    
+    newTasks.splice(dragState.draggedItem, 1);
+    newTasks.splice(dragState.targetIndex, 0, movedItem);
+    
+    todoStore.reorderTasks(targetListID, newTasks);
+  }
+  
+  // Reset all state
+  dragState.reset();
+  boardStore.fromListId = null;
+  boardStore.draggedTask = null;
+  boardStore.targetIndex = null;
+}
+
+// Helper functions for ghost element
+function createGhostElement(sourceElement, touchX, touchY) {
+  // Create clone of dragged element
+  const ghost = sourceElement.cloneNode(true);
+  
+  // Apply styles to ghost
+  Object.assign(ghost.style, {
+    position: 'fixed',
+    top: `${touchY - dragState.touchOffsetY}px`,
+    left: `${touchX - dragState.touchOffsetX}px`,
+    width: `${sourceElement.offsetWidth}px`,
+    opacity: '0.7',
+    pointerEvents: 'none',
+    zIndex: '1000',
+    transform: 'scale(0.95)',
+    transition: 'transform 100ms ease',
+    backgroundColor: 'white',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    borderRadius: '4px',
+    display: 'flex'
+  });
+  
+  // Add ghost to body
+  document.body.appendChild(ghost);
+  dragState.ghostElement = ghost;
+}
+
+function moveGhostElement(touchX, touchY) {
+  if (!dragState.ghostElement) return;
+  
+  dragState.ghostElement.style.top = `${touchY - dragState.touchOffsetY}px`;
+  dragState.ghostElement.style.left = `${touchX - dragState.touchOffsetX}px`;
+}
+  
+ 
   return {
     // State
     localTitle,
@@ -437,17 +456,16 @@ export const useTodo = (list: TodoList) => {
     startEditing,
     saveTaskEdit,
     cancelTaskEdit,
-    
-    // Drag and drop functions
-    dragStart,
-    drop,
-    dragOver,
-    dragEnd,
-    
-    // Touch drag and drop functions
-    touchStart,
-    touchMove,
-    touchEnd,
-    touchCancel
+
+    // Drag and drop
+    dragState,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+    handleDragLeave,
+    handleDrop,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd
   }
 }

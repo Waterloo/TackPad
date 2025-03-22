@@ -31,9 +31,7 @@ export const useTodoStore = defineStore('todos', () => {
     boardStore.debouncedSaveBoard()
     return newTodo
   }
-  // current list id
-  const currentListId = ref<string | null>(null)
-  const targetListId = ref<string | null>(null)
+
 
 
   // Update todo list title
