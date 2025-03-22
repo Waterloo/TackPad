@@ -32,9 +32,6 @@ const { scale, translateX, translateY, startPan, pan, endPan, handleZoom, update
 const { handlePaste } = useClipboard();
 
 const boardRef = ref<HTMLElement | null>(null);
-
-
-
 // Initialize board
 onMounted(async () => {
   await boardStore.initializeBoard(route.params.id as string);
@@ -165,10 +162,10 @@ const deleteItemConfirm = ref(false);
     </div>
 
     <BoardHeader />
+
     <BoardToolbar />
   
       <ProfilePopup />
-    
     <BoardPasswordDialog />
     <OfflineIndicator />
     <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />

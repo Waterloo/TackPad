@@ -7,7 +7,6 @@ import { useRoute } from 'vue-router'
 
 // import type { EncryptedData } from '~/types/encryption'
 import type { Board, BoardItem, Boards } from '~/types/board'
-import { usePasswordDialog } from '~/composables/usePasswordDialog'
 import { decrypt, encrypt } from '~/utils/crypto'
 
 export const useBoardStore = defineStore('board', () => {
@@ -20,6 +19,8 @@ export const useBoardStore = defineStore('board', () => {
   const isOldBoard = ref(false)
   const isOwner = ref(false)
   const password = ref(null)
+  const isEncrypted = ref(false)
+  const showPasswordDialog = ref(false);
   const boards = useLocalStorage<Boards>('boards', {})
   const settings = useLocalStorage<BoardSettings>('settings', {})
 
@@ -57,8 +58,10 @@ export const useBoardStore = defineStore('board', () => {
 
       
       if(boardData.data.encrypted){
+        isEncrypted.value=true;
         if(!password.value){
-          await usePasswordDialog().showPasswordDialog()
+          showPasswordDialog.value=true
+          return
         }
         try{
           board.value = { board_id: boardData.board_id, data: await decrypt(boardData.data, password.value!)}
@@ -123,6 +126,7 @@ export const useBoardStore = defineStore('board', () => {
     
     if(password.value) {
       encrypted = await encrypt(data, password.value)
+      isEncrypted.value = true
     }
     
     try {
@@ -165,6 +169,18 @@ export const useBoardStore = defineStore('board', () => {
       console.error(err)
     }
   }
+
+  const toggleEncryption = async()=>{
+    if(!password.value){
+      showPasswordDialog.value = true
+      return
+    }
+    if(isEncrypted.value===true){
+      password.value=null
+      isEncrypted.value=false
+    }
+    saveBoard()
+  }
   // Create debounced version of saveBoard
   const debouncedSaveBoard = debounce(saveBoard, 1000)
   
@@ -182,6 +198,8 @@ export const useBoardStore = defineStore('board', () => {
     password,
     isOldBoard,
     isOwner,
+    showPasswordDialog,
+    isEncrypted,
 
     // Actions
     initializeBoard,
@@ -192,6 +210,7 @@ export const useBoardStore = defineStore('board', () => {
     saveBoard,
     deleteBoard,
     debouncedSaveBoard,
+    toggleEncryption,
     boards: computed(() => boards.value),
   }
 })
