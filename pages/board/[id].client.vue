@@ -174,6 +174,7 @@ const {isOpen} = useTackletDirectory();
               :is-selected="boardStore.selectedId === item.id"
               :content="item.content"
               @update:content="(content) => tackletStore.updateTackletContent(item.id, content)"
+              @widgetInteraction="boardStore.setSelectedId(item.id)"
             />
           </WidgetWrapper>
         </template>

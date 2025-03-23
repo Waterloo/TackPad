@@ -55,7 +55,6 @@ const setupConnection = () => {
           return true;
         },
         widgetInteraction: (action: string, data: any) => {
-          console.log('Widget interacted:', action, data);
           emit('widgetInteraction', action, data);
         },
         getWidgetId: () => props.itemId,
