@@ -31,7 +31,9 @@ export const useTodoStore = defineStore('todos', () => {
     boardStore.debouncedSaveBoard()
     return newTodo
   }
-  
+
+
+
   // Update todo list title
   const updateTodoTitle = (listId: string, title: string) => {
     if (!boardStore.board) return
@@ -126,12 +128,61 @@ export const useTodoStore = defineStore('todos', () => {
     boardStore.debouncedSaveBoard()
   }
   
+  // Reorder tasks after drag and drop
+  const reorderTasks = (listId: string, newTasksOrder: Task[]) => {
+    if (!boardStore.board) return
+
+    const list = boardStore.board.data.items.find(
+      item => item.id === listId && item.kind === 'todo'
+    ) as TodoList | undefined
+    
+    if (!list) return
+
+    // Update the tasks array with the new order
+    list.content.tasks = [...newTasksOrder]
+    boardStore.debouncedSaveBoard()
+  }
+  
+  // Move a task from one list to another
+  const moveTaskBetweenLists = (sourceListId: string, taskId: string, targetListId: string, targetIndex: number) => {
+    if (!boardStore.board) return
+    
+    // Find the source and target lists
+    const sourceList = boardStore.board.data.items.find(
+      item => item.id === sourceListId && item.kind === 'todo'
+    ) as TodoList | undefined
+    
+    const targetList = boardStore.board.data.items.find(
+      item => item.id === targetListId && item.kind === 'todo'
+    ) as TodoList | undefined
+    
+    if (!sourceList || !targetList) return
+    
+    // Find the task to move
+    const taskIndex = sourceList.content.tasks.findIndex(task => task.task_id === taskId)
+    if (taskIndex === -1) return
+    
+    // Get a copy of the task
+    const taskToMove = { ...sourceList.content.tasks[taskIndex] }
+    
+    // Remove the task from the source list
+    sourceList.content.tasks = sourceList.content.tasks.filter(task => task.task_id !== taskId)
+    
+    // Add the task to the target list at the specified index
+    targetList.content.tasks.splice(targetIndex, 0, taskToMove)
+    
+    // Save the board
+    boardStore.debouncedSaveBoard()
+  }
+  
   return {
     addTodoList,
     updateTodoTitle,
     addTask,
     updateTask,
     toggleTaskCompletion,
-    deleteTask
+    deleteTask,
+    reorderTasks,
+    moveTaskBetweenLists
   }
 })
