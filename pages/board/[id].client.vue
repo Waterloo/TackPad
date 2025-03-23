@@ -100,8 +100,8 @@ const deleteItemConfirm = ref(false);
         top: '-10000px',
         willChange: 'transform',
       }"
-     @touchstart.stop.prevent="startPan"
-  @touchmove.stop.prevent="pan"
+       @touchstart.stop="startPan"
+  @touchmove.stop.prevent="pan"  
   @touchend.stop="endPan"
   @touchcancel.stop="endPan"
     >
