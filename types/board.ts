@@ -82,8 +82,18 @@ export interface ImageItem extends BaseBoardItem {
   };
 }
 
+export interface Tacklet extends BaseBoardItem {
+  kind: 'tacklet';
+  content: {
+   url: string;
+   version: string;
+   data:unknown;
+   permissions: string[];
+  };
+}
+
 // Combined types
-export type BoardItem = StickyNote | TodoList | LinkItem | TimerItem | TextWidget | ImageItem;
+export type BoardItem = StickyNote | TodoList | LinkItem | TimerItem | TextWidget | ImageItem | Tacklet;
 
 export interface Board {
   board_id: string;
