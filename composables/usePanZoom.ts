@@ -123,7 +123,6 @@ export function usePanZoom() {
 
   const startPan = (e: MouseEvent | TouchEvent) => {
     if (e instanceof TouchEvent) {
-      e.preventDefault();
       isTouchDevice.value = true;
       
       // Handle two-finger touch (existing pinch-zoom logic)
