@@ -76,14 +76,10 @@ const deleteItemConfirm = ref(false);
     ref="boardRef"
     class="board fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden"
     :style="{ touchAction: 'none', cursor: spacePressed || isPanning ? 'grab' : 'default' }"
-  @mousedown.stop="startPan"
-  @touchstart.stop="startPan"
+    @mousedown.stop="startPan"
   @mousemove.stop="pan"
-  @touchmove.stop.prevent="pan"
   @mouseup.stop="endPan"
-  @touchend.stop="endPan"
   @mouseleave.stop="endPan"
-  @touchcancel.stop="endPan"
   @wheel.ctrl.prevent="handleZoom"
   @click.stop="handleDeselect"
   tabindex="0"
@@ -98,10 +94,10 @@ const deleteItemConfirm = ref(false);
         top: '-10000px',
         willChange: 'transform',
       }"
-      @touchstart.stop="startPan"
-      @touchmove.stop="pan"
-      @touchend.stop="endPan"
-      @touchcancel.stop="endPan"
+       @touchstart.stop="startPan"
+  @touchmove.stop.prevent="pan"  
+  @touchend.stop="endPan"
+  @touchcancel.stop="endPan"
     >
       <div
         class="relative w-full h-full"
