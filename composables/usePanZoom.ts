@@ -125,6 +125,7 @@ export function usePanZoom() {
     if (e instanceof TouchEvent) {
       isTouchDevice.value = true;
       
+      // Handle two-finger touch (existing pinch-zoom logic)
       if (e.touches.length === 2) {
         initialDistance.value = Math.hypot(
           e.touches[1].clientX - e.touches[0].clientX,
@@ -138,26 +139,31 @@ export function usePanZoom() {
         };
         lastX.value = pos.x;
         lastY.value = pos.y;
+        return;
       }
-       // NEW: Handle single-finger touch only if directly on board background
-    if (e.touches.length === 1) {
-      // Check if touch target is the board itself (not a widget)
-      const target = e.target as HTMLElement;
-      const isDirectlyOnBoard = target.classList.contains('board') || 
-                                target.classList.contains('board-container');
       
-      if (isDirectlyOnBoard) {
-        isPanning.value = true;
-        lastX.value = e.touches[0].clientX;
-        lastY.value = e.touches[0].clientY;
-        // Prevent default to avoid scrolling
-        e.preventDefault();
+      // Handle single-finger touch
+      if (e.touches.length === 1) {
+        // Get the element that was touched
+        const target = e.target as HTMLElement;
+        
+        // Check if touch target is the board or container (not a widget)
+        const boardElement = document.querySelector('.board');
+        const containerElement = document.querySelector('.board-container');
+        
+        // Only enable panning if touched directly on board or container
+        if (target === boardElement || target === containerElement ||
+            target.classList.contains('board') || target.classList.contains('board-container')) {
+          isPanning.value = true;
+          lastX.value = e.touches[0].clientX;
+          lastY.value = e.touches[0].clientY;
+          e.preventDefault(); // Prevent default behaviors
+        }
       }
-    }
       return;
     }
-
-    // Mouse interaction - require space key
+  
+    // Mouse interaction logic (unchanged)
     if (e.button !== 0 || !spacePressed.value) return;
     isPanning.value = true;
     lastX.value = e.clientX;

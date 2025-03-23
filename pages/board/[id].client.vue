@@ -75,7 +75,13 @@ const deleteItemConfirm = ref(false);
  <div
     ref="boardRef"
     class="board fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden"
-    :style="{ touchAction: 'none', cursor: spacePressed || isPanning ? 'grab' : 'default' }"
+    :style="{ 
+    touchAction: 'none', 
+    cursor: spacePressed || isPanning ? 'grab' : 'default',
+    userSelect: 'none',
+    webkitUserSelect: 'none', 
+    msUserSelect: 'none'
+  }"
     @mousedown.stop="startPan"
   @mousemove.stop="pan"
   @mouseup.stop="endPan"
@@ -209,5 +215,9 @@ html, body {
 .board-container {
   will-change: transform;
   transition: transform 0.3s ease;
+}
+.board, .board-container {
+  touch-action: none; /* This is crucial for removing delay */
+  -webkit-touch-callout: none;
 }
 </style>
