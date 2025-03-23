@@ -7,7 +7,6 @@ const route = useRoute()
 function submitPassword(){
   if(password.value){
     boardStore.password = password.value
-    if(boardStore.isEncrypted===false) boardStore.saveBoard()
     boardStore.initializeBoard(route.params?.id)
     boardStore.showPasswordDialog = false
   }
