@@ -139,6 +139,21 @@ export function usePanZoom() {
         lastX.value = pos.x;
         lastY.value = pos.y;
       }
+       // NEW: Handle single-finger touch only if directly on board background
+    if (e.touches.length === 1) {
+      // Check if touch target is the board itself (not a widget)
+      const target = e.target as HTMLElement;
+      const isDirectlyOnBoard = target.classList.contains('board') || 
+                                target.classList.contains('board-container');
+      
+      if (isDirectlyOnBoard) {
+        isPanning.value = true;
+        lastX.value = e.touches[0].clientX;
+        lastY.value = e.touches[0].clientY;
+        // Prevent default to avoid scrolling
+        e.preventDefault();
+      }
+    }
       return;
     }
 
@@ -183,7 +198,22 @@ export function usePanZoom() {
           }
         }
       }
+      if (e.touches.length === 1 && isPanning.value) {
+        const dx = e.touches[0].clientX - lastX.value;
+        const dy = e.touches[0].clientY - lastY.value;
+        
+        translateX.value += dx;
+        translateY.value += dy;
+        
+        lastX.value = e.touches[0].clientX;
+        lastY.value = e.touches[0].clientY;
+        
+        // Prevent default to avoid scrolling
+        e.preventDefault();
+        return;
+      }
       return;
+      
     }
 
     // Mouse interaction - require space key
