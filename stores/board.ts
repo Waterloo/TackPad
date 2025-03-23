@@ -71,6 +71,7 @@ export const useBoardStore = defineStore('board', () => {
           window.location.reload()
         }
       } else {
+        isEncrypted.value=false
         board.value = boardData
       }
 

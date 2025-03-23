@@ -13,10 +13,7 @@ function submitPassword(){
   }
 }
 function cancelPassword(){
-  if(boardStore.isEncrypted){
-    boardStore.initializeBoard(route.params?.id)
     boardStore.showPasswordDialog = false
-  }
 }
 </script>
 
