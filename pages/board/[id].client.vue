@@ -100,8 +100,8 @@ const deleteItemConfirm = ref(false);
         top: '-10000px',
         willChange: 'transform',
       }"
-       @touchstart.stop="startPan"
-  @touchmove.stop.prevent="pan"  
+     @touchstart.stop.prevent="startPan"
+  @touchmove.stop.prevent="pan"
   @touchend.stop="endPan"
   @touchcancel.stop="endPan"
     >
@@ -169,10 +169,10 @@ const deleteItemConfirm = ref(false);
       </div>
     </div>
 
-    <BoardHeader />
-    <BoardToolbar />
+    <BoardHeader v-if="!isPanning" />
+    <BoardToolbar v-if="!isPanning" />
   
-      <ProfilePopup />
+      <ProfilePopup v-if="!isPanning"  />
     
     <BoardPasswordDialog />
     <OfflineIndicator />

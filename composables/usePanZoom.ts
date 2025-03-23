@@ -123,6 +123,7 @@ export function usePanZoom() {
 
   const startPan = (e: MouseEvent | TouchEvent) => {
     if (e instanceof TouchEvent) {
+      e.preventDefault();
       isTouchDevice.value = true;
       
       // Handle two-finger touch (existing pinch-zoom logic)
@@ -142,24 +143,24 @@ export function usePanZoom() {
         return;
       }
       
-      // Handle single-finger touch
-      if (e.touches.length === 1) {
-        // Get the element that was touched
-        const target = e.target as HTMLElement;
-        
-        // Check if touch target is the board or container (not a widget)
-        const boardElement = document.querySelector('.board');
-        const containerElement = document.querySelector('.board-container');
-        
-        // Only enable panning if touched directly on board or container
-        if (target === boardElement || target === containerElement ||
-            target.classList.contains('board') || target.classList.contains('board-container')) {
-          isPanning.value = true;
-          lastX.value = e.touches[0].clientX;
-          lastY.value = e.touches[0].clientY;
-          e.preventDefault(); // Prevent default behaviors
-        }
-      }
+// Handle single-finger touch
+if (e.touches.length === 1) {
+  // Always allow panning on the board area, regardless of the specific element
+  const boardElement = document.querySelector('.board');
+  if (boardElement) {
+    const boardRect = boardElement.getBoundingClientRect();
+    const touchX = e.touches[0].clientX;
+    const touchY = e.touches[0].clientY;
+    
+    // Check if the touch is within the board's boundaries
+    if (touchX >= boardRect.left && touchX <= boardRect.right && 
+        touchY >= boardRect.top && touchY <= boardRect.bottom) {
+      isPanning.value = true;
+      lastX.value = touchX;
+      lastY.value = touchY;
+    }
+  }
+}
       return;
     }
   
