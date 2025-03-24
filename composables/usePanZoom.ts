@@ -174,8 +174,9 @@ export function usePanZoom() {
   const handleWheel = (e: WheelEvent) => {
     // Only handle wheel events for panning (not zooming)
     if (!e.ctrlKey && e.deltaY % 1 === 0) {
-      translateX.value = translateX.value - e.deltaX;
-      translateY.value = translateY.value - e.deltaY;
+      const speedFactor = 0.1; // Adjust this value to make the panning slower
+      translateX.value = translateX.value - e.deltaX * speedFactor;
+      translateY.value = translateY.value - e.deltaY * speedFactor;
     }
   };
 

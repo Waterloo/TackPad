@@ -13,7 +13,7 @@
         />
         <h1
           v-if="!editTitle"
-          class="text-base"
+          class="text-base text-ellipsis text-nowrap overflow-hidden w-40 md:w-full"
           @pointerdown="startEditingTitle"
           @keypress.enter="startEditingTitle"
           tabindex="1"
@@ -60,3 +60,4 @@
 
   const isEncrypted = computed(()=>boardStore.isEncrypted)
   </script>
+  

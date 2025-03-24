@@ -11,7 +11,8 @@ export const useTodo = (list: TodoList) => {
   const editingTaskId = ref<string | null>(null)
   const editingContent = ref('')
   const editInput = ref<HTMLInputElement | null>(null)
-  
+
+
   // Title editing state
   const localTitle = ref(list.content.title)
   const isEditingTitle = ref(false)
@@ -69,13 +70,16 @@ export const useTodo = (list: TodoList) => {
     todoStore.toggleTaskCompletion(list.id, task.task_id)
   }
 
-  const startEditing = (task: Task) => {
-    editingTaskId.value = task.task_id
-    editingContent.value = task.content
-    nextTick(() => {
-      editInput.value?.focus()
-    })
-  }
+  // const startEditing = (task: Task) => {
+  //   editingTaskId.value = task.task_id
+  //   editingContent.value = task.content
+  //   nextTick(() => {
+  //     if (editInput.value) {
+  //       console.log(editInput.value)
+  //       editInput.value.focus();
+  //     }
+  //   })
+  // }
 
   const saveTaskEdit = (task: Task) => {
     if (editingTaskId.value === null) return
@@ -150,37 +154,31 @@ function handleDragStart(event, listID, itemIndex, task) {
 
 function handleDragOver(event, listID, itemIndex) {
   event.preventDefault(); // Ensure drop is allowed
+  event.stopPropagation(); // Prevent bubbling
+
+  const targetElem = event.target.closest('.taskItem');
   
-  const targetElem = event.target;
-  
-  // Clear previous highlights first
-  document.querySelectorAll('.item-drag').forEach(el => {
-    el.classList.remove('item-drag');
-  });
-  
-  // Add highlight to current target if it's a task item
-  if (targetElem?.classList.contains('taskItem')) {
+  if (targetElem) {
+    document.querySelectorAll('.item-drag').forEach(el => {
+      el.classList.remove('item-drag');
+    });
     targetElem.classList.add('item-drag');
   }
   
-  // Handle list highlighting
-  const todoList = targetElem.closest('.taskContaner');
+  const todoList = event.target.closest('.taskContaner');
   if (todoList) {
-    // Remove previous list highlights
     document.querySelectorAll('.list-drop').forEach(el => {
       el.classList.remove('list-drop');
     });
-    
-    // Only highlight if dragging between different lists
     if (listID !== boardStore.fromListId) {
       todoList.classList.add('list-drop');
     }
   }
-  
-  // Update target indices
+
   dragState.targetIndex = itemIndex;
   boardStore.targetIndex = itemIndex;
 }
+
 
 function handleDragEnd() {
   dragState.reset();
@@ -443,6 +441,7 @@ function moveGhostElement(touchX, touchY) {
     draggedItemIndex,
     isDragging,
     dropIndex,
+  
     
     // Title functions
     startTitleEdit,
@@ -453,7 +452,7 @@ function moveGhostElement(touchX, touchY) {
     addNewTask,
     deleteTask,
     toggleTask,
-    startEditing,
+    // startEditing,
     saveTaskEdit,
     cancelTaskEdit,
 

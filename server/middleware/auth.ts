@@ -45,31 +45,24 @@ export default defineEventHandler(async (event) => {
       }
     }
     
-    // If we have a session, try to get the profile
-    if (session?.user?.providerID) {
-      const db = useDrizzle()
-      const profile = await db.query.PROFILE.findFirst({
-        where: eq(tables.PROFILE.providerID, session.user.providerID.toString())
-      })
-      
-      // Update context with available user data
+    // If we have a session, use the profileId and username from the session
+    if (session?.user) {
       event.context.session = {
         user: session.user,
         secure: {
-          profileId: profile?.id || null,
-          username: profile?.username || null
+          profileId: session.user.profileId || null,
+          username: session.user.username || null
         }
       }
     }
     
-    // For protected routes, ensure we have a valid user profile
+    // For protected routes, ensure we have a valid profileId
     if (!isPublicRoute && !event.context.session.secure.profileId) {
       throw createError({
         statusCode: 401,
         message: 'Unauthorized - No valid profile'
       })
     }
-
   } catch (error) {
     console.error('Auth middleware error:', error)
     throw error
