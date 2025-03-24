@@ -149,7 +149,7 @@ const titleDisplay = ref<HTMLElement | null>(null)
   titleInput,
   editingTaskId,
   editingContent,
-  editInput,
+  
     // Title functions
     startTitleEdit,
   saveTitle,
@@ -158,7 +158,7 @@ const titleDisplay = ref<HTMLElement | null>(null)
   addNewTask,
   deleteTask,
   toggleTask,
-  startEditing,
+  // startEditing,
   saveTaskEdit,
   cancelTaskEdit,
 // Drag and drop functions
@@ -171,6 +171,17 @@ const titleDisplay = ref<HTMLElement | null>(null)
       handleTouchMove,
       handleTouchEnd
 } = useTodo(props.list)
+const editInput = ref(null)
+
+const startEditing = (task: Task) => {
+    editingTaskId.value = task.task_id
+    editingContent.value = task.content
+    nextTick(() => {
+      if (editInput.value && editInput.value?.length>0) {
+        editInput.value[0].focus();
+      }
+    })
+  }
 // Handle adding a new task
 const handleAddNewTask = () => {
   if (newTask.value.trim()) {
@@ -191,10 +202,6 @@ const titleSizeClass = computed(() => {
   return 'text-xl'
 })
 
-const draggedItem = ref(null)
-const targetIndex = ref(0)
-const isDragging=ref(false)
-
 </script>
 <style scoped>
 
@@ -202,14 +209,22 @@ const isDragging=ref(false)
   opacity: 0.5;
   
 }
-.item-drag{
-  border-top: 2px solid #0066ff;
-  transition: border 500ms;
+.item-drag {
+  border-top: 3px solid #0066ff; /* Increased border width */
+  background-color: rgba(0, 120, 255, 0.1); /* Light background highlight */
+  transition: background-color 200ms, border 200ms ease-in-out;
+  box-shadow: 0 0 10px rgba(0, 120, 255, 0.3); /* Soft glow effect */
+  transform: scale(1.02); /* Slightly enlarge the dragged item for better focus */
+  z-index: 100; /* Ensure it's above other items */
 }
-
 .list-drop{
   border: 2px dashed rgba(0, 120, 255, 0.3); 
   padding: 8px;
 }
 
+.taskItem:hover {
+  cursor: move; /* Show move cursor */
+  transform: scale(1.05); /* Slightly enlarge when hovering over task items */
+  transition: transform 0.2s ease-in-out;
+}
 </style>
