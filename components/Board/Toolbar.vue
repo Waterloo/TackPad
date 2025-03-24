@@ -73,7 +73,7 @@
           Bookmark
         </div>
       </div>
-      <Modal v-model:model-value="bookmarkOpen">
+      <Modal v-model:model-value="bookmarkOpen" title="Add Bookmark">
         <div>
             <p class="text-gray-600 mb-4">Please a link you want to bookmark</p>
     <input 
