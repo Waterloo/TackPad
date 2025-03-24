@@ -63,8 +63,8 @@ export const useBoardStore = defineStore('board', () => {
       isOwner.value = raw.isOwner
       settings.value = settingsData
 
-      
       if(boardData.data.encrypted){
+        console.log("encrypted")
         isEncrypted.value=true;
         if(!password.value){
           showPasswordDialog.value=true

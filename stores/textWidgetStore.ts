@@ -12,23 +12,31 @@ export const useTextWidgetStore = defineStore('textWidgets', () => {
   
   // Add a text widget
   const addTextWidget = (position: Position) => {
-    if (!boardStore.board) return null
-    const textWidget: TextWidget = {
-      id: nanoid(),
-      kind: 'text',
-      x_position: position.x,
-      y_position: position.y,
-      width: position.width || 200,
-      height: position.height || 64,
-      content: {
-        text: 'Double click to edit text'
+    return new Promise<TextWidget>((resolve, reject) => {
+      if (!boardStore.board) {
+        reject(new Error('Board not found'));
+        return;
       }
-    }
-
-    boardStore.board.data.items.push(textWidget)
-    boardStore.debouncedSaveBoard()
-    return textWidget
-  }
+  
+      const textWidget: TextWidget = {
+        id: nanoid(),
+        kind: 'text',
+        x_position: position.x,
+        y_position: position.y,
+        width: position.width || 200,
+        height: position.height || 64,
+        lock: false,
+        content: {
+          text: 'Double click to edit text',
+        },
+      };
+  
+      boardStore.board.data.items.push(textWidget);
+      boardStore.debouncedSaveBoard();
+  
+      resolve(textWidget);  // Resolve the promise with the created textWidget
+    });
+  };
   
   // Update text widget content
   const updateTextWidgetContent = (widgetId: string, text: string) => {

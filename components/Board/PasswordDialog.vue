@@ -4,11 +4,22 @@ import {useBoardStore} from '~/stores/board'
 const boardStore = useBoardStore()
 let password = ref(null)
 const route = useRoute()
-function submitPassword(){
+let errMsg = ref("")
+async function submitPassword(){
   if(password.value){
-    boardStore.password = password.value
-    boardStore.initializeBoard(route.params?.id)
+    errMsg.value=""
+    boardStore.password=password.value
+     // if encrypted = true then unlocking
+    if(boardStore.isEncrypted == true){
+      boardStore.initializeBoard(route.params.id)
+    }else{
+      boardStore.saveBoard()
+    }
+    password.value = null
     boardStore.showPasswordDialog = false
+
+  }else{
+    errMsg.value="Password Cannot be empty"
   }
 }
 function cancelPassword(){
@@ -33,6 +44,9 @@ function cancelPassword(){
       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
       autofocus
     />
+    <div class="text-sm text-red-400">
+      {{ errMsg }}
+    </div>
   </div>
   
   <template #footer>
