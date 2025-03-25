@@ -65,10 +65,13 @@ export function useClipboard() {
           y: position.y,
           width: 300,
           height: 100,
-        }).then(textWidget => {
-          if (textWidget) {
-            textWidgetStore.updateTextWidgetContent(textWidget.id, text);
-          }
+          
+        }).then((textWidget) => {
+          // You can modify the content here or do other tasks
+          textWidget.content.text = text;
+        })
+        .catch((error) => {
+          console.error('Error adding text widget:', error);
         });
       }
     }

@@ -131,6 +131,7 @@ export function useItemManagement() {
     addTextWidget,
     handleDelete,
     updateItemPosition,
-    toggleLock
+    toggleLock,
+    calculateCenterPosition
   };
 }

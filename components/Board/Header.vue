@@ -13,19 +13,21 @@
         />
         <h1
           v-if="!editTitle"
-          class="text-base"
+          class="text-base text-ellipsis text-nowrap overflow-hidden w-40 md:w-full"
           @pointerdown="startEditingTitle"
           @keypress.enter="startEditingTitle"
           tabindex="1"
         >
           {{ boardStore.board?.data.title || 'New TackPad' }}
         </h1>
+        
         <input 
           v-else 
           autofocus 
           :value="boardStore.board?.data.title || 'New TackPad'" 
           @blur="(e: FocusEvent) => saveTitle((e.target as HTMLInputElement).value)"
         />
+        <button :key="isEncrypted" class="mx-2 p-2 hover:bg-blue-100 text-xl" :title="`Encrypt Board:  ${isEncrypted?'Enabled':'Disabled'}`" @click="boardStore.toggleEncryption()">{{ isEncrypted ? '🔐':'🔓' }}</button>
       </div>
       <div class="items py-2 flex flex-col gap-2" v-if="isBoardListOpen">
         <div 
@@ -45,12 +47,17 @@
   
   <script setup lang="ts">
   import { useBoard } from '~/composables/useBoard';
+  import { useBoardStore } from '~/stores/board';
+  const boardStore = useBoardStore()
+
   const { 
-    boardStore, 
     editTitle, 
     isBoardListOpen, 
     startEditingTitle, 
     saveTitle, 
     toggleBoardList 
   } = useBoard();
+
+  const isEncrypted = computed(()=>boardStore.isEncrypted)
   </script>
+  

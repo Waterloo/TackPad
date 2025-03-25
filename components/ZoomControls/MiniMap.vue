@@ -128,10 +128,7 @@ onUnmounted(() => {
         class="w-8 h-8 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
         aria-label="Toggle minimap"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600">
-          <rect x="2" y="2" width="20" height="20" rx="2"></rect>
-          <rect x="8" y="8" width="8" height="8" rx="1"></rect>
-        </svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><!-- Icon from Remix Icon by Remix Design - https://github.com/Remix-Design/RemixIcon/blob/master/License --><path fill="currentColor" d="M18 3a3 3 0 1 1 0 6h-3a3 3 0 0 1-2.829-2H11c-1.1 0-2 .9-2 2v.171a3.001 3.001 0 0 1 0 5.658V15c0 1.1.9 2 2 2h1.17A3 3 0 0 1 15 15h3a3 3 0 1 1 0 6h-3a3 3 0 0 1-2.829-2H11c-2.21 0-4-1.79-4-4H5a3 3 0 1 1 0-6h2a4 4 0 0 1 4-4h1.17A3 3 0 0 1 15 3zm0 14h-3a1 1 0 1 0 0 2h3a1 1 0 1 0 0-2M8 11H5a1 1 0 1 0 0 2h3a1 1 0 1 0 0-2m10-6h-3a1 1 0 1 0 0 2h3a1 1 0 1 0 0-2"/></svg>
       </button>
     </div>
     

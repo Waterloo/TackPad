@@ -3,125 +3,23 @@ import { useBoardStore } from '~/stores/board';
 
 export function getBookMarkURL() {
   const route = useRoute();
-  const apiURL = `${useRequestURL().protocol}//${
+  const baseUrl = `${useRequestURL().protocol}//${
     useRequestURL().host
-  }/api/bookmark/${route.params.id}`;
-
-  const bookmarkletURI = `javascript:(function() {
-  // Create toast container if it doesn't exist
-  let toastContainer = document.getElementById('custom-toast-container');
-  if (!toastContainer) {
-    toastContainer = document.createElement('div');
-    toastContainer.id = 'custom-toast-container';
-    toastContainer.style.cssText = \`
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 10000;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    \`;
-    document.body.appendChild(toastContainer);
-  }
-
-  // Create toast element
-  const toast = document.createElement('div');
-  toast.style.cssText = \`
-    background-color: white;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    padding: 12px 24px;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    min-width: 250px;
-    animation: slideIn 0.3s ease-in-out;
-  \`;
-
-  // Add success icon
-  const icon = document.createElement('span');
-  icon.innerHTML = '✓';
-  icon.style.cssText = \`
-    color: #22C55E;
-    margin-right: 12px;
-    font-size: 20px;
-  \`;
-
-  // Add message container
-  const messageContainer = document.createElement('div');
-  messageContainer.style.cssText = \`
-    flex-grow: 1;
-  \`;
-
-  // Add title
-  const title = document.createElement('div');
-  title.textContent = 'Bookmarked';
-  title.style.cssText = \`
-    font-weight: 600;
-    font-size: 16px;
-    color: #1a1a1a;
-  \`;
-
-  // Add message
-  const message = document.createElement('div');
-  message.textContent = 'You can access bookmark from the board';
-  message.style.cssText = \`
-    font-size: 14px;
-    color: #666;
-    margin-top: 2px;
-  \`;
-
-  // Add close button
-  const closeButton = document.createElement('button');
-  closeButton.innerHTML = '×';
-  closeButton.style.cssText = \`
-    background: none;
-    border: none;
-    color: #999;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0 0 0 12px;
-  \`;
-  closeButton.onclick = () => toast.remove();
-
-  // Add styles for animation
-  const style = document.createElement('style');
-  style.textContent = \`
-    @keyframes slideIn {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-  \`;
-  document.head.appendChild(style);
-
-  // Assemble toast
-  messageContainer.appendChild(title);
-  messageContainer.appendChild(message);
-  toast.appendChild(icon);
-  toast.appendChild(messageContainer);
-  toast.appendChild(closeButton);
-  toastContainer.appendChild(toast);
-
-  // Remove toast after 3 seconds
-  setTimeout(() => {
-    toastContainer.remove();
-    style.remove();
-  }, 3000);
-
-  // Execute the original bookmarklet functionality
-  fetch('${apiURL}', {
-    method: 'POST',
-    body: JSON.stringify({link: window.location.href}),
-    headers: {'Content-Type': 'application/json'}
-  });
+  }`
+  const boardId = route.params.id
+const bookmarkletURI = `javascript:(function(){
+  window.myScriptConfig = {
+    baseUrl: '${baseUrl}',
+    boardId:'${boardId}'
+  };
+  
+  let script = document.createElement('script');
+  script.src = '${baseUrl}/scripts/bookmarklet.js';
+  document.body.appendChild(script);
 })();`;
 
-  return encodeURI(bookmarkletURI);
+// Return the raw javascript: URL
+return bookmarkletURI;
 }
 
 export function applyOptimalZoom(
