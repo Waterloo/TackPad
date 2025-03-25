@@ -101,6 +101,13 @@ export interface Position {
   height?: number;
 }
 
+// Board position interface for storing pan/zoom state
+export interface BoardPosition {
+  translateX: number;
+  translateY: number;
+  scale: number;
+}
+
 // Board metadata type
 export interface BoardMetadata {
   board_id: string;

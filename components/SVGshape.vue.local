@@ -1,0 +1,196 @@
+<template>
+  <div class="svg-widget">
+    <div v-if="svgContent" class="svg-display">
+      <img :src="svgDataUrl" alt="SVG content" class="svg-image" />
+      <button v-if="isSelected" @click="editSvg" class="edit-button">Edit SVG</button>
+    </div>
+    
+    <Modal v-model="showModal" title="Add SVG Content" :showCloseButton="true">
+      <div class="svg-modal-content">
+        <div class="input-section">
+          <textarea
+            v-model="svgInputContent"
+            placeholder="Paste your SVG code here..."
+            class="svg-textarea"
+            rows="8"
+          ></textarea>
+        </div>
+        <div class="preview-section" v-if="svgInputContent">
+          <h3>Preview:</h3>
+          <div class="preview-container" v-html="svgInputContent"></div>
+        </div>
+        <div class="button-section">
+          <button @click="clearSvg" class="clear-button">Clear</button>
+          <button @click="saveSvg" class="save-button">Save</button>
+        </div>
+      </div>
+    </Modal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch, onMounted } from 'vue';
+import Modal from './UI/Modal.vue';
+
+const props = defineProps<{
+  itemId: string;
+  isSelected: boolean;
+  initialSvg?: string;
+}>();
+
+const emit = defineEmits(['update:svg']);
+
+const svgContent = ref(props.initialSvg || '');
+const svgInputContent = ref('');
+const showModal = ref(false);
+
+// Compute the SVG data URL
+const svgDataUrl = computed(() => {
+  if (!svgContent.value) {
+    return '';
+  }
+  
+  // Convert SVG to base64 if needed
+  const base64Data = btoa(unescape(encodeURIComponent(svgContent.value)));
+  // Create data URL with proper MIME type
+  return `data:image/svg+xml;base64,${base64Data}`;
+});
+
+function saveSvg() {
+  svgContent.value = svgInputContent.value;
+  emit('update:svg', svgContent.value);
+  showModal.value = false;
+}
+
+function clearSvg() {
+  svgInputContent.value = '';
+}
+
+function editSvg() {
+  svgInputContent.value = svgContent.value;
+  showModal.value = true;
+}
+
+// Open modal automatically if no content
+onMounted(() => {
+  if (!svgContent.value) {
+    // Small delay to make sure component is fully mounted
+    setTimeout(() => {
+      showModal.value = true;
+    }, 100);
+  }
+});
+
+// Watch for changes to initialSvg prop
+watch(() => props.initialSvg, (newSvg) => {
+  if (newSvg !== undefined) {
+    svgContent.value = newSvg;
+  }
+});
+</script>
+
+<style scoped>
+.svg-widget {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.svg-display {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.svg-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.edit-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  background: #4285f4;
+  border: 1px solid #2765d8;
+  color: white;
+}
+
+.svg-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.input-section {
+  width: 100%;
+}
+
+.svg-textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  font-family: monospace;
+  resize: vertical;
+}
+
+.preview-section {
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 16px;
+  background: white;
+}
+
+.preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 150px;
+  background: #f9f9f9;
+  border-radius: 4px;
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.button-section {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.clear-button, 
+.save-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.clear-button {
+  background: #f8f9fa;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.save-button {
+  background: #4285f4;
+  border: 1px solid #2765d8;
+  color: white;
+}
+</style>

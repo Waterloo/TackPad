@@ -6,22 +6,29 @@ import { debounce } from "lodash";
 import { useRoute } from "vue-router";
 
 // import type { EncryptedData } from '~/types/encryption'
-import type { Board, BoardItem, Boards } from "~/types/board";
-import { usePasswordDialog } from "~/composables/usePasswordDialog";
-import { decrypt, encrypt } from "~/utils/crypto";
+import type { Board, BoardItem, Boards, Task } from '~/types/board'
+import { usePasswordDialog } from '~/composables/usePasswordDialog'
+import { decrypt, encrypt } from '~/utils/crypto'
 
 export const useBoardStore = defineStore("board", () => {
   // State
-  const board = ref<Board | null>(null);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
-  const selectedId = ref<string | null>(null);
-  const scale = ref(1);
-  const isOldBoard = ref(false);
-  const isOwner = ref(false);
-  const password = ref(null);
-  const boards = useLocalStorage<Boards>("boards", {});
-  const settings = useLocalStorage<BoardSettings>("settings", {});
+  const board = ref<Board | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+  const selectedId = ref<string | null>(null)
+  const scale = ref(1)
+  const isOldBoard = ref(false)
+  const isOwner = ref(false)
+  const translateX = ref(0)
+  const translateY = ref(0)
+  const ZOOM_LEVEL = ref(1) // New reference for tracking zoom levels (1 = overview zoom level)
+  const password = ref(null)
+  const boards = useLocalStorage<Boards>('boards', {})
+  const settings = useLocalStorage<BoardSettings>('settings', {})
+
+  const fromListId = ref<string | null>(null)
+  const targetIndex = ref<number | null>(null)
+  const draggedTask = ref<Task | null>(null)
 
   // Get route at the store level
   const route = useRoute();
@@ -100,8 +107,20 @@ export const useBoardStore = defineStore("board", () => {
   };
 
   const setScale = (newScale: number) => {
-    scale.value = newScale;
-  };
+    scale.value = newScale
+  }
+
+  const setZoomLevel = (level: number) => {
+    ZOOM_LEVEL.value = level
+  }
+
+  const setTranslateX = (x: number) => {
+    translateX.value = x
+  }
+
+  const setTranslateY = (y: number) => {
+    translateY.value = y
+  }
 
   const deleteSelected = () => {
     if (!board.value || !selectedId.value) return;
@@ -196,14 +215,23 @@ export const useBoardStore = defineStore("board", () => {
     error,
     selectedId,
     scale,
+    translateX,
+    translateY,
+    ZOOM_LEVEL,
     password,
     isOldBoard,
     isOwner,
+    fromListId,
+    targetIndex,
+    draggedTask,
 
     // Actions
     initializeBoard,
     setSelectedId,
     setScale,
+    setZoomLevel,
+    setTranslateX,
+    setTranslateY,
     deleteSelected,
     setBoardTitle,
     saveBoard,

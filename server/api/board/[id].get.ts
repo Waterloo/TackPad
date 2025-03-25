@@ -130,7 +130,7 @@ async function getWelcomeBoard(board_id: string) {
         x_position: 420,
         y_position: 48,
         width: 300,
-        height: 300,
+        height: 400,
       }],
     },
   };
