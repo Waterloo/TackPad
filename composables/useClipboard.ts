@@ -5,13 +5,21 @@ import { useNoteStore } from '~/stores/noteStore';
 import { useTextWidgetStore } from '~/stores/textWidgetStore';
 import { useLinkStore } from '~/stores/linkStore';
 
+
+
+async function redirectToLogin(){
+  await navigateTo('/login');
+}
 export function useClipboard() {
     const boardStore = useBoardStore();
     const noteStore = useNoteStore();
     const textWidgetStore = useTextWidgetStore();
     const linkStore = useLinkStore();
-    const { updateItemPosition } = useItemManagement();
+    const { updateItemPosition,calculateCenterPosition } = useItemManagement();
     const imageStore = useImageStore();
+    const { loggedIn, clear } = useUserSession()
+// erro handler
+    const { triggerError } = useErrorHandler()
 
   const handlePaste = async (e: ClipboardEvent) => {
     
@@ -50,16 +58,16 @@ export function useClipboard() {
 
       // If it's not a URL, add as a text widget or note
       if (text.length > 100) {
-        const position = calculateCenterPosition(300, 200);
+        const position = calculateCenterPosition(300, 200,'note');
         noteStore.addNote(text, {
           x: position.x,
           y: position.y,
-          color: 'yellow',
+          color: '#FFE589',
           width: 216,
           height: 216,
         });
       } else {
-        const position = calculateCenterPosition(300, 100);
+        const position = calculateCenterPosition(300, 100,'textWidget');
         textWidgetStore.addTextWidget({
           x: position.x,
           y: position.y,
@@ -77,7 +85,9 @@ export function useClipboard() {
     }
 
     // Check for images
+
     const items = clipboardData.items;
+
     const fileGroups = [...items].reduce((acc, item) => {
       if(item.type.indexOf('image') !== -1) {
         acc.image = acc.image ? [...acc.image, item.getAsFile()] : [item.getAsFile()];
@@ -87,19 +97,26 @@ export function useClipboard() {
 
     console.log(fileGroups)
       if(fileGroups.image) {
-      await imageStore.addImage(fileGroups.image);
+        if(loggedIn.value){
+          await imageStore.addImage(fileGroups.image);
+        }else{
+          triggerError({message: "Login to use Images and Files",title:"Login Required",onConfirm:redirectToLogin})
+         }
+      
     }
+ 
   };
 
   // Helper function to calculate center position
-  const calculateCenterPosition = (width: number, height: number) => {
-    return {
-      x: -width / 2,
-      y: -height / 2,
-    };
-  };
+  // const calculateCenterPosition = (width: number, height: number) => {
+  //   return {
+  //     x: -width / 2,
+  //     y: -height / 2,
+  //   };
+  // };
 
   return {
     handlePaste
   };
 }
+

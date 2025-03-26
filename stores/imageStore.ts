@@ -5,6 +5,7 @@ const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
 
 export const useImageStore = defineStore('images', () => {
 
+  const {calculateCenterPosition} = useItemManagement()
   const boardStore = useBoardStore()
 
   const addImage = async (images: File | File[]) => {
@@ -24,7 +25,7 @@ export const useImageStore = defineStore('images', () => {
         const aspectRatio = img.width / img.height
         const width = Math.min(400, img.width)
         const height = width / aspectRatio
-
+        const position = calculateCenterPosition(width,height,'image')
         
 
         const ImageItem = {
@@ -33,8 +34,8 @@ export const useImageStore = defineStore('images', () => {
           content: {
           url: URL.createObjectURL(file)
         },
-        x_position: 0,
-        y_position: 0,
+        x_position: position.x,
+        y_position: position.y,
         width,
         height
       };

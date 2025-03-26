@@ -86,7 +86,8 @@ export function usePanZoom() {
     if (!e.ctrlKey && e.deltaY % 1 === 0) return;
     e.preventDefault();
     
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const zoomSpeedFactor = 0.018; // Adjust this value to control zoom speed
+    const delta = e.deltaY > 0 ? 1 - zoomSpeedFactor : 1 + zoomSpeedFactor;
     updateZoom(delta, e.clientX, e.clientY);
   };
 

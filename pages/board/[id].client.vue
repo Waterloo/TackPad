@@ -29,6 +29,7 @@ const { handleDelete, updateItemPosition, toggleLock } = useItemManagement();
 const route = useRoute();
 const { scale, translateX, translateY, startPan, pan, endPan, handleZoom, updateZoom, spacePressed, isPanning } = usePanZoom();
 const { handlePaste } = useClipboard();
+const { isErrorModalVisible, errorTitle, errorMessage, handleConfirm,handleCancel} = useErrorHandler()
 
 const boardRef = ref<HTMLElement | null>(null);
 // Initialize board
@@ -67,12 +68,26 @@ definePageMeta({
 
 const deleteItemConfirm = ref(false);
 
+const computedDotScale = computed(() => `${scale.value * 3}px`)
+
+const computedDotScaleWidth = computed(() => `${scale.value * 50}px`)
+
+const computedBackgroundImage = computed(() => `radial-gradient(circle at ${scale.value*4}px ${scale.value*4}px, #D1D5DB ${scale.value*4}px, transparent ${scale.value*4}px)`)
+
+const computedBackgroundSize = computed(() => `${scale.value*50}px ${scale.value*50}px`)
+
+const computedBackgroundPosition = computed(()=>`calc(50% + ${translateX.value}px) calc(50% + ${translateY.value}px)`)
 </script>
 <template>
  <div
     ref="boardRef"
-    class="board fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden"
+     :class="`board fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden transition-none ease-in-out`"
     :style="{ 
+    '--dot-scale': computedDotScale,
+    '--dot-scale-width': computedDotScaleWidth,
+    backgroundImage: computedBackgroundImage,
+    backgroundSize: computedBackgroundSize,
+    backgroundPosition: computedBackgroundPosition,
     touchAction: 'none', 
     cursor: spacePressed || isPanning ? 'grab' : 'default',
     userSelect: 'none',
@@ -84,6 +99,7 @@ const deleteItemConfirm = ref(false);
   @mouseup.stop="endPan"
   @mouseleave.stop="endPan"
   @wheel.ctrl.prevent="handleZoom"
+  
   @click.stop="handleDeselect"
   tabindex="0"
   >
@@ -91,6 +107,7 @@ const deleteItemConfirm = ref(false);
       class="board-container absolute origin-center"
       :style="{
         transform: `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`,
+        transition: !isPanning ? 'transform 0.3s ease' : 'none',
         width: '20000px',
         height: '20000px',
         left: '-10000px',
@@ -102,6 +119,7 @@ const deleteItemConfirm = ref(false);
   @touchend.stop="endPan"
   @touchcancel.stop="endPan"
     >
+
       <div
         class="relative w-full h-full"
         :style="{ transform: 'translate(50%, 50%)' }"
@@ -124,6 +142,7 @@ const deleteItemConfirm = ref(false);
             :shadow="item.kind === 'text'"
             @delete="deleteItemConfirm = true"
             @lock="(locked:boolean) => toggleLock(item.id, locked)"
+           
           >
             <StickyNote
               v-if="item.kind === 'note'"
@@ -181,6 +200,7 @@ const deleteItemConfirm = ref(false);
     <OfflineIndicator />
     <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
     <ZoomControls class="fixed right-2 bottom-2 z-10" />
+    <ErrorModal v-model="isErrorModalVisible" :title="errorTitle" :message="errorMessage" @confirm="handleConfirm" @cancel="handleCancel"/>
   </div>
 </template>
 <style scoped>
@@ -189,6 +209,7 @@ html, body {
   overscroll-behavior: none;
   touch-action: none;
 }
+
 
 /* Global scrollbar styles */
 ::-webkit-scrollbar {
@@ -217,8 +238,9 @@ html, body {
 
 .board-container {
   will-change: transform;
-  transition: transform 0.3s ease;
+  transition: scale 0.3s ease;
 }
+
 .board, .board-container {
   touch-action: none; /* This is crucial for removing delay */
   -webkit-touch-callout: none;
