@@ -6,30 +6,33 @@ import { debounce } from "lodash";
 import { useRoute } from "vue-router";
 
 // import type { EncryptedData } from '~/types/encryption'
-import type { Board, BoardItem, Boards, Task } from '~/types/board'
-import { decrypt, encrypt } from '~/utils/crypto'
+import type { Board, BoardItem, Boards, Task } from "~/types/board";
+import { decrypt, encrypt } from "~/utils/crypto";
 
 export const useBoardStore = defineStore("board", () => {
   // State
-  const board = ref<Board | null>(null)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const selectedId = ref<string | null>(null)
-  const scale = ref(1)
-  const isOldBoard = ref(false)
-  const isOwner = ref(false)
-  const translateX = ref(0)
-  const translateY = ref(0)
-  const ZOOM_LEVEL = ref(1) // New reference for tracking zoom levels (1 = overview zoom level)
-  const password = ref(null)
-  const isEncrypted = ref(false)
+  const board = ref<Board | null>(null);
+  const loading = ref(false);
+  const error = ref<string | null>(null);
+  const selectedId = ref<string | null>(null);
+  const scale = ref(1);
+  const isOldBoard = ref(false);
+  const isOwner = ref(false);
+  const translateX = ref(0);
+  const translateY = ref(0);
+  const ZOOM_LEVEL = ref(1); // New reference for tracking zoom levels (1 = overview zoom level)
+  const password = ref(null);
+  const isEncrypted = ref(false);
   const showPasswordDialog = ref(false);
-  const boards = useLocalStorage<Boards>('boards', {})
-  const settings = useLocalStorage<BoardSettings>('settings', {})
+  const boards = useLocalStorage<Boards>("boards", {});
+  const settings = useLocalStorage<BoardSettings>("settings", {});
 
-  const fromListId = ref<string | null>(null)
-  const targetIndex = ref<number | null>(null)
-  const draggedTask = ref<Task | null>(null)
+  const isProfileVisible = ref(false);
+  let profileTab = ref("user");
+
+  const fromListId = ref<string | null>(null);
+  const targetIndex = ref<number | null>(null);
+  const draggedTask = ref<Task | null>(null);
 
   // Get route at the store level
   const route = useRoute();
@@ -55,21 +58,21 @@ export const useBoardStore = defineStore("board", () => {
 
     try {
       // Case: 'create' or specific board ID - fetch from API
-      const response = await fetch(`/api/board/${boardId}`)
-      if (!response.ok) throw new Error('Failed to load board')
-      const raw = await response.json()
-      const boardData = raw.data
-      const settingsData = raw.settings
-      isOldBoard.value = raw.OldBoard
-      isOwner.value = raw.isOwner
-      settings.value = settingsData
+      const response = await fetch(`/api/board/${boardId}`);
+      if (!response.ok) throw new Error("Failed to load board");
+      const raw = await response.json();
+      const boardData = raw.data;
+      const settingsData = raw.settings;
+      isOldBoard.value = raw.OldBoard;
+      isOwner.value = raw.isOwner;
+      settings.value = settingsData;
 
-      if(boardData.data.encrypted){
-        console.log("encrypted")
-        isEncrypted.value=true;
-        if(!password.value){
-          showPasswordDialog.value=true
-          return
+      if (boardData.data.encrypted) {
+        console.log("encrypted");
+        isEncrypted.value = true;
+        if (!password.value) {
+          showPasswordDialog.value = true;
+          return;
         }
         try {
           board.value = {
@@ -82,8 +85,8 @@ export const useBoardStore = defineStore("board", () => {
           window.location.reload();
         }
       } else {
-        isEncrypted.value=false
-        board.value = boardData
+        isEncrypted.value = false;
+        board.value = boardData;
       }
 
       // Save to local storage
@@ -112,20 +115,20 @@ export const useBoardStore = defineStore("board", () => {
   };
 
   const setScale = (newScale: number) => {
-    scale.value = newScale
-  }
+    scale.value = newScale;
+  };
 
   const setZoomLevel = (level: number) => {
-    ZOOM_LEVEL.value = level
-  }
+    ZOOM_LEVEL.value = level;
+  };
 
   const setTranslateX = (x: number) => {
-    translateX.value = x
-  }
+    translateX.value = x;
+  };
 
   const setTranslateY = (y: number) => {
-    translateY.value = y
-  }
+    translateY.value = y;
+  };
 
   const deleteSelected = () => {
     if (!board.value || !selectedId.value) return;
@@ -145,7 +148,7 @@ export const useBoardStore = defineStore("board", () => {
         body: JSON.stringify({ file_url: curItem.content.url }),
       });
     }
-    
+
     selectedId.value = null;
     debouncedSaveBoard();
   };
@@ -162,10 +165,10 @@ export const useBoardStore = defineStore("board", () => {
 
     let { data, board_id } = unref(board.value);
     let encrypted: any | null = null;
-    
-    if(password.value) {
-      encrypted = await encrypt(data, password.value)
-      isEncrypted.value = true
+
+    if (password.value) {
+      encrypted = await encrypt(data, password.value);
+      isEncrypted.value = true;
     }
 
     try {
@@ -206,19 +209,19 @@ export const useBoardStore = defineStore("board", () => {
       error.value = "Failed to delete board";
       console.error(err);
     }
-  }
+  };
 
-  const toggleEncryption = async()=>{
-    if(!password.value){
-      showPasswordDialog.value = true
-      return
+  const toggleEncryption = async () => {
+    if (!password.value) {
+      showPasswordDialog.value = true;
+      return;
     }
-    if(isEncrypted.value===true){
-      password.value=null
-      isEncrypted.value=false
+    if (isEncrypted.value === true) {
+      password.value = null;
+      isEncrypted.value = false;
     }
-    saveBoard()
-  }
+    saveBoard();
+  };
   // Create debounced version of saveBoard
   const debouncedSaveBoard = debounce(saveBoard, 6000);
 
@@ -244,6 +247,9 @@ export const useBoardStore = defineStore("board", () => {
     draggedTask,
     isEncrypted,
     showPasswordDialog,
+    isProfileVisible,
+    profileTab,
+
     // Actions
     initializeBoard,
     setSelectedId,

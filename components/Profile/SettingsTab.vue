@@ -53,14 +53,14 @@ function handleDeleteBoard() {
 <template>
   <div class="settings-tab space-y-6">
     <div>
-      <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+      <h3 class="text-lg font-medium text-gray-800  mb-4">
         Appearance
       </h3>
       
       <div class="space-y-4">
         <!-- Color scheme selection -->
         <div>
-          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          <h4 class="text-sm font-medium text-gray-700  mb-3">
             Color Scheme
           </h4>
           
@@ -71,8 +71,8 @@ function handleDeleteBoard() {
               class="flex flex-col items-center justify-center p-3 rounded-lg border transition-colors"
               :class="[
                 colorScheme === 'light' 
-                  ? 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700' 
-                  : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  ? 'bg-blue-50  border-blue-200 ' 
+                  : 'bg-white  border-gray-200  hover:bg-gray-50 '
               ]"
             >
               <div class="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center mb-2">
@@ -88,7 +88,7 @@ function handleDeleteBoard() {
                   <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                 </svg>
               </div>
-              <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">
+              <span class="text-sm text-gray-700  font-medium">
                 Light
               </span>
             </button>
@@ -99,8 +99,8 @@ function handleDeleteBoard() {
               class="flex flex-col items-center justify-center p-3 rounded-lg border transition-colors"
               :class="[
                 colorScheme === 'dark' 
-                  ? 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700' 
-                  : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  ? 'bg-blue-50  border-blue-200 ' 
+                  : 'bg-white  border-gray-200  hover:bg-gray-50 '
               ]"
             >
               <div class="w-8 h-8 bg-indigo-900 rounded-full flex items-center justify-center mb-2">
@@ -108,7 +108,7 @@ function handleDeleteBoard() {
                   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
               </div>
-              <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">
+              <span class="text-sm text-gray-700  font-medium">
                 Dark
               </span>
             </button>
@@ -119,18 +119,18 @@ function handleDeleteBoard() {
               class="flex flex-col items-center justify-center p-3 rounded-lg border transition-colors"
               :class="[
                 colorScheme === 'system' 
-                  ? 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700' 
-                  : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  ? 'bg-blue-50  border-blue-200 ' 
+                  : 'bg-white  border-gray-200  hover:bg-gray-50 '
               ]"
             >
-              <div class="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center mb-2">
+              <div class="w-8 h-8 bg-gray-200  rounded-full flex items-center justify-center mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600 dark:text-gray-300">
                   <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                   <line x1="8" y1="21" x2="16" y2="21"></line>
                   <line x1="12" y1="17" x2="12" y2="21"></line>
                 </svg>
               </div>
-              <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">
+              <span class="text-sm text-gray-700  font-medium">
                 System
               </span>
             </button>
@@ -142,7 +142,7 @@ function handleDeleteBoard() {
     <div v-if="isOldBoard!== true && isOwner === true">
       
       <div>
-        <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+        <h3 class="text-lg font-medium text-gray-800  mb-4">
         Delete Board
       </h3>
       <button
