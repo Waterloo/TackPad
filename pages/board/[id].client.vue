@@ -72,7 +72,7 @@ const computedDotScale = computed(() => `${scale.value * 3}px`)
 
 const computedDotScaleWidth = computed(() => `${scale.value * 50}px`)
 
-const computedBackgroundImage = computed(() => `radial-gradient(circle at ${scale.value*4}px ${scale.value*4}px, #D1D5DB ${scale.value*4}px, transparent ${scale.value*4}px)`)
+const computedBackgroundImage = computed(() => `radial-gradient(circle at ${scale.value*3}px ${scale.value*3}px, #D1D5DB ${scale.value*3}px, transparent ${scale.value*3}px)`)
 
 const computedBackgroundSize = computed(() => `${scale.value*50}px ${scale.value*50}px`)
 
@@ -94,12 +94,15 @@ const computedBackgroundPosition = computed(()=>`calc(50% + ${translateX.value}p
     webkitUserSelect: 'none', 
     msUserSelect: 'none'
   }"
-    @mousedown.stop="startPan"
-  @mousemove.stop="pan"
-  @mouseup.stop="endPan"
-  @mouseleave.stop="endPan"
+    @pointerdown.stop="startPan"
+  @pointermove.stop="pan"
+  @pointerup.stop="endPan"
+  @pointerleave.stop="endPan"
   @wheel.ctrl.prevent="handleZoom"
-  
+  @touchstart.stop="startPan"
+  @touchmove.stop.prevent="pan"  
+  @touchend.stop="endPan"
+  @touchcancel.stop="endPan"
   @click.stop="handleDeselect"
   tabindex="0"
   >
@@ -114,14 +117,10 @@ const computedBackgroundPosition = computed(()=>`calc(50% + ${translateX.value}p
         top: '-10000px',
         willChange: 'transform',
       }"
-       @touchstart.stop="startPan"
-  @touchmove.stop.prevent="pan"  
-  @touchend.stop="endPan"
-  @touchcancel.stop="endPan"
     >
 
       <div
-        class="relative w-full h-full"
+        class="absolute w-full h-full pointer-events-none"
         :style="{ transform: 'translate(50%, 50%)' }"
       >
         <template v-if="boardStore.board?.data.items">
@@ -135,6 +134,8 @@ const computedBackgroundPosition = computed(()=>`calc(50% + ${translateX.value}p
               width: item.width,
               height: item.height,
             }"
+            :contrast-color="item.kind === 'image' ? item.contrastColor : false"
+            :kind="item.kind"
             :is-selected="boardStore.selectedId === item.id"
             :is-locked="item.lock"
             @select="boardStore.setSelectedId"
@@ -199,7 +200,7 @@ const computedBackgroundPosition = computed(()=>`calc(50% + ${translateX.value}p
     <BoardPasswordDialog />
     <OfflineIndicator />
     <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
-    <ZoomControls class="fixed right-2 bottom-2 z-10" />
+    <ZoomControls class="fixed right-2 bottom-2 z-10 " />
     <ErrorModal v-model="isErrorModalVisible" :title="errorTitle" :message="errorMessage" @confirm="handleConfirm" @cancel="handleCancel"/>
   </div>
 </template>

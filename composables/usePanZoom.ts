@@ -121,6 +121,14 @@ export function usePanZoom() {
     // Apply the zoom
     updateZoom(delta, centerX, centerY);
   };
+  const handleWheel = (e: WheelEvent) => {
+    // Only handle wheel events for panning (not zooming)
+    if (!e.ctrlKey && e.deltaY % 1 === 0) {
+      const speedFactor = 0.1; // Adjust this value to make the panning slower
+      translateX.value = translateX.value - e.deltaX * speedFactor;
+      translateY.value = translateY.value - e.deltaY * speedFactor;
+    }
+  };
 
   const startPan = (e: MouseEvent | TouchEvent) => {
     if (e instanceof TouchEvent) {
@@ -172,14 +180,6 @@ export function usePanZoom() {
     gesture.start(e);
   };
 
-  const handleWheel = (e: WheelEvent) => {
-    // Only handle wheel events for panning (not zooming)
-    if (!e.ctrlKey && e.deltaY % 1 === 0) {
-      const speedFactor = 0.1; // Adjust this value to make the panning slower
-      translateX.value = translateX.value - e.deltaX * speedFactor;
-      translateY.value = translateY.value - e.deltaY * speedFactor;
-    }
-  };
 
   const pan = (e: MouseEvent | TouchEvent) => {
     // Handle touch events
