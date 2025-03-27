@@ -136,9 +136,11 @@ const closeMenu = () => {
         </transition>
       </div>
     </div>
+    
     <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel.stop>
       <slot></slot>
     </div>
+
     <div
       v-if="!props.isLocked"
       class="resize-handle"

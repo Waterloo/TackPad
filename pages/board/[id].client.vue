@@ -205,8 +205,9 @@ const {isOpen} = useTackletDirectory();
 
     <BoardHeader v-show="!isPanning" />
     <BoardToolbar v-show="!isPanning" />
-    <!-- <BoardHeader />
     <TackletsDirectory v-if="isOpen" class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 translate-y-1/2 sm:translate-y-0 transition-all duration-500" @wheel.stop/>
+    <!-- <BoardHeader />
+
     <BoardToolbar /> -->
   
       <ProfilePopup v-if="!isPanning"  />
