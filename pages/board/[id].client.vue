@@ -215,7 +215,7 @@ const {isOpen} = useTackletDirectory();
     <BoardPasswordDialog />
     <OfflineIndicator />
     <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
-    <ZoomControls class="fixed right-2 bottom-2 z-10 " />
+    <ZoomControls class="fixed right-2 bottom-16 z-10 " />
     <ErrorModal v-model="isErrorModalVisible" :title="errorTitle" :message="errorMessage" @confirm="handleConfirm" @cancel="handleCancel"/>
   </div>
 </template>
