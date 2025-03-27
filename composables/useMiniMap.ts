@@ -77,6 +77,24 @@ export function useMiniMap() {
     }
   }
 
+  const getItemIcon = (item: BoardItem) => {
+
+        //load actual icon from tacklet dictionary later and make it a computed property
+    const icons: Record<BoardItem["kind"], string> = {
+      'note': '/icons/notes.svg',
+      text: '/icons/text.svg',
+      todo: '/icons/todo.svg',
+      link: '/icons/bookmark.svg',
+      image: '',
+      timer: '',
+      tacklet: '/icons/Tacklets.svg'
+    }
+
+
+    return icons[item.kind]
+
+  }
+
   // Viewport information
   const viewportRef = ref<HTMLDivElement | null>(null)
   const minimapRef = ref<HTMLDivElement | null>(null)
@@ -174,6 +192,7 @@ export function useMiniMap() {
     getItemColor,
     setupMiniMap,
     scaleRatio,
-    bounds
+    bounds,
+    getItemIcon
   }
 }

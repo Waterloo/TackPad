@@ -85,6 +85,7 @@ export interface ImageItem extends BaseBoardItem {
 export interface Tacklet extends BaseBoardItem {
   kind: 'tacklet';
   content: {
+   tackletId: string; 
    url: string;
    version: string;
    data:unknown;
