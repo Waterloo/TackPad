@@ -1,8 +1,9 @@
 
 <template>
     <div
-      class="[interpolate-size:'allow-keywords'] fixed bottom-4 left-1/2 transform -translate-x-1/2 flex items-center bg-white rounded-xl shadow-lg px-2 sm:px-4 py-1 sm:py-2 gap-1 sm:gap-6 transition-all duration-1000 z-10"
+      class="[interpolate-size:'allow-keywords'] fixed bottom-4 left-1/2 transform -translate-x-1/2  bg-white rounded-xl shadow-lg px-2 sm:px-4 py-1 sm:py-2 transition-all duration-1000 z-10 w-4/5 sm:w-max"
     >
+    <div class="flex gap-2 justify-around relative">
       <button
         class="flex group p-1.5 sm:p-2 text-gray-600 hover:text-green-600 hover:bg-gray-50 rounded-full transition-colors"
         @click.stop="addTodoList"
@@ -57,6 +58,22 @@
           Timer
         </div>
       </button>
+      <button
+        class="group flex p-1.5 sm:p-2 text-gray-600 hover:text-purple-600 hover:bg-gray-50 rounded-full transition-colors"
+        title="Add Tacklet"
+        @click.stop="TackletDirectory.toggleTackletDirectory()"
+      >
+        <img
+          src="public/icons/Tacklets.svg"
+          class="h-5 w-5 sm:h-6 sm:w-6 select-none"
+          alt="Tacklet"
+        />
+        <div
+          class="group-hover:mx-1 group-hover:px-2 bg-black text-white rounded [interpolate-size:allow-keywords] w-0 overflow-hidden group-hover:w-auto transition-all ease-in duration-500"
+        >
+          Tacklet
+        </div>
+      </button>
   
  <div     @click="bookmarkOpen=true"     class="flex group p-1.5 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-full transition-colors cursor-pointer"
         title="Add Bookmark"
@@ -101,6 +118,24 @@
     </div>
         </template>
       </Modal>
+      <button
+        class="group flex p-1.5 sm:p-2 text-gray-600 hover:text-purple-600 hover:bg-gray-50 rounded-full transition-colors"
+        title="Add Tacklet"
+        @click.stop="TackletDirectory.toggleTackletDirectory()"
+      >
+        <img
+          src="public/icons/Tacklets.svg"
+          class="h-5 w-5 sm:h-6 sm:w-6 select-none"
+          alt="Tacklet"
+        />
+        <div
+          class="group-hover:mx-1 group-hover:px-2 bg-black text-white rounded [interpolate-size:allow-keywords] w-0 overflow-hidden group-hover:w-auto transition-all ease-in duration-500"
+        >
+          Tacklet
+        </div>
+      </button>
+      </div>
+      <TackletsDirectory v-show="showTackletsDirectory" class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 translate-y-1/2 sm:translate-y-0 transition-all duration-500" @wheel.stop/>
     </div>
   </template>
   
@@ -110,6 +145,7 @@
   import { useLinkStore } from '~/stores/linkStore';
   
   const { calculateCenterPosition } = useItemManagement()
+  const TackletDirectory = useTackletDirectory()
 
   const linkStore = useLinkStore()
   const bookmarkOpen = ref(false)

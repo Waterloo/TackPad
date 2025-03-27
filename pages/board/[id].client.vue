@@ -24,6 +24,7 @@ const todoStore = useTodoStore();
 const linkStore = useLinkStore();
 const timerStore = useTimerStore();
 const textWidgetStore = useTextWidgetStore();
+const tackletStore = useTackletStore();
 const { handleDelete, updateItemPosition, toggleLock } = useItemManagement();
 // Initialize composables
 const route = useRoute();
@@ -77,6 +78,8 @@ const computedBackgroundImage = computed(() => `radial-gradient(circle at ${scal
 const computedBackgroundSize = computed(() => `${scale.value*50}px ${scale.value*50}px`)
 
 const computedBackgroundPosition = computed(()=>`calc(50% + ${translateX.value}px) calc(50% + ${translateY.value}px)`)
+
+const {isOpen} = useTackletDirectory();
 </script>
 <template>
  <div
@@ -187,13 +190,24 @@ const computedBackgroundPosition = computed(()=>`calc(50% + ${translateX.value}p
               :src="item.content.url"
               :is-selected="boardStore.selectedId === item.id"
             />
+            <Tacklet
+              v-else-if="item.kind === 'tacklet'"
+              :item-id="item.id"
+              :is-selected="boardStore.selectedId === item.id"
+              :content="item.content"
+              @update:content="(content) => tackletStore.updateTackletContent(item.id, content)"
+              @widgetInteraction="boardStore.setSelectedId(item.id)"
+            />
           </WidgetWrapper>
         </template>
       </div>
     </div>
 
-    <BoardHeader v-if="!isPanning" />
-    <BoardToolbar v-if="!isPanning" />
+    <BoardHeader v-show="!isPanning" />
+    <BoardToolbar v-show="!isPanning" />
+    <!-- <BoardHeader />
+    <TackletsDirectory v-if="isOpen" class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 translate-y-1/2 sm:translate-y-0 transition-all duration-500" @wheel.stop/>
+    <BoardToolbar /> -->
   
       <ProfilePopup v-if="!isPanning"  />
     

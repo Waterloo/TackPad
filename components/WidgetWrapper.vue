@@ -136,7 +136,7 @@ const closeMenu = () => {
         </transition>
       </div>
     </div>
-    <div class="widget-content" @wheel.stop>
+    <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel.stop>
       <slot></slot>
     </div>
     <div
@@ -214,7 +214,7 @@ const closeMenu = () => {
   padding: 8px 8px;
   background: transparent;
   position: absolute;
-  z-index: 10;
+  z-index: 100;
   left: 0;
   right: 0;
 }
