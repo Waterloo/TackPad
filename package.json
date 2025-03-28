@@ -25,7 +25,7 @@
     "nanoid": "^5.0.9",
     "nuxt": "^3.13.0",
     "nuxt-auth-utils": "^0.5.16",
-    "penpal": "^7.0.2",
+    "penpal": "^7.0.0",
     "pinia": "^2.1.7",
     "unstorage": "^1.15.0",
     "vue-draggable-next": "^2.2.1",
