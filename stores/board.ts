@@ -28,6 +28,7 @@ export const useBoardStore = defineStore("board", () => {
   const settings = useLocalStorage<BoardSettings>("settings", {});
 
   const isProfileVisible = ref(false);
+  const isFilePickerVisible = ref(false);
   let profileTab = ref("user");
 
   const fromListId = ref<string | null>(null);
@@ -141,7 +142,11 @@ export const useBoardStore = defineStore("board", () => {
       return false;
     });
 
-    if (curItem && curItem.kind === "image") {
+    if (
+      (curItem && curItem.kind === "image") ||
+      (curItem && curItem?.kind === "audio") ||
+      (curItem && curItem?.kind === "file")
+    ) {
       fetch(`/api/upload/delete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -249,6 +254,7 @@ export const useBoardStore = defineStore("board", () => {
     showPasswordDialog,
     isProfileVisible,
     profileTab,
+    isFilePickerVisible,
 
     // Actions
     initializeBoard,
