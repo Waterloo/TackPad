@@ -126,11 +126,6 @@
         </div>
       </button>
     </div>
-    <TackletsDirectory
-      v-show="showTackletsDirectory"
-      class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 translate-y-1/2 sm:translate-y-0 transition-all duration-500"
-      @wheel.stop
-    />
   </div>
 </template>
 

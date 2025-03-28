@@ -15,6 +15,7 @@ import { usePanZoom } from "~/composables/usePanZoom";
 import { useGlobalShortcuts } from "~/composables/useGlobalShortcuts";
 import { useClipboard } from "~/composables/useClipboard";
 import { applyOptimalZoom } from "~/utils/boardUtils";
+import { getSSEServer } from '~/shared/board';
 
 // Initialize stores
 const boardStore = useBoardStore();
@@ -47,11 +48,35 @@ onMounted(async () => {
     
     // Pass the setTranslate function to applyOptimalZoom
     applyOptimalZoom(boardStore.board.data.items, updateZoom, setTranslate);
+    console.log('Mounted')
   }
   
   // Ensure the board element has focus to capture keyboard events
   boardRef.value?.focus();
 });
+
+let eventSource: EventSource;
+
+onMounted(() => {
+
+    const id = route.params.id as string;
+    const server = getSSEServer(id)
+    server.pathname = '/sse'
+    server.searchParams.set('room', id)
+    eventSource = new EventSource(server)
+
+    eventSource.onmessage = (event) => {
+      if(event.data === 'update'){
+        boardStore.initializeBoard(id)
+      }
+    }
+})
+
+onUnmounted(()=> {
+  eventSource && eventSource.close()
+})
+
+
 
 // Initialize global shortcuts
 useGlobalShortcuts({
@@ -80,6 +105,9 @@ const computedBackgroundSize = computed(() => `${scale.value*50}px ${scale.value
 const computedBackgroundPosition = computed(()=>`calc(50% + ${translateX.value}px) calc(50% + ${translateY.value}px)`)
 
 const {isOpen} = useTackletDirectory();
+
+
+
 </script>
 <template>
  <div
