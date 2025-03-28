@@ -1,5 +1,7 @@
 import { customAlphabet } from "nanoid";
 import { useBoardStore } from "./board";
+import { defineStore } from "pinia";
+import type { ImageItem } from "~/types/board";
 const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", 10);
 
 const getContrastingColor = (imageElement: HTMLImageElement): boolean => {
@@ -21,23 +23,36 @@ const getContrastingColor = (imageElement: HTMLImageElement): boolean => {
   // Calculate average color for top 20% of the image
   let red = 0,
     green = 0,
-    blue = 0;
+    blue = 0,
+    alpha = 0;
   const topRowsCount = Math.floor(canvas.height * 0.2);
   let pixelCount = 0;
 
   for (let y = 0; y < topRowsCount; y++) {
     for (let x = 0; x < canvas.width; x++) {
       const index = (y * canvas.width + x) * 4;
-      red += data[index];
-      green += data[index + 1];
-      blue += data[index + 2];
-      pixelCount++;
+      const pixelAlpha = data[index + 3];
+
+      // Only consider non-transparent pixels
+      if (pixelAlpha > 0) {
+        red += data[index] * (pixelAlpha / 255);
+        green += data[index + 1] * (pixelAlpha / 255);
+        blue += data[index + 2] * (pixelAlpha / 255);
+        alpha += pixelAlpha;
+        pixelCount++;
+      }
     }
   }
 
-  red = Math.floor(red / pixelCount);
-  green = Math.floor(green / pixelCount);
-  blue = Math.floor(blue / pixelCount);
+  // Prevent division by zero
+  if (pixelCount === 0) {
+    // If all pixels are transparent, default to a dark background
+    return false;
+  }
+
+  red = Math.floor((red / alpha) * 255);
+  green = Math.floor((green / alpha) * 255);
+  blue = Math.floor((blue / alpha) * 255);
 
   // Calculate luminance
   const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
@@ -50,6 +65,7 @@ export const useImageStore = defineStore("images", () => {
   const boardStore = useBoardStore();
 
   const addImage = async (images: File | File[]) => {
+    console.log(images);
     if (!Array.isArray(images)) {
       images = [images];
     }
@@ -60,6 +76,7 @@ export const useImageStore = defineStore("images", () => {
       formData.append(id, file);
       const img = new Image();
       img.src = URL.createObjectURL(file);
+
       img.onload = () => {
         // find optimal size
         const aspectRatio = img.width / img.height;
@@ -70,6 +87,7 @@ export const useImageStore = defineStore("images", () => {
         const ImageItem = {
           id,
           kind: "image",
+          title: "Enter an image title",
           content: {
             url: URL.createObjectURL(file),
           },
@@ -107,8 +125,21 @@ export const useImageStore = defineStore("images", () => {
 
     boardStore.debouncedSaveBoard();
   };
+  const updateImageTitle = (imageId: string, title: string) => {
+    if (!boardStore.board) return;
 
+    const imageItem = boardStore.board.data.items.find(
+      (item) => item.id === imageId && item.kind === "image"
+    ) as ImageItem | undefined;
+
+    if (imageItem) {
+      imageItem.title = title;
+      console.log(imageItem, title);
+      boardStore.debouncedSaveBoard();
+    }
+  };
   return {
     addImage,
+    updateImageTitle,
   };
 });

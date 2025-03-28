@@ -80,6 +80,8 @@ const computedBackgroundSize = computed(() => `${scale.value*50}px ${scale.value
 const computedBackgroundPosition = computed(()=>`calc(50% + ${translateX.value}px) calc(50% + ${translateY.value}px)`)
 
 const {isOpen} = useTackletDirectory();
+
+const { toasts, removeToast } = useToast()
 </script>
 <template>
  <div
@@ -102,7 +104,7 @@ const {isOpen} = useTackletDirectory();
   @pointerup.stop="endPan"
   @pointerleave.stop="endPan"
   @wheel.ctrl.prevent="handleZoom"
-  @touchstart.stop="startPan"
+  @touchstart.stop="(e)=>{ startPan(e); if(e.target.classList.contains('board')) { handleDeselect() } }"
   @touchmove.stop.prevent="pan"  
   @touchend.stop="endPan"
   @touchcancel.stop="endPan"
@@ -188,6 +190,7 @@ const {isOpen} = useTackletDirectory();
               v-else-if="item.kind === 'image'"
               :item-id="item.id"
               :src="item.content.url"
+              :title="item.title"
               :is-selected="boardStore.selectedId === item.id"
             />
             <Tacklet
@@ -198,6 +201,24 @@ const {isOpen} = useTackletDirectory();
               @update:content="(content) => tackletStore.updateTackletContent(item.id, content)"
               @widgetInteraction="boardStore.setSelectedId(item.id)"
             />
+            <AudioWidget
+              v-else-if="item.kind === 'audio'"
+              :item-id="item.id"
+              title="Audio Player"
+              :audio-url="item.content.url"
+              :is-selected="boardStore.selectedId === item.id"
+             
+            />
+            <FileWidget
+              v-else-if="item.kind === 'file'"
+              :item-id="item.id"
+              :title="item.title"
+              :file-type="item.content.fileType"
+              :file-size="item.content.fileSize"
+              :file-url="item.content.url"
+              :is-selected="boardStore.selectedId === item.id"
+            />
+              
           </WidgetWrapper>
         </template>
       </div>
@@ -206,6 +227,8 @@ const {isOpen} = useTackletDirectory();
     <BoardHeader v-show="!isPanning" />
     <BoardToolbar v-show="!isPanning" />
     <TackletsDirectory v-if="isOpen" class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 translate-y-1/2 sm:translate-y-0 transition-all duration-500" @wheel.stop/>
+
+
     <!-- <BoardHeader />
 
     <BoardToolbar /> -->
@@ -217,6 +240,11 @@ const {isOpen} = useTackletDirectory();
     <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
     <ZoomControls class="fixed right-2 bottom-16 z-10 " />
     <ErrorModal v-model="isErrorModalVisible" :title="errorTitle" :message="errorMessage" @confirm="handleConfirm" @cancel="handleCancel"/>
+    
+    <UIToast class="fixed top-4 right-4"   v-for="toast in toasts"
+      :key="toast.id"
+      v-bind="toast"
+      @close="removeToast(toast.id)" />
   </div>
 </template>
 <style scoped>
