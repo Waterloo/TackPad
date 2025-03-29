@@ -69,6 +69,9 @@
   
   <script setup>
   import { ref, onMounted, onUnmounted, watch } from 'vue'
+  import { useAudioStore } from '~/stores/audioStore'
+
+  const audioStore = useAudioStore()
   import WaveSurfer from 'wavesurfer.js'
   
   const props = defineProps({
@@ -99,6 +102,7 @@
   
   const stopEditing = () => {
     isEditing.value = false
+    audioStore.updateAudioTitle(props.itemId, editableTitle.value)
   }
   
   // Play/Pause toggle

@@ -48,7 +48,7 @@ const downloadFile = async () => {
 <template>
 <div class="file-widget flex items-center space-x-3 p-2 rounded-lg">
   <div 
-    class="file-type-badge w-24 h-24 rounded-lg flex items-center justify-center text-white font-bold text-xs"
+    class="file-type-badge h-24 p-3 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-wrap text-wrap"
     :style="{ backgroundColor }"
   >
     {{ fileType.toUpperCase() }}

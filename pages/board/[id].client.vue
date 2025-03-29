@@ -132,7 +132,7 @@ const { toasts, removeToast } = useToast()
   @pointerup.stop="endPan"
   @pointerleave.stop="endPan"
   @wheel.ctrl.prevent="handleZoom"
-  @touchstart.stop="(e)=>{ startPan(e); if(e.target.classList.contains('board')) { handleDeselect() } }"
+  @touchstart.stop="(e)=>{ startPan(e); if(e.target.classList.contains('board')) { handleDeselect() };  }"
   @touchmove.stop.prevent="pan"  
   @touchend.stop="endPan"
   @touchcancel.stop="endPan"
@@ -232,7 +232,7 @@ const { toasts, removeToast } = useToast()
             <AudioWidget
               v-else-if="item.kind === 'audio'"
               :item-id="item.id"
-              title="Audio Player"
+              :title="item.title"
               :audio-url="item.content.url"
               :is-selected="boardStore.selectedId === item.id"
              

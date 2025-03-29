@@ -16,6 +16,7 @@
           class="text-base text-ellipsis text-nowrap overflow-hidden w-40 md:w-full"
           @pointerdown="startEditingTitle"
           @keypress.enter="startEditingTitle"
+          
           tabindex="1"
         >
           {{ boardStore.board?.data.title || 'New TackPad' }}
@@ -23,10 +24,15 @@
         
         <input 
           v-else 
+          class="relative"
           autofocus 
           :value="boardStore.board?.data.title || 'New TackPad'" 
           @blur="(e: FocusEvent) => saveTitle((e.target as HTMLInputElement).value)"
-        />
+          @keyup.enter="saveTitle"
+        >
+        <button v-if="editTitle" @click="saveTitle" class="md:hidden block"> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><!-- Icon from Remix Icon by Remix Design - https://github.com/Remix-Design/RemixIcon/blob/master/License --><path fill="currentColor" d="m10 15.17l9.192-9.191l1.414 1.414L10 17.999l-6.364-6.364l1.414-1.414z"/></svg></button>
+      </input>
+        
         <button :key="isEncrypted" class="mx-2 p-2 hover:bg-blue-100 text-xl" :title="`Encrypt Board:  ${isEncrypted?'Enabled':'Disabled'}`" @click="boardStore.toggleEncryption()">{{ isEncrypted ? '🔐':'🔓' }}</button>
       </div>
       <div class="items py-2 flex flex-col gap-2" v-if="isBoardListOpen">
