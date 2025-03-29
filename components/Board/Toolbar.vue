@@ -131,7 +131,7 @@ const { addNote, addTodoList, addTimer, addTextWidget } = useItemManagement();
         >
           Files
         </div>
-        <UploadPopover v-if="boardStore.isFilePickerVisible" class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 translate-y-1/2 sm:translate-y-0 transition-all duration-500" @wheel.stop/>
+
       </button>
       <button
         class="group flex p-1.5 sm:p-2 text-gray-600 hover:text-purple-600 hover:bg-gray-50 rounded-full transition-colors"
@@ -181,6 +181,14 @@ const { addNote, addTodoList, addTimer, addTextWidget } = useItemManagement();
           </div>
         </template>
       </Modal>
+              <UploadPopover v-if="boardStore.isFilePickerVisible" class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 -translate-y-1/2 md:-translate-y-0 transition-all duration-500 " @wheel.stop/>
+              <VoiceRecorder 
+              v-if="boardStore.isVoiceRecorderVisible"
+              class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 -translate-y-1/2 md:-translate-y-0 transition-all duration-500 "
+      initialTitle="My Voice Note"
+      @save="()=>console.log('save')"
+      @discard="()=>console.log('discard')"
+    />
     </div>
 </template>
 

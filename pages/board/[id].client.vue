@@ -246,7 +246,7 @@ const { toasts, removeToast } = useToast()
               :file-url="item.content.url"
               :is-selected="boardStore.selectedId === item.id"
             />
-              
+      
           </WidgetWrapper>
         </template>
       </div>
