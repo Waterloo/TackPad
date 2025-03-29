@@ -88,7 +88,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import WaveSurfer from 'wavesurfer.js';
-import RecordPlugin from 'wavesurfer.js/dist/plugins/record';
+import RecordPlugin from 'wavesurfer.js/dist/plugins/record.esm.js'
 
 // Props
 const props = defineProps({
