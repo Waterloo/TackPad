@@ -1,7 +1,7 @@
 
 <template>
-    <div class="fixed px-4 py-2 top-4 left-4 rounded-lg shadow-lg bg-white divide-y">
-      <div class="min-w-52 py-2 z-50 flex items-center gap-2">
+    <div class="fixed px-4 top-4 left-4 rounded-lg shadow-lg bg-white divide-y">
+      <div class="min-w-52 py-1 z-50 flex items-center gap-2">
         <img
           @pointerdown="toggleBoardList"
           @keypress.enter="toggleBoardList"

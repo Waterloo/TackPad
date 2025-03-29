@@ -36,6 +36,41 @@
       "when": 1742346757460,
       "tag": "0004_wandering_mordo",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1742435557227,
+      "tag": "0005_panoramic_ezekiel_stane",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1742460929447,
+      "tag": "0006_friendly_mephistopheles",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1742472582341,
+      "tag": "0007_zippy_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1742475396736,
+      "tag": "0008_red_zaran",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1742475916117,
+      "tag": "0009_steady_xavin",
+      "breakpoints": true
     }
   ]
 }

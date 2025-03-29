@@ -211,3 +211,20 @@ export function findAvailablePosition(
     y: snapToGrid(maxY + MARGIN * 2)
   };
 }
+
+
+
+export function hashToBucket(input: any, bucketCount: number) {
+  const text = String(input);
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash % bucketCount);
+}
+
+export function getSSEServer(id: string){
+  const servers = ['https://tackpad-sse.onrender.com', 'https://tackpad-sse-2.onrender.com/']
+  return new URL(servers[hashToBucket(id, servers.length)])
+}

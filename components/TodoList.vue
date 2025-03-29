@@ -54,7 +54,7 @@
       <li
       v-for="(task,index) in list.content.tasks"
       :key="task.task_id"
-      class="taskItem flex gap-3 items-center transition-all ease-in-out"
+      class="taskItem flex gap-3 items-center transition-all ease-in-out hover:transdorm hover:-translate-y-1 hover:opacity-55"
       draggable="true"
       @dragleave="handleDragLeave"
       @dragend="handleDragEnd"
@@ -222,9 +222,5 @@ const titleSizeClass = computed(() => {
   padding: 8px;
 }
 
-.taskItem:hover {
-  cursor: move; /* Show move cursor */
-  transform: scale(1.05); /* Slightly enlarge when hovering over task items */
-  transition: transform 0.2s ease-in-out;
-}
+
 </style>

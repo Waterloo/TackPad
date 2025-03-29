@@ -24,8 +24,8 @@ export function useScaleAwareInteractions<T>(
   options: Options = {}
 ) {
   const {
-    minWidth = 200,
-    minHeight = 200,
+    minWidth = 100,
+    minHeight = 100,
     grid = 4,
     getScale = () => 1,
     onUpdate

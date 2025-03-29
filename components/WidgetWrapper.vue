@@ -8,6 +8,8 @@ const props = defineProps<{
     width: number;
     height: number;
   };
+  contrastColor?: boolean;
+  kind?: string;
   itemId: string;
   isSelected: boolean;
   shadow?: boolean;
@@ -41,8 +43,8 @@ const {
     emit("update:position", updatedPosition);
   },
   {
-    minWidth: 200,
-    minHeight: 200,
+    minWidth: 160,
+    minHeight: 120,
     grid: 1,
   }
 );
@@ -99,9 +101,11 @@ const closeMenu = () => {
       <div
         v-if="!props.isLocked"
         class="drag-handle-horizontal"
+        :class="`${kind!=='image' ? '' : !contrastColor ? 'drag-handle-contrast' : ''}`"
         title="Drag to move"
         @pointerdown.stop.prevent="startMove"
         @mouseover="showMenu = true"
+
       ></div>
       <div
         class="widget-controls w-full flex justify-between"
@@ -123,11 +127,8 @@ const closeMenu = () => {
               @click.stop="handleMenuAction('lock', $event)"
               class="menu-item"
             >
-              <img
-                src="public/icons/lock.svg"
-                alt="Lock"
-                class="h-4 w-4 sm:h-4 sm:w-4"
-              />
+            <svg v-if="isLocked" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><!-- Icon from Remix Icon by Remix Design - https://github.com/Remix-Design/RemixIcon/blob/master/License --><path fill="currentColor" d="M6 8V7a6 6 0 1 1 12 0v1h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zm13 2H5v10h14zm-8 5.732A2 2 0 0 1 12 12a2 2 0 0 1 1 3.732V18h-2zM8 8h8V7a4 4 0 0 0-8 0z"/></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><!-- Icon from Remix Icon by Remix Design - https://github.com/Remix-Design/RemixIcon/blob/master/License --><path fill="currentColor" d="M7 10h13a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1V9a7 7 0 0 1 13.262-3.131l-1.789.894A5 5 0 0 0 7 9zm-2 2v8h14v-8zm5 3h4v2h-4z"/></svg>
             </button>
 
             <div class="widget-custom-item" :class="props.itemId"></div>
@@ -135,9 +136,11 @@ const closeMenu = () => {
         </transition>
       </div>
     </div>
-    <div class="widget-content" @wheel.stop>
+    
+    <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel.stop>
       <slot></slot>
     </div>
+
     <div
       v-if="!props.isLocked"
       class="resize-handle"
@@ -161,8 +164,8 @@ const closeMenu = () => {
 }
 
 .widget-container {
-  min-width: 320px;
-  min-height: 240px;
+  min-width: 160px;
+  min-height:120px;
   width: fit-content;
   height: fit-content;
   position: absolute;
@@ -213,7 +216,7 @@ const closeMenu = () => {
   padding: 8px 8px;
   background: transparent;
   position: absolute;
-  z-index: 10;
+  z-index: 100;
   left: 0;
   right: 0;
 }
@@ -229,7 +232,9 @@ const closeMenu = () => {
   cursor: grab;
   transition: var(--transition, all 0.25s ease);
 }
-
+.drag-handle-horizontal.drag-handle-contrast {
+  background: rgba(255, 254, 254, 0.5);
+}
 .widget-moving .drag-handle-horizontal {
   cursor: grabbing;
   background: var(--primary-color, #3498db);
