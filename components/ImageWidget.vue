@@ -26,9 +26,10 @@ const toggleEdit = () => {
     class="absolute bottom-0 left-0 right-0 p-3 text-gray-200 bg-black bg-opacity-50 flex items-center"
   >
     <template v-if="!isEditing">
-      <span class="flex-grow truncate">{{ editableTitle }}</span>
+      <span class="flex-grow truncate" @click="toggleEdit">{{ editableTitle }}</span>
       <button 
         @click="toggleEdit" 
+   
         class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-300" viewBox="0 0 20 20" fill="currentColor">
