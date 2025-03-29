@@ -30,6 +30,7 @@ export const useBoardStore = defineStore("board", () => {
   const isProfileVisible = ref(false);
   const isFilePickerVisible = ref(false);
   const isVoiceRecorderVisible = ref(false);
+
   let profileTab = ref("user");
 
   const fromListId = ref<string | null>(null);

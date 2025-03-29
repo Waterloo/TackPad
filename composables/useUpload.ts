@@ -20,7 +20,7 @@ export function useUpload() {
 
   const isUploading = ref(false);
 
-  const uploadFiles = async (files: File[]) => {
+  const uploadFiles = async (files: File[], title?: string) => {
     if (!files || files.length === 0) {
       triggerError({
         message: "No files selected",
@@ -45,14 +45,14 @@ export function useUpload() {
       // Process files sequentially
       for (const file of files) {
         const fileType = file.type ? file.type.split("/")[0] : "unknown";
-        console.log(file.type);
+
         switch (fileType) {
           case "image":
             await imageStore.addImage(file);
             success("Image uploaded successfully");
             break;
           case "audio":
-            await audioStore.addAudio(file);
+            await audioStore.addAudio(file, title ?? null);
             success("Audio uploaded successfully");
             break;
           default:

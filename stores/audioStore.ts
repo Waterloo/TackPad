@@ -9,8 +9,7 @@ export const useAudioStore = defineStore("audio", () => {
   const { calculateCenterPosition } = useItemManagement();
   const boardStore = useBoardStore();
 
-  const addAudio = async (audios: File | File[]) => {
-    console.log(audios);
+  const addAudio = async (audios: File | File[], title?: string) => {
     if (!Array.isArray(audios)) {
       audios = [audios];
     }
@@ -31,7 +30,7 @@ export const useAudioStore = defineStore("audio", () => {
         const audioItem: AudioItem = {
           id,
           kind: "audio",
-          title: "Enter an audio title",
+          title: title ?? "Enter an audio title",
           content: {
             url: URL.createObjectURL(file),
           },
