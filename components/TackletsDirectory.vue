@@ -109,6 +109,8 @@
 </template>
 
 <script setup lang="ts">
+import { useTackletStore, type Tacklet } from '@/stores/tackletStore';
+import  useTackletDirectory  from '@/composables/useTackletDirectory';
 
 // State
 const searchQuery = ref('');
@@ -129,49 +131,22 @@ const tabs = [
 
 const filters = ['Tacklets', 'Widgets', 'All items'];
 
+const tacklets = ref<Tacklet[]>([]);
 
-
-
-const tacklets = ref(
-[
-  {
-    "id": "doodletack",
-    "name": "DoodleTack",
-    "version": "1.0.0",
-    "url": "https://doodletack.tackpad.xyz/",
-    "description": "designed for quick sketches, annotations, and visual brainstorming.",
-    "icon": "https://doodletack.entinker.workers.dev/doodletack.png",
-    "author": {
-      "name": "Tackpad",
-      "email": "support@tackpad.xyz",
-      "url": "https://tackpad.xyz"
-    },
-    "repository": {
-      "type": "git",
-      "url": "https://github.com/tackpad/doodletack"
-    },
-    "tags": [
-      "drawing",
-      "sketch",
-      "annotation",
-      "brainstorming",
-      "doodle"
-    ],
-    "dimensions": {
-      "minWidth": 200,
-      "minHeight": 150,
-      "defaultWidth": 420,
-      "defaultHeight": 340
-    },
-    "config": {
-      "allowResize": true,
-      "allowInteraction": true
-    },
-    "permissions": [
-      "allow-fullscreen"
-    ]
+// Fetch data on mount
+onMounted(async () => {
+  try {
+    const response = await fetch('http://tacklets.tackpad.xyz/directory/tacklets.json');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    tacklets.value = data.tacklets || data; 
+  } catch (error) {
+    console.error("Failed to fetch tacklets:", error);
+    // Handle error appropriately, maybe show a message to the user
   }
-]);
+});
 
 // Computed
 const filteredTacklets = computed(() => {
