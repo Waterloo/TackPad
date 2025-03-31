@@ -136,7 +136,7 @@ const tacklets = ref<Tacklet[]>([]);
 // Fetch data on mount
 onMounted(async () => {
   try {
-    const response = await fetch('http://tacklets.tackpad.xyz/directory/tacklets.json');
+    const response = await fetch('https://tacklets.tackpad.xyz/directory/tacklets.json');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
