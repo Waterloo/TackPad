@@ -73,6 +73,7 @@ const closeMenu = () => {
   showMenu.value = false;
 };
 
+const route = useRoute()
 const pip = async () => {
   console.log({...props.position})
   const pipWindow = await documentPictureInPicture.requestWindow({
@@ -105,7 +106,7 @@ const pip = async () => {
     `
     pipWindow.document.head.append(style)
    const iframe = document.createElement('iframe')
-   iframe.src = `/pip/BOARD-NEGF3GFKOU/${props.itemId}`
+   iframe.src = `/pip/${route.params.id}/${props.itemId}`
    pipWindow.document.body.append(iframe)
 
 }
