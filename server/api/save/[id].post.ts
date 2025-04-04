@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
 
   const server = getSSEServer(boardId)
   server.pathname = '/send'
-  fetch(server, {
+  await fetch(server, {
     method: 'POST',
     body:JSON.stringify({room: boardId}),
     headers: {
