@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMagicKeys } from "@vueuse/core";
 import { whenever } from "@vueuse/core";
-
+const { addNote, addTodoList, addTimer, addTextWidget, calculateCenterPosition } = useItemManagement();
 // UI state
 const isOpen = ref(false);
 const searchQuery = ref('');
@@ -11,33 +11,30 @@ const commandListRef = ref(null);
 
 
 // Set up keyboard shortcuts with useMagicKeys
-const keys = useMagicKeys();
+const keys = useMagicKeys({
+  passive: false,
+  onEventFired(e) {
+    if (e.ctrlKey && e.key === 'k' && e.type === 'keydown')
+      e.preventDefault()
+  }
+});
 
 
 whenever(keys.alt_1, () => {
   if (!shouldIgnoreKeypress()) {
-    const position = calculateCenterPosition();
-    addNote('New note...', { 
-      x: position.x, 
-      y: position.y, 
-      color: 'yellow', 
-      width: 300, 
-      height: 200 
-    });
+    addNote();
   }
 });
 
 whenever(keys.alt_2, () => {
   if (!shouldIgnoreKeypress()) {
-    const position = calculateCenterPosition();
-    addTodoList({ x: position.x, y: position.y, width: 300, height: 300 });
+    addTodoList();
   }
 });
 
 whenever(keys.alt_4, () => {
   if (!shouldIgnoreKeypress()) {
-    const position = calculateCenterPosition();
-    addTimer({ x: position.x, y: position.y, width: 300, height: 150 });
+    addTimer();
   }
 });
 
@@ -125,20 +122,20 @@ const commands = [
     category: 'Edit', 
     action: () => handleDelete() 
   },
-  { 
-    id: 'zoom-in', 
-    name: 'Zoom In', 
-    shortcut: 'Alt+=', 
-    category: 'View', 
-    action: () => updateZoom(1.1, window.innerWidth / 2, window.innerHeight / 2) 
-  },
-  { 
-    id: 'zoom-out', 
-    name: 'Zoom Out', 
-    shortcut: 'Alt+-', 
-    category: 'View', 
-    action: () => updateZoom(0.9, window.innerWidth / 2, window.innerHeight / 2) 
-  },
+  // { 
+  //   id: 'zoom-in', 
+  //   name: 'Zoom In', 
+  //   shortcut: 'Alt+=', 
+  //   category: 'View', 
+  //   action: () => updateZoom(1.1, window.innerWidth / 2, window.innerHeight / 2) 
+  // },
+  // { 
+  //   id: 'zoom-out', 
+  //   name: 'Zoom Out', 
+  //   shortcut: 'Alt+-', 
+  //   category: 'View', 
+  //   action: () => updateZoom(0.9, window.innerWidth / 2, window.innerHeight / 2) 
+  // },
   { 
     id: 'zoom-reset', 
     name: 'Reset Zoom', 
@@ -225,13 +222,12 @@ whenever(keys.escape, () => {
 
 // Use whenever for the Ctrl+K / Cmd+K shortcut to open command palette
 whenever(keys.ctrl_k, (e) => {
-  e?.preventDefault();
+  // e?.preventDefault();
   toggleCommandPalette();
 });
 
 // Also allow Cmd+K for Mac users
 whenever(keys.meta_k, (e) => {
-  e?.preventDefault();
   toggleCommandPalette();
 });
 
@@ -255,10 +251,10 @@ watch(isOpen, async (newValue) => {
 });
 </script>
 <template>
-  <div>
+  <div v-if="isOpen">
     <Modal v-model="isOpen">
       <div
-        class="w-full max-w-2xl min-h-80 max-h-80 flex flex-col bg-white rounded-lg shadow-xl overflow-hidden fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+        class="fixed flex flex-col w-full max-w-2xl overflow-hidden transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl min-h-80 max-h-80 top-1/2 left-1/2"
         @pointerdown.stop
         @pointerup.stop
         @scroll.stop
@@ -276,12 +272,12 @@ watch(isOpen, async (newValue) => {
               ref="searchInputRef"
               type="text"
               placeholder="Search commands..."
-              class="flex-1 outline-none text-gray-700"
+              class="flex-1 text-gray-700 outline-none"
               v-model="searchQuery"
               @keydown="handleKeyDown"
             />
             <kbd
-              class="px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded text-gray-500"
+              class="px-2 py-1 text-xs text-gray-500 bg-gray-100 border border-gray-300 rounded"
             >
               Esc
             </kbd>
@@ -289,7 +285,7 @@ watch(isOpen, async (newValue) => {
         </div>
 
         <!-- Command list -->
-        <div class="max-h-80 overflow-y-auto flex-grow" ref="commandListRef">
+        <div class="flex-grow overflow-y-auto max-h-80" ref="commandListRef">
           <template v-if="Object.keys(groupedCommands).length > 0">
             <div
               v-for="(commands, category) in groupedCommands"
@@ -305,7 +301,7 @@ watch(isOpen, async (newValue) => {
                   v-for="command in commands"
                   :key="command.id"
                   :data-index="getCommandIndex(command)"
-                  class="px-4 py-3 flex items-center justify-between cursor-pointer"
+                  class="flex items-center justify-between px-4 py-3 cursor-pointer"
                   :class="
                     selectedIndex === getCommandIndex(command)
                       ? 'bg-blue-50'
@@ -315,7 +311,7 @@ watch(isOpen, async (newValue) => {
                 >
                   <div class="flex items-center space-x-2">
                     <div
-                      class="w-8 h-8 rounded-md flex items-center justify-center"
+                      class="flex items-center justify-center w-8 h-8 rounded-md"
                       :class="
                         selectedIndex === getCommandIndex(command)
                           ? 'bg-blue-100 text-blue-600'
@@ -335,7 +331,7 @@ watch(isOpen, async (newValue) => {
                     </span>
                   </div>
                   <kbd
-                    class="px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded text-gray-500"
+                    class="px-2 py-1 text-xs text-gray-500 bg-gray-100 border border-gray-300 rounded"
                   >
                     {{ command.shortcut }}
                   </kbd>
@@ -350,7 +346,7 @@ watch(isOpen, async (newValue) => {
 
         <!-- Command palette footer -->
         <div
-          class="p-3 justify-self-end bg-gray-50 border-t border-gray-200 text-xs text-gray-500 flex justify-between"
+          class="flex justify-between p-3 text-xs text-gray-500 border-t border-gray-200 justify-self-end bg-gray-50"
         >
           <div class="flex space-x-3">
             <div class="flex items-center space-x-1">
