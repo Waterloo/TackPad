@@ -47,7 +47,45 @@ export const useBoardStore = defineStore("board", () => {
     // Case: 'load' - Load the latest board from local storage
     if (boardId === "load") {
       const existingBoardIds = Object.keys(boards.value);
+
       if (existingBoardIds.length > 0) {
+        // Check if settings exist
+        const settings = useLocalStorage<Record<string, Array<any>>>(
+          "settings",
+          {}
+        );
+        let mostRecentBoardId = null;
+        let mostRecentTimestamp = new Date(0); // Start with oldest possible date
+
+        // Only proceed with timestamp-based logic if we have settings data
+        if (Object.keys(settings.value).length > 0) {
+          // Find board with most recent last_accessed timestamp from settings
+          Object.keys(settings.value).forEach((boardId) => {
+            const boardSettings = settings.value[boardId];
+
+            // Check if settings for this board exist and have at least one entry
+            if (boardSettings && boardSettings.length > 0) {
+              // Get the latest entry for this board (assuming the array might contain multiple entries)
+              const latestEntry = boardSettings[boardSettings.length - 1];
+
+              if (latestEntry && latestEntry.last_accessed) {
+                const accessTime = new Date(latestEntry.last_accessed);
+                if (accessTime > mostRecentTimestamp) {
+                  mostRecentTimestamp = accessTime;
+                  mostRecentBoardId = boardId;
+                }
+              }
+            }
+          });
+
+          // If we found a board with last_accessed, use it
+          if (mostRecentBoardId) {
+            await navigateTo(`/board/${mostRecentBoardId}`);
+            return;
+          }
+        }
+
+        // Fallback to previous behavior if no settings or no last_accessed timestamps
         const lastBoardId =
           boards.value[existingBoardIds[existingBoardIds.length - 1]].board_id;
         await navigateTo(`/board/${lastBoardId}`);
@@ -68,7 +106,7 @@ export const useBoardStore = defineStore("board", () => {
       const settingsData = raw.settings;
       isOldBoard.value = raw.OldBoard;
       isOwner.value = raw.isOwner;
-      settings.value = settingsData;
+      // settings.value = settingsData;
 
       if (boardData.data.encrypted) {
         console.log("encrypted");
@@ -97,6 +135,14 @@ export const useBoardStore = defineStore("board", () => {
         board_id: board.value!.board_id,
         title: board.value?.data.title || "New TackPad",
       };
+
+      // save settings to localStorage
+      if (board.value?.board_id) {
+        settings.value = {
+          ...settings.value,
+          [board.value.board_id]: settingsData,
+        };
+      }
 
       // Redirect if needed (for 'create' or when board ID doesn't match route)
       if (

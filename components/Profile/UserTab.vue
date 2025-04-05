@@ -1,7 +1,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-
+import UsageIndicator from './UsageIndicator.vue'
 
 const { loggedIn, clear } = useUserSession()
 
@@ -185,7 +185,9 @@ const handleSignOut = async () => {
               <p class="text-xs text-gray-500  mt-1" v-if="profileData.initialEmail && profileData.initialEmail.length > 0">Email cannot be changed</p>
               <p class="text-xs text-gray-500  mt-1" v-else>Email can be set since it is currently empty</p>
             </div>
-            
+            <div>
+              <UsageIndicator :consumption="profileData.consumption" :limit="profileData.limit" />
+            </div>
             <div class="pt-2">
               <button 
                 class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
@@ -200,6 +202,7 @@ const handleSignOut = async () => {
             </div>
           </div>
         </div>
+
         
         <!-- Logout Button -->
         <div class="pt-4">
