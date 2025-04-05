@@ -225,12 +225,10 @@ export function hashToBucket(input: any, bucketCount: number) {
   return Math.abs(hash % bucketCount);
 }
 
-// export function getSSEServer(id: string){
-//   const servers = ['https://tackpad-sse.onrender.com', 'https://tackpad-sse-2.onrender.com/']
-//   return new URL(servers[hashToBucket(id, servers.length)])
-// }
 export function getSSEServer(id: string) {
-  // Single server instead of multiple
-  const server = "http://104.168.117.67:8080";
-  return new URL(server);
+  const servers = [
+    "https://tackpad-sse.onrender.com",
+    "https://tackpad-sse-2.onrender.com/",
+  ];
+  return new URL(servers[hashToBucket(id, servers.length)]);
 }
