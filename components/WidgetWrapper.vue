@@ -72,6 +72,45 @@ const handleMenuAction = (action: string, event: Event) => {
 const closeMenu = () => {
   showMenu.value = false;
 };
+
+const route = useRoute()
+const isPipAvailable = 'documentPictureInPicture' in globalThis
+const pip = async () => {
+  console.log({...props.position})
+  const pipWindow = await documentPictureInPicture.requestWindow({
+        width: props.position.width,
+        height: props.position.height
+    });
+    const style = document.createElement('style')
+    style.innerHTML = `
+    * {
+    margin:0;
+    box-sizing: border-box;
+    }
+    html,body {
+       width: 100vw;
+   height: 100vh;
+    }
+
+    body {
+    width:100vw;
+    height: 100vh;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    }
+    iframe {
+    width: calc(100vw);
+    height: calc(100vh);
+    border:none;
+    }
+    `
+    pipWindow.document.head.append(style)
+   const iframe = document.createElement('iframe')
+   iframe.src = `/pip/${route.params.id}/${props.itemId}`
+   pipWindow.document.body.append(iframe)
+
+}
 </script>
 
 <template>
@@ -108,11 +147,11 @@ const closeMenu = () => {
 
       ></div>
       <div
-        class="widget-controls w-full flex justify-between"
+        class="flex justify-between w-full widget-controls"
         title="More Options"
       >
         <transition name="fade">
-          <div v-show="isSelected && !isMoving" class="widget-menu rounded-xl shadow-lg">
+          <div v-show="isSelected && !isMoving" class="shadow-lg widget-menu rounded-xl">
             <button
               @click.stop="handleMenuAction('delete', $event)"
               class="menu-item"
@@ -120,7 +159,7 @@ const closeMenu = () => {
               <img
                 src="public/icons/Delete.svg"
                 alt="Delete"
-                class="h-4 w-4 sm:h-4 sm:w-4"
+                class="w-4 h-4 sm:h-4 sm:w-4"
               />
             </button>
             <button
@@ -130,7 +169,13 @@ const closeMenu = () => {
             <svg v-if="isLocked" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><!-- Icon from Remix Icon by Remix Design - https://github.com/Remix-Design/RemixIcon/blob/master/License --><path fill="currentColor" d="M6 8V7a6 6 0 1 1 12 0v1h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zm13 2H5v10h14zm-8 5.732A2 2 0 0 1 12 12a2 2 0 0 1 1 3.732V18h-2zM8 8h8V7a4 4 0 0 0-8 0z"/></svg>
             <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><!-- Icon from Remix Icon by Remix Design - https://github.com/Remix-Design/RemixIcon/blob/master/License --><path fill="currentColor" d="M7 10h13a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h1V9a7 7 0 0 1 13.262-3.131l-1.789.894A5 5 0 0 0 7 9zm-2 2v8h14v-8zm5 3h4v2h-4z"/></svg>
             </button>
-
+            <button
+            v-if="isPipAvailable"
+              @click.stop="pip"
+              class="menu-item"
+            >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square-arrow-out-up-right-icon lucide-square-arrow-out-up-right"><path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/><path d="m21 3-9 9"/><path d="M15 3h6v6"/></svg>
+            </button>
             <div class="widget-custom-item" :class="props.itemId"></div>
           </div>
         </transition>
