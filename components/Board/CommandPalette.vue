@@ -20,19 +20,19 @@ const keys = useMagicKeys({
 });
 
 
-whenever(keys.alt_shift_1, () => {
+whenever(keys.alt_1, () => {
   if (!shouldIgnoreKeypress()) {
     addNote();
   }
 });
 
-whenever(keys.alt_shift_2, () => {
+whenever(keys.alt_2, () => {
   if (!shouldIgnoreKeypress()) {
     addTodoList();
   }
 });
 
-whenever(keys.alt_shift_4, () => {
+whenever(keys.alt_4, () => {
   if (!shouldIgnoreKeypress()) {
     addTimer();
   }
@@ -52,7 +52,7 @@ const commands = [
   { 
     id: 'new-note', 
     name: 'New Note', 
-    shortcut: 'Alt+Shift+1', 
+    shortcut: 'Alt+1', 
     category: 'Create', 
     action: () => {
       addNote();
@@ -61,7 +61,7 @@ const commands = [
   { 
     id: 'new-todo', 
     name: 'New Todo List', 
-    shortcut: 'Alt+Shift+2', 
+    shortcut: 'Alt+2', 
     category: 'Create', 
     action: () => {
       addTodoList();
@@ -70,7 +70,7 @@ const commands = [
   { 
     id: 'new-timer', 
     name: 'New Timer', 
-    shortcut: 'Alt+Shift+4', 
+    shortcut: 'Alt+4', 
     category: 'Create', 
     action: () => {
       addTimer();
@@ -79,7 +79,7 @@ const commands = [
   { 
     id: 'new-bookmark', 
     name: 'New Bookmark', 
-    shortcut: 'Alt+Shift+3', 
+    shortcut: 'Alt+3', 
     category: 'Create', 
     action: () => console.log('Creating new bookmark') 
   },
