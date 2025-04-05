@@ -127,6 +127,8 @@ export default defineEventHandler(async (event) => {
         return acc + (file?.file_size || 0);
       }, 0);
 
+      console.log("consumption", consumption);
+
       await db.insert(USER_UPLOADS).values(response.data);
       await db
         .insert(USAGE_QUOTA)
