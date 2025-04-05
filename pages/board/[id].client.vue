@@ -273,6 +273,7 @@ const { toasts, removeToast } = useToast()
       :key="toast.id"
       v-bind="toast"
       @close="removeToast(toast.id)" />
+      <BoardCommandPalette />
   </div>
 </template>
 <style scoped>
