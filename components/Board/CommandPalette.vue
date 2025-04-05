@@ -55,14 +55,7 @@ const commands = [
     shortcut: 'Alt+1', 
     category: 'Create', 
     action: () => {
-      const position = calculateCenterPosition();
-      addNote('New note...', { 
-        x: position.x, 
-        y: position.y, 
-        color: 'yellow', 
-        width: 300, 
-        height: 200 
-      });
+      addNote();
     }
   },
   { 
@@ -71,8 +64,7 @@ const commands = [
     shortcut: 'Alt+2', 
     category: 'Create', 
     action: () => {
-      const position = calculateCenterPosition();
-      addTodoList({ x: position.x, y: position.y, width: 300, height: 300 });
+      addTodoList();
     }
   },
   { 
@@ -81,8 +73,7 @@ const commands = [
     shortcut: 'Alt+4', 
     category: 'Create', 
     action: () => {
-      const position = calculateCenterPosition();
-      addTimer({ x: position.x, y: position.y, width: 300, height: 150 });
+      addTimer();
     }
   },
   { 
@@ -107,42 +98,7 @@ const commands = [
     action: () => {
       window.location.href = '/board/create';
     }
-  },
-  { 
-    id: 'toggle-board-list', 
-    name: 'Toggle Board List', 
-    shortcut: 'Alt+B', 
-    category: 'Board', 
-    action: () => toggleBoardList() 
-  },
-  { 
-    id: 'delete-selected', 
-    name: 'Delete Selected', 
-    shortcut: 'Delete', 
-    category: 'Edit', 
-    action: () => handleDelete() 
-  },
-  // { 
-  //   id: 'zoom-in', 
-  //   name: 'Zoom In', 
-  //   shortcut: 'Alt+=', 
-  //   category: 'View', 
-  //   action: () => updateZoom(1.1, window.innerWidth / 2, window.innerHeight / 2) 
-  // },
-  // { 
-  //   id: 'zoom-out', 
-  //   name: 'Zoom Out', 
-  //   shortcut: 'Alt+-', 
-  //   category: 'View', 
-  //   action: () => updateZoom(0.9, window.innerWidth / 2, window.innerHeight / 2) 
-  // },
-  { 
-    id: 'zoom-reset', 
-    name: 'Reset Zoom', 
-    shortcut: 'Alt+0', 
-    category: 'View', 
-    action: () => updateZoom(1, window.innerWidth / 2, window.innerHeight / 2) 
-  },
+  }
 ];
 
 // Filter commands based on search query
