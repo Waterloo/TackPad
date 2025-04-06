@@ -31,9 +31,12 @@
         />
       </div>
     </div>
-
+    <div v-if="isLoading" class="flex justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    <div v-else-if="error" class="text-red-500 mb-2">{{ error }}</div>
     <!-- Tacklet cards -->
-    <div class="grid grid-cols-1 gap-3 max-h-64 overflow-auto">
+    <div v-else class="grid grid-cols-1 gap-3 max-h-64 overflow-auto">
       <div
         v-for="tacklet in filteredTacklets"
         :key="`tacklet-${tacklet.id}`"
@@ -118,7 +121,8 @@ const activeTab = ref('tacklets-widgets');
 const showDropdown = ref(false);
 const currentFilter = ref('Tacklets');
 const currentSection = ref('Suggested');
-
+const isLoading = ref(true);
+let error = ref('');
 const tackletStore = useTackletStore();
 const {closeTackletDirectory} = useTackletDirectory();
 
@@ -142,8 +146,11 @@ onMounted(async () => {
     }
     const data = await response.json();
     tacklets.value = data.tacklets || data; 
+    isLoading.value = false;
   } catch (error) {
+    isLoading.value = false;
     console.error("Failed to fetch tacklets:", error);
+    error.value = error
     // Handle error appropriately, maybe show a message to the user
   }
 });
