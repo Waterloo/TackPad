@@ -35,6 +35,7 @@ export default defineEventHandler(async (event) => {
   let userAccessData: BoardAccess | null = null; // <-- To store the user's specific access record
   let isOwner = false;
   let boardId = requestedId;
+
   const now = new Date(); // Use consistent timestamp for updates if needed manually
 
   // --- 2. Fetch existing board OR handle creation intent ---
@@ -176,7 +177,7 @@ export default defineEventHandler(async (event) => {
 
     try {
       // Create the board entry
-      boardData = await createAndSaveNewBoard(boardId, profileId);
+      boardData = await createAndSaveNewBoard(makeUrlSafe(boardId), profileId);
       isOwner = true; // Creator is the owner
       console.log(`[Board GET] Created new board ${boardData.board_id}`);
 
@@ -278,20 +279,41 @@ async function createAndSaveNewBoard(
       {
         id: `STICKY-${nanoid(10)}`,
         kind: "note",
-        content: { text: `<h1>Welcome!</h1>`, color: "#FFD700" },
+        content: {
+          text: ` <h1>Welcome to your board!</h1>
+      <p>Try adding more notes and todo lists.</p>
+      <h2>Quick Tips:</h2>
+      <ul>
+        <li>
+          <p>Double-click to edit notes</p>
+        </li>
+        </ul>`,
+          color: "#FFD700",
+        },
         x_position: 100,
-        y_position: 50,
-        width: 250,
-        height: 100,
+        y_position: 48,
+        width: 300,
+        height: 300,
       },
       {
         id: `TODO-${nanoid(10)}`,
         kind: "todo",
-        content: { title: "Tasks", tasks: [] },
-        x_position: 400,
-        y_position: 50,
+        content: {
+          title: "Getting Started",
+          tasks: [
+            { task_id: "1", content: "Add a new note", completed: false },
+            { task_id: "2", content: "Create a todo list", completed: false },
+            {
+              task_id: "3",
+              content: "Try panning and zooming",
+              completed: false,
+            },
+          ],
+        },
+        x_position: 420,
+        y_position: 48,
         width: 300,
-        height: 200,
+        height: 400,
       },
     ],
   };
