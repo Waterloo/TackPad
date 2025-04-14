@@ -1,18 +1,11 @@
 import { nanoid } from "nanoid";
-import {
-  useDrizzle,
-  tables,
-  eq,
-  and,
-  ne,
-  isNull,
-} from "~/server/utils/drizzle"; // Added ne, isNull
+import { useDrizzle, tables, eq, and } from "~/server/utils/drizzle";
 import type { H3Event } from "h3";
-import { getCookie, deleteCookie } from "h3"; // Import getCookie, deleteCookie
-import { hashToken, getRawUserToken } from "~/server/utils/tokenManagement"; // Import helpers
-// Adjust this import path based on your actual node_modules structure for nuxt-auth-utils
+import { getCookie, deleteCookie, sendRedirect } from "h3"; // Added sendRedirect, deleteCookie
+import { hashToken, getRawUserToken } from "~/server/utils/tokenManagement";
 import type { GoogleUser } from "nuxt-auth-utils/dist/runtime/server/lib/oauth/google";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/sqlite-core"; // Import BatchItem type
 
 type Profile = InferSelectModel<typeof tables.PROFILE>;
 type NewProfile = InferInsertModel<typeof tables.PROFILE>;
@@ -44,16 +37,21 @@ export default defineOAuthGoogleEventHandler({
       let profile: Profile | null = null;
       let profileId: string | null = null;
       let linkedVia: "existing_auth" | "token" | "email" | "new" = "new";
+      const batchStatements: BatchItem<"sqlite">[] = []; // Array for batch statements
 
-      // 1. Check existing authentication link
+      // --- Step 1: Perform Reads ---
+
+      // 1a. Check existing authentication link
       const existingAuth = await db.query.PROFILE_AUTHENTICATIONS.findFirst({
         where: and(
           eq(tables.PROFILE_AUTHENTICATIONS.provider_name, PROVIDER_NAME),
           eq(tables.PROFILE_AUTHENTICATIONS.provider_user_id, providerUserId),
         ),
+        columns: { profile_id: true },
       });
 
       if (existingAuth) {
+        // --- Scenario: Existing Google Auth Link ---
         profileId = existingAuth.profile_id;
         profile = await db.query.PROFILE.findFirst({
           where: eq(tables.PROFILE.id, profileId),
@@ -68,11 +66,13 @@ export default defineOAuthGoogleEventHandler({
         console.log(
           `User logged in via existing Google link. Profile ID: ${profileId}`,
         );
+        // No writes needed
       } else {
-        // 2. Try linking via user-token cookie
+        // --- Scenario: First time with this Google account ---
+
+        // 1b. Try linking via user-token cookie
         const rawToken = getRawUserToken(event);
         let profileFoundByToken: Profile | null = null;
-
         if (rawToken) {
           const hashedToken = hashToken(rawToken);
           profileFoundByToken = await db.query.PROFILE.findFirst({
@@ -80,126 +80,144 @@ export default defineOAuthGoogleEventHandler({
           });
         }
 
-        await db.transaction(async (tx) => {
-          if (profileFoundByToken) {
-            // --- Scenario: Found profile by token ---
-            profile = profileFoundByToken;
+        if (profileFoundByToken) {
+          // --- Scenario: Found profile by token ---
+          profile = profileFoundByToken;
+          profileId = profile.id;
+          linkedVia = "token";
+          console.log(
+            `Attempting to link Google account ${providerUserId} to profile ${profileId} via user-token.`,
+          );
+
+          // --- Step 2: Determine Write Actions for Token Match ---
+          const newAuthLink: NewAuthentication = {
+            profile_id: profileId,
+            provider_name: PROVIDER_NAME,
+            provider_user_id: providerUserId,
+          };
+          batchStatements.push(
+            db
+              .insert(tables.PROFILE_AUTHENTICATIONS)
+              .values(newAuthLink)
+              .onConflictDoNothing(),
+          );
+
+          const updates: Partial<NewProfile> = {};
+          if (userFirstName && profile.firstName !== userFirstName) {
+            updates.firstName = userFirstName;
+          }
+          // Google guarantees email here; update if different or was null
+          if (profile.email !== userEmail || profile.email === null) {
+            updates.email = userEmail;
+          }
+          // updates.user_token = null; // Optional
+
+          if (Object.keys(updates).length > 0) {
+            batchStatements.push(
+              db
+                .update(tables.PROFILE)
+                .set(updates)
+                .where(eq(tables.PROFILE.id, profileId)),
+            );
+            profile = { ...profile, ...updates }; // Optimistic update
+          }
+        } else {
+          // --- Scenario: No profile via token, try email ---
+
+          // 1c. Check profile by email (we know userEmail is not null)
+          const existingProfileByEmail = await db.query.PROFILE.findFirst({
+            where: eq(tables.PROFILE.email, userEmail),
+          });
+
+          if (existingProfileByEmail) {
+            // --- Scenario: Found profile by email ---
+            profile = existingProfileByEmail;
             profileId = profile.id;
+            linkedVia = "email";
+            console.log(
+              `Attempting to link Google account ${providerUserId} to existing profile ${profileId} via email match.`,
+            );
+
+            // --- Step 2: Determine Write Actions for Email Match ---
+            const newAuthLink: NewAuthentication = {
+              profile_id: profileId,
+              provider_name: PROVIDER_NAME,
+              provider_user_id: providerUserId,
+            };
+            batchStatements.push(
+              db
+                .insert(tables.PROFILE_AUTHENTICATIONS)
+                .values(newAuthLink)
+                .onConflictDoNothing(),
+            );
+
+            const updates: Partial<NewProfile> = {};
+            if (
+              userFirstName &&
+              (!profile.firstName || profile.firstName !== userFirstName)
+            ) {
+              updates.firstName = userFirstName;
+            }
+            // updates.user_token = null; // Optional
+
+            if (Object.keys(updates).length > 0) {
+              batchStatements.push(
+                db
+                  .update(tables.PROFILE)
+                  .set(updates)
+                  .where(eq(tables.PROFILE.id, profileId)),
+              );
+              profile = { ...profile, ...updates }; // Optimistic update
+            }
+          } else {
+            // --- Scenario: No profile via token or email, create new ---
+            profileId = `usr_${nanoid()}`;
+            linkedVia = "new";
+            console.log(
+              `Attempting to create new profile ${profileId} and link Google account ${providerUserId}.`,
+            );
+
+            // --- Step 2: Determine Write Actions for New Profile ---
+            const newProfileData: NewProfile = {
+              id: profileId,
+              firstName: userFirstName,
+              username: null,
+              email: userEmail,
+              user_token: rawToken ? hashToken(rawToken) : null, // Persist token hash
+              createdAt: new Date().toISOString(),
+            };
+            batchStatements.push(
+              db.insert(tables.PROFILE).values(newProfileData),
+            );
 
             const newAuthLink: NewAuthentication = {
               profile_id: profileId,
               provider_name: PROVIDER_NAME,
               provider_user_id: providerUserId,
             };
-            await tx
-              .insert(tables.PROFILE_AUTHENTICATIONS)
-              .values(newAuthLink)
-              .onConflictDoNothing();
-
-            // Update profile details if needed
-            const updates: Partial<NewProfile> = {};
-            if (userFirstName && profile.firstName !== userFirstName) {
-              updates.firstName = userFirstName;
-            }
-            // Google guarantees email here, update if different or was null
-            if (profile.email !== userEmail || profile.email === null) {
-              updates.email = userEmail;
-            }
-            // Optionally clear token hash
-            // updates.user_token = null;
-
-            if (Object.keys(updates).length > 0) {
-              await tx
-                .update(tables.PROFILE)
-                .set(updates)
-                .where(eq(tables.PROFILE.id, profileId));
-              profile = { ...profile, ...updates };
-            }
-
-            linkedVia = "token";
-            console.log(
-              `Linked Google account ${providerUserId} to profile ${profileId} via user-token.`,
+            batchStatements.push(
+              db.insert(tables.PROFILE_AUTHENTICATIONS).values(newAuthLink),
             );
-          } else {
-            // --- Scenario: No profile via token, try email ---
 
-            // 3. Check profile by email
-            // We know userEmail is not null here.
-            const existingProfileByEmail = await tx.query.PROFILE.findFirst({
-              where: eq(tables.PROFILE.email, userEmail),
-            });
-
-            if (existingProfileByEmail) {
-              // --- Scenario: Found profile by email ---
-              profile = existingProfileByEmail;
-              profileId = profile.id;
-
-              const newAuthLink: NewAuthentication = {
-                profile_id: profileId,
-                provider_name: PROVIDER_NAME,
-                provider_user_id: providerUserId,
-              };
-              await tx
-                .insert(tables.PROFILE_AUTHENTICATIONS)
-                .values(newAuthLink)
-                .onConflictDoNothing();
-
-              // Update profile if needed
-              const updates: Partial<NewProfile> = {};
-              if (
-                userFirstName &&
-                (!profile.firstName || profile.firstName !== userFirstName)
-              ) {
-                updates.firstName = userFirstName;
-              }
-
-              if (Object.keys(updates).length > 0) {
-                await tx
-                  .update(tables.PROFILE)
-                  .set(updates)
-                  .where(eq(tables.PROFILE.id, profileId));
-                profile = { ...profile, ...updates };
-              }
-
-              linkedVia = "email";
-              console.log(
-                `Linked Google account ${providerUserId} to existing profile ${profileId} via email match.`,
-              );
-            } else {
-              // --- Scenario: No profile via token or email, create new ---
-              // 4. Create new profile and link
-              profileId = nanoid();
-
-              const newProfileData: NewProfile = {
-                id: profileId,
-                firstName: userFirstName,
-                username: null,
-                email: userEmail,
-                user_token: rawToken ? hashToken(rawToken) : null, // Persist current token hash
-                createdAt: new Date().toISOString(),
-              };
-              await tx.insert(tables.PROFILE).values(newProfileData);
-
-              const newAuthLink: NewAuthentication = {
-                profile_id: profileId,
-                provider_name: PROVIDER_NAME,
-                provider_user_id: providerUserId,
-              };
-              await tx
-                .insert(tables.PROFILE_AUTHENTICATIONS)
-                .values(newAuthLink);
-
-              profile = { ...newProfileData };
-              linkedVia = "new";
-              console.log(
-                `Created new profile ${profileId} and linked Google account ${providerUserId}.`,
-              );
-            }
+            profile = { ...newProfileData }; // Use new data for session
           }
-        }); // End transaction
+        }
+
+        // --- Step 3: Execute Batch ---
+        if (batchStatements.length > 0) {
+          console.log(
+            `Executing batch of ${batchStatements.length} statements for profile ${profileId} (${linkedVia})`,
+          );
+          await db.batch(batchStatements);
+          console.log(`Batch execution successful for profile ${profileId}`);
+        } else {
+          console.log(
+            `No database writes needed for profile ${profileId} (${linkedVia})`,
+          );
+        }
       }
 
-      // Ensure profile determined
+      // --- Step 4: Final Checks and Session Setup ---
       if (!profile || !profileId) {
         console.error(
           "Profile could not be determined after Google OAuth success.",
@@ -207,7 +225,7 @@ export default defineOAuthGoogleEventHandler({
         throw new Error("Failed to establish user profile.");
       }
 
-      // 5. Set session
+      // Set session
       await setUserSession(event, {
         user: {
           profileId: profile.id,
@@ -219,20 +237,40 @@ export default defineOAuthGoogleEventHandler({
         loggedInAt: new Date(),
       });
 
-      // Consider clearing the anonymous cookie after successful login
-      // deleteCookie(event, 'user-token', getCookieOptions());
+      // Consider clearing the anonymous cookie after successful login/linking
+      // if (rawToken) {
+      //   deleteCookie(event, 'user-token');
+      //   console.log(`Cleared anonymous user-token for profile ${profileId}`);
+      // }
 
       return sendRedirect(event, "/");
     } catch (error: any) {
       console.error(
-        `Google OAuth Error processing user ${providerUserId}:`,
+        `Google OAuth Error processing user ${providerUserId} (${linkedVia}):`,
         error.message || error,
+        error.cause, // Log cause for D1 errors
       );
-      return sendRedirect(event, "/?error=oauth-processing-failed");
+      const queryParams = new URLSearchParams();
+      queryParams.set("error", "oauth-processing-failed");
+      if (
+        error.message.includes("UNIQUE constraint failed") ||
+        error.cause?.message.includes("UNIQUE constraint failed")
+      ) {
+        queryParams.set("reason", "constraint-violation");
+      } else if (
+        error.message.includes("D1_ERROR") ||
+        error.cause?.message.includes("D1_ERROR")
+      ) {
+        queryParams.set("reason", "database-error");
+      }
+      return sendRedirect(event, `/?${queryParams.toString()}`);
     }
   },
   onError(event, error) {
     console.error("Google OAuth provider onError:", error);
-    return sendRedirect(event, "/?error=oauth-provider-error");
+    const queryParams = new URLSearchParams();
+    queryParams.set("error", "oauth-provider-error");
+    if (error.message) queryParams.set("reason", error.message.slice(0, 50));
+    return sendRedirect(event, `/?${queryParams.toString()}`);
   },
 });
