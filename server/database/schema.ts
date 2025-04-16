@@ -77,7 +77,7 @@ export const BOARDS = sqliteTable("boards", {
   // Updated access_level column
   access_level: text("access_level", { enum: boardAccessLevelValues }) // Enforce values
     .notNull()
-    .default(BoardAccessLevel.PRIVATE_SHARED), // Set a sensible default
+    .default(BoardAccessLevel.PUBLIC), // Set a sensible default
 
   data: text("data", { mode: "json" }),
 });

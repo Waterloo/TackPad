@@ -1,8 +1,13 @@
 import { defineEventHandler, readBody, createError } from "h3";
 import { eq, and, sql } from "drizzle-orm";
-import { BOARDS, BOARD_ACCESS } from "~/server/database/schema"; // Ensure BOARD_ACCESS is imported if used
+import {
+  BOARDS,
+  BOARD_ACCESS,
+  BoardAccessLevel,
+  BoardAccessRole,
+} from "~/server/database/schema";
 import { getSSEServer } from "~/shared/board";
-import type { Board } from "~/types/board"; // Keep type import if needed elsewhere
+import type { Board } from "~/types/board";
 
 export default defineEventHandler(async (event) => {
   // --- 1. Get Board ID ---
@@ -14,24 +19,15 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // --- 2. Get User Profile ID (Mandatory) ---
+  // --- 2. Get User Profile ID (Mandatory for some actions) ---
   const userProfileId = event.context.session?.secure?.profileId;
-  if (!userProfileId) {
-    console.warn(
-      `[Save API - Board ${boardId}] Blocking save: Could not identify user (profileId is null).`,
-    );
-    throw createError({
-      statusCode: 401,
-      message: "User identification failed. Cannot save board.",
-    });
-  }
   console.log(
-    `[Save API - Board ${boardId}] User identified: ${userProfileId}.`,
+    `[Save API - Board ${boardId}] User identified: ${userProfileId || "anonymous"}.`,
   );
 
   // --- 3. Read Request Body ---
   const body = await readBody(event);
-  const boardData = body.data as Board["data"]; // Extract just the data part we want to update
+  const boardData = body.data as Board["data"];
   if (boardData === undefined || boardData === null) {
     throw createError({
       statusCode: 400,
@@ -41,55 +37,34 @@ export default defineEventHandler(async (event) => {
 
   const db = useDrizzle();
 
-  // --- 4. Fetch Existing Board Details (owner_id, access_level) ---
-  let existingOwnerId: string | null = null;
-  let existingAccessLevel: string | null = null;
-
+  // --- 4. Fetch Existing Board Details ---
+  let existingBoard;
   try {
     console.log(
       `[Save API - Board ${boardId}] Fetching existing board details...`,
     );
-    const existingBoard = await db.query.BOARDS.findFirst({
-      where: eq(BOARDS.board_id, boardId),
-      columns: {
-        owner_id: true,
-        access_level: true,
-      },
+    existingBoard = await db.query.BOARDS.findFirst({
+      where: boardId
+        ? sql`lower(${BOARDS.board_id}) = lower(${boardId})`
+        : undefined,
     });
 
     if (!existingBoard) {
-      // If the board doesn't exist, we cannot save to it via this endpoint.
       console.warn(
         `[Save API - Board ${boardId}] Board not found in database.`,
       );
       throw createError({
-        statusCode: 404, // Not Found
+        statusCode: 404,
         message: `Board with ID ${boardId} not found. Cannot save.`,
       });
     }
 
-    existingOwnerId = existingBoard.owner_id;
-    existingAccessLevel = existingBoard.access_level;
-
-    if (!existingOwnerId || !existingAccessLevel) {
-      // This case might indicate data integrity issues if owner/access should always exist
-      console.error(
-        `[Save API - Board ${boardId}] Found board but missing owner_id or access_level in DB! Owner: ${existingOwnerId}, Access: ${existingAccessLevel}`,
-      );
-      // Decide how critical this is. For now, let's throw an error.
-      throw createError({
-        statusCode: 500,
-        message: `Board ${boardId} data is incomplete in the database (missing owner or access level).`,
-      });
-    }
-
     console.log(
-      `[Save API - Board ${boardId}] Fetched details - Owner: ${existingOwnerId}, Access Level: ${existingAccessLevel}`,
+      `[Save API - Board ${boardId}] Fetched details - Owner: ${existingBoard.owner_id}, Access Level: ${existingBoard.access_level}`,
     );
   } catch (error: any) {
-    // Handle specific 404/500 errors thrown above, re-throw others
-    if (error.statusCode === 404 || error.statusCode === 500) {
-      throw error; // Re-throw the specific error
+    if (error.statusCode === 404) {
+      throw error;
     }
     console.error(
       `[Save API - Board ${boardId}] Error fetching board details:`,
@@ -101,33 +76,36 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // --- 5. Save/Update Board Data (Now includes fetched owner/access level) ---
+  // --- 5. Check Edit Permissions ---
+  const canEdit = await checkEditPermissions(db, existingBoard, userProfileId);
+  if (!canEdit) {
+    console.warn(
+      `[Save API - Board ${boardId}] Edit permission denied for user: ${userProfileId || "anonymous"}`,
+    );
+    throw createError({
+      statusCode: 403,
+      message: "You don't have permission to edit this board",
+    });
+  }
+
+  // --- 6. Save/Update Board Data ---
   try {
     console.log(
       `[Save API - Board ${boardId}] Performing save/update operation...`,
     );
     await db
-      .insert(BOARDS)
-      .values({
-        board_id: boardId, // From param
-        owner_id: existingOwnerId, // Fetched value
-        access_level: existingAccessLevel, // Fetched value
-        data: boardData, // From request body
+      .update(BOARDS)
+      .set({
+        data: boardData, // Only update the data field
       })
-      .onConflictDoUpdate({
-        target: BOARDS.board_id,
-        // Only update the 'data' field when the board already exists.
-        // Do NOT update owner_id or access_level here unless specifically intended.
-        set: {
-          data: boardData,
-        },
-      });
+      .where(eq(BOARDS.board_id, boardId));
+
     console.log(
-      `[Save API - Board ${boardId}] Board data saved/updated successfully for profile ${userProfileId}.`,
+      `[Save API - Board ${boardId}] Board data saved/updated successfully.`,
     );
   } catch (error: any) {
     console.error(
-      `[Save API - Board ${boardId}] Error saving board data for profile ${userProfileId}:`,
+      `[Save API - Board ${boardId}] Error saving board data:`,
       error,
     );
     throw createError({
@@ -136,50 +114,73 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // --- 6. Update Last Accessed Time (Requires profileId, checked earlier) ---
-  try {
-    const updateResult = await db
-      .update(BOARD_ACCESS)
-      .set({
-        last_accessed: sql`(CURRENT_TIMESTAMP)`,
-      })
-      .where(
-        and(
-          eq(BOARD_ACCESS.board_id, boardId),
-          eq(BOARD_ACCESS.profile_id, userProfileId),
-        ),
-      )
-      .returning({ updatedId: BOARD_ACCESS.id });
+  // --- 7. Update Last Accessed Time (for authenticated users) ---
+  if (userProfileId) {
+    try {
+      const updateResult = await db
+        .update(BOARD_ACCESS)
+        .set({
+          last_accessed: sql`(CURRENT_TIMESTAMP)`,
+        })
+        .where(
+          and(
+            eq(BOARD_ACCESS.board_id, boardId),
+            eq(BOARD_ACCESS.profile_id, userProfileId),
+          ),
+        )
+        .returning({ updatedId: BOARD_ACCESS.id });
 
-    if (updateResult && updateResult.length > 0) {
-      console.log(
-        `[Save API - Board ${boardId}] Updated last_accessed for profile ${userProfileId}.`,
+      if (updateResult && updateResult.length > 0) {
+        console.log(
+          `[Save API - Board ${boardId}] Updated last_accessed for profile ${userProfileId}.`,
+        );
+      } else {
+        // Create an access record if it doesn't exist yet
+        console.log(
+          `[Save API - Board ${boardId}] No access record found, creating one...`,
+        );
+
+        // Determine appropriate role
+        let role = BoardAccessRole.VIEWER;
+        if (existingBoard.owner_id === userProfileId) {
+          role = BoardAccessRole.OWNER;
+        } else if (existingBoard.access_level === BoardAccessLevel.PUBLIC) {
+          role = BoardAccessRole.EDITOR; // In public boards, anyone can edit
+        }
+
+        await db
+          .insert(BOARD_ACCESS)
+          .values({
+            board_id: boardId,
+            profile_id: userProfileId,
+            role: role,
+            created_at: new Date().toISOString(),
+            last_accessed: new Date().toISOString(),
+          })
+          .onConflictDoNothing();
+      }
+    } catch (error: any) {
+      console.error(
+        `[Save API - Board ${boardId}] Error updating BOARD_ACCESS (non-critical):`,
+        error,
       );
-    } else {
-      console.warn(
-        `[Save API - Board ${boardId}] Saved board data, but no existing BOARD_ACCESS record found to update last_accessed for profile ${userProfileId}.`,
-      );
+      // Continue execution - this is non-critical
     }
-  } catch (error: any) {
-    console.error(
-      `[Save API - Board ${boardId}] Error updating BOARD_ACCESS for profile ${userProfileId} (board data WAS saved):`,
-      error,
-    );
-    // Log error but don't fail the request
   }
 
-  // --- 7. Notify via SSE ---
+  // --- 8. Notify via SSE ---
   try {
     const server = getSSEServer(boardId);
     server.pathname = "/send";
     await fetch(server.toString(), {
       method: "POST",
-      body: JSON.stringify({ room: boardId, sender: userProfileId }),
+      body: JSON.stringify({
+        room: boardId,
+        sender: userProfileId || "anonymous",
+      }),
       headers: { "content-type": "application/json" },
     });
-    console.log(
-      `[Save API - Board ${boardId}] SSE notification sent by sender ${userProfileId}.`,
-    );
+    console.log(`[Save API - Board ${boardId}] SSE notification sent.`);
   } catch (sseError) {
     console.error(
       `[Save API - Board ${boardId}] Failed to send SSE notification:`,
@@ -187,9 +188,77 @@ export default defineEventHandler(async (event) => {
     );
   }
 
-  // --- 8. Return Success ---
+  // --- 9. Return Success ---
   return {
     success: true,
     message: `Board ${boardId} saved successfully.`,
   };
 });
+
+/**
+ * Checks if a user has permission to edit a board
+ */
+async function checkEditPermissions(
+  db: any,
+  board: any,
+  profileId: string | undefined,
+): Promise<boolean> {
+  // If the user is the owner, they always have edit rights
+  if (profileId && board.owner_id === profileId) {
+    return true;
+  }
+
+  // Check edit permissions based on access level
+  switch (board.access_level) {
+    case BoardAccessLevel.PUBLIC:
+      // Anyone can edit public boards
+      return true;
+
+    case BoardAccessLevel.LIMITED_EDIT:
+      // Anonymous users cannot edit LIMITED_EDIT boards
+      if (!profileId) return false;
+
+      // Authenticated users need EDITOR or OWNER role
+      const editorAccessRecord = await db.query.BOARD_ACCESS.findFirst({
+        where: and(
+          eq(BOARD_ACCESS.board_id, board.board_id),
+          eq(BOARD_ACCESS.profile_id, profileId),
+          sql`${BOARD_ACCESS.role} IN ('editor', 'owner')`,
+        ),
+      });
+      return !!editorAccessRecord;
+
+    case BoardAccessLevel.PRIVATE_SHARED:
+      // Anonymous users cannot edit PRIVATE_SHARED boards
+      if (!profileId) return false;
+
+      // Need to check user's role
+      const privateAccessRecord = await db.query.BOARD_ACCESS.findFirst({
+        where: and(
+          eq(BOARD_ACCESS.board_id, board.board_id),
+          eq(BOARD_ACCESS.profile_id, profileId),
+        ),
+      });
+
+      // Can edit if role is EDITOR or OWNER
+      return (
+        privateAccessRecord &&
+        (privateAccessRecord.role === BoardAccessRole.EDITOR ||
+          privateAccessRecord.role === BoardAccessRole.OWNER)
+      );
+
+    case BoardAccessLevel.VIEW_ONLY:
+      // Only admin/owner can edit VIEW_ONLY boards
+      // We already checked if user is owner above
+      return false;
+
+    case BoardAccessLevel.ADMIN_ONLY:
+      // Only admin/owner can edit ADMIN_ONLY boards
+      // We already checked if user is owner above
+      return false;
+
+    default:
+      console.warn(`[Save API] Unknown access level: ${board.access_level}`);
+      return false; // Default to denying edit access
+  }
+}

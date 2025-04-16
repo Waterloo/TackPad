@@ -4,10 +4,12 @@ import {
   BOARDS,
   BOARD_ACCESS,
   BoardAccessRole,
+  BoardAccessLevel,
 } from "~/server/database/schema";
 import { useDrizzle } from "~/server/utils/drizzle";
-import { eq, and, sql } from "drizzle-orm"; // Import 'and'
+import { eq, and, sql } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import { navigateTo } from "nuxt/app";
 
 // Define types
 type Board = InferSelectModel<typeof BOARDS>;
@@ -28,15 +30,15 @@ export default defineEventHandler(async (event) => {
 
   // --- 1. Get Profile ID from Middleware Context ---
   const profileId = event.context.session?.secure?.profileId;
-  // const isAnonymousUser = event.context.session?.secure?.isAnonymous ?? true; // Keep if needed elsewhere
 
   const db = useDrizzle();
   let boardData: Board | null = null;
-  let userAccessData: BoardAccess | null = null; // <-- To store the user's specific access record
+  let userAccessData: BoardAccess | null = null;
   let isOwner = false;
   let boardId = requestedId;
+  let canEdit = false; // Flag to indicate if user can edit the board
 
-  const now = new Date(); // Use consistent timestamp for updates if needed manually
+  const now = new Date().toISOString();
 
   // --- 2. Fetch existing board OR handle creation intent ---
   if (requestedId !== "create") {
@@ -45,7 +47,11 @@ export default defineEventHandler(async (event) => {
     const result = await db
       .select()
       .from(BOARDS)
-      .where(eq(BOARDS.board_id, boardId))
+      .where(
+        boardId
+          ? sql`lower(${BOARDS.board_id}) = lower(${boardId})`
+          : undefined,
+      )
       .limit(1);
     boardData = result[0] ?? null;
   } else {
@@ -57,50 +63,69 @@ export default defineEventHandler(async (event) => {
     // --- Scenario: Board Exists ---
     console.debug(`[Board GET] Found board: ${boardData.board_id}`);
 
-    // --- 3a. Access Control Check (Placeholder) ---
-    // TODO: Implement proper access control based on boardData.access_level and profileId
-    // This check should happen BEFORE updating last_accessed or returning data.
-    // Example:
-    // const hasAccess = await checkBoardAccess(db, boardData, profileId);
-    // if (!hasAccess) {
-    //   throw createError({ statusCode: 403, message: 'Forbidden: You do not have access to this board.' });
-    // }
-    // console.debug(`[Board GET] Access granted for profile ${profileId} to board ${boardData.board_id}`);
-
     // Determine ownership
     isOwner = !!profileId && boardData.owner_id === profileId;
 
-    // --- 3b. Fetch and Update User's Access Record ---
+    // --- 3a. Access Control Check ---
+    const hasAccess = await checkBoardAccess(db, boardData, profileId);
+
+    if (!hasAccess) {
+      throw createError({
+        statusCode: 403,
+        message: "Forbidden: You do not have access to this board.",
+      });
+    }
+    console.debug(
+      `[Board GET] Access granted for profile ${profileId || "anonymous"} to board ${boardData.board_id}`,
+    );
+
+    // --- 3b. Determine Edit Permissions ---
+    canEdit = await canEditBoard(db, boardData, profileId);
+    console.debug(
+      `[Board GET] Edit permissions for profile ${profileId || "anonymous"}: ${canEdit}`,
+    );
+
+    // --- 3c. Fetch and Update User's Access Record (if authenticated) ---
     if (profileId) {
       console.debug(
         `[Board GET] Profile identified: ${profileId}. Fetching/updating access record for board ${boardData.board_id}.`,
       );
       try {
+        // Fetch existing access record to determine the correct role to maintain
+        const existingAccess = await db.query.BOARD_ACCESS.findFirst({
+          where: and(
+            eq(BOARD_ACCESS.board_id, boardData.board_id),
+            eq(BOARD_ACCESS.profile_id, profileId),
+          ),
+        });
+
+        // Determine the appropriate role
+        let role = existingAccess?.role || BoardAccessRole.VIEWER;
+
+        // If user is owner but not marked as owner in access records, ensure OWNER role
+        if (isOwner && role !== BoardAccessRole.OWNER) {
+          role = BoardAccessRole.OWNER;
+        }
+
         // Attempt to insert/update the access record and set last_accessed
-        // Using ON CONFLICT DO UPDATE handles both first-time access and subsequent accesses
         const updateResult = await db
           .insert(BOARD_ACCESS)
           .values({
             board_id: boardData.board_id,
             profile_id: profileId,
-            // Determine role: Owner if owner_id matches, otherwise default to VIEWER.
-            // IMPORTANT: This assumes non-owners start as VIEWERS. If you have explicit invites
-            // changing roles, this needs more complex logic (maybe fetch first, then update).
-            role: isOwner ? BoardAccessRole.OWNER : BoardAccessRole.VIEWER,
-            last_accessed: sql`(CURRENT_TIMESTAMP)`, // Let DB handle timestamp
-            // created_at will use default on first insert
+            role: role,
+            last_accessed: now,
+            created_at: existingAccess ? existingAccess.created_at : now,
           })
           .onConflictDoUpdate({
             target: [BOARD_ACCESS.board_id, BOARD_ACCESS.profile_id],
             set: {
-              last_accessed: sql`(CURRENT_TIMESTAMP)`,
-              // Optionally update role if needed, e.g., if logic changes owner status
-              // role: isOwner ? BoardAccessRole.OWNER : BoardAccessRole.VIEWER
+              last_accessed: now,
+              role: role, // Ensure role consistency
             },
           })
-          .returning(); // Return the inserted/updated row
+          .returning();
 
-        // Check if the operation returned data (some drivers might not)
         if (updateResult && updateResult.length > 0) {
           userAccessData = updateResult[0];
           console.debug(
@@ -109,7 +134,7 @@ export default defineEventHandler(async (event) => {
         } else {
           // Fallback: If returning() is not supported or didn't return, query separately
           console.warn(
-            `[Board GET] Upsert did not return data. Querying access record separately for profile ${profileId} on board ${boardData.board_id}.`,
+            `[Board GET] Upsert did not return data. Querying access record separately.`,
           );
           const accessResult = await db
             .select()
@@ -122,31 +147,23 @@ export default defineEventHandler(async (event) => {
             )
             .limit(1);
           userAccessData = accessResult[0] ?? null;
-          if (userAccessData) {
-            console.debug(
-              `[Board GET] Fetched existing access record. Role: ${userAccessData.role}, LastAccessed: ${userAccessData.last_accessed}`,
-            );
-          } else {
+          if (!userAccessData) {
             console.error(
-              `[Board GET] CRITICAL: Failed to find access record for profile ${profileId} after upsert attempt on board ${boardData.board_id}.`,
+              `[Board GET] CRITICAL: Failed to find access record after upsert attempt.`,
             );
-            // Handle this inconsistency? Maybe throw an error?
           }
         }
       } catch (accessError: any) {
         console.error(
-          `[Board GET] Error upserting/fetching BOARD_ACCESS for board ${boardData.board_id}, profile ${profileId}:`,
+          `[Board GET] Error upserting/fetching BOARD_ACCESS:`,
           accessError.message,
         );
-        // Decide if this error is critical (e.g., prevent access?)
-        // For now, we might proceed without userAccessData, but log the error.
         userAccessData = null;
       }
     } else {
       console.debug(
-        `[Board GET] No profileId identified. Cannot fetch/update access record for board ${boardData.board_id}.`,
+        `[Board GET] No profileId identified. Cannot fetch/update access record.`,
       );
-      // isOwner is already false, userAccessData remains null
     }
   } else {
     // --- Scenario: Board Does Not Exist (Create Request or Invalid ID) ---
@@ -179,6 +196,7 @@ export default defineEventHandler(async (event) => {
       // Create the board entry
       boardData = await createAndSaveNewBoard(makeUrlSafe(boardId), profileId);
       isOwner = true; // Creator is the owner
+      canEdit = true; // Creator can edit
       console.log(`[Board GET] Created new board ${boardData.board_id}`);
 
       // Create the initial OWNER access record
@@ -186,11 +204,12 @@ export default defineEventHandler(async (event) => {
         board_id: boardData.board_id,
         profile_id: profileId,
         role: BoardAccessRole.OWNER,
-        // created_at and last_accessed will use DB defaults
+        created_at: now,
+        last_accessed: now,
       };
-      await db.insert(BOARD_ACCESS).values(initialAccessValues); //.onConflictDoNothing(); - No conflict expected here
+      await db.insert(BOARD_ACCESS).values(initialAccessValues);
 
-      // Fetch the just-created access record to include its details (like timestamps) in the response
+      // Fetch the just-created access record
       const accessResult = await db
         .select()
         .from(BOARD_ACCESS)
@@ -203,31 +222,25 @@ export default defineEventHandler(async (event) => {
         .limit(1);
       userAccessData = accessResult[0] ?? null;
 
-      if (userAccessData) {
-        console.log(
-          `[Board GET] Created initial OWNER access record for profile ${profileId} on new board ${boardData.board_id}. LastAccessed: ${userAccessData.last_accessed}`,
-        );
-      } else {
+      if (!userAccessData) {
         console.error(
-          `[Board GET] CRITICAL: Failed to fetch newly created access record for owner ${profileId} on board ${boardData.board_id}`,
+          `[Board GET] CRITICAL: Failed to fetch newly created access record.`,
         );
-        // Might want to throw 500 here as state is inconsistent
       }
     } catch (creationError: any) {
       console.error(
-        `[Board GET] Error during board creation process for ${boardId} / profile ${profileId}:`,
+        `[Board GET] Error during board creation process:`,
         creationError.message,
       );
       throw createError({
         statusCode: 500,
-        message: `Failed to create board or initial access record: ${creationError.message}`,
+        message: `Failed to create board: ${creationError.message}`,
       });
     }
   }
 
   // --- 4. Return Response ---
   if (!boardData) {
-    // This should ideally be caught earlier (e.g., 404 or 500 during creation)
     console.error("[Board GET] Reached end of handler but boardData is null.");
     throw createError({
       statusCode: 500,
@@ -235,7 +248,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Return the main board data, ownership status, and the specific access record for the current user
+  // Return the main board data, ownership status, and access information
   return {
     data: {
       board_id: boardData.board_id,
@@ -244,11 +257,12 @@ export default defineEventHandler(async (event) => {
       data: boardData.data,
     },
     isOwner: isOwner,
-    settings: userAccessData, // <-- Return the fetched/created access record (or null)
+    canEdit: canEdit,
+    settings: userAccessData,
   };
 });
 
-// Helper function to sanitize board IDs remains the same
+// Helper function to sanitize board IDs
 function makeUrlSafe(str: string): string {
   return str
     .toLowerCase()
@@ -259,7 +273,7 @@ function makeUrlSafe(str: string): string {
     .replace(/-+$/, "");
 }
 
-// Updated function to create and save a new board remains the same
+// Function to create and save a new board
 async function createAndSaveNewBoard(
   board_id: string,
   owner_id: string,
@@ -272,7 +286,8 @@ async function createAndSaveNewBoard(
       /* ... default content ... */
     },
   };
-  // Default content definition omitted for brevity
+
+  // Default content definition
   newBoardData.data = {
     title: getRandomBoardName(),
     items: [
@@ -330,37 +345,112 @@ async function createAndSaveNewBoard(
   return result[0];
 }
 
-// --- Placeholder for Access Control Logic ---
-// async function checkBoardAccess(db: DrizzleD1Database, board: Board, profileId: string | null): Promise<boolean> {
-//   // Public boards are always accessible
-//   if (board.access_level === BoardAccessLevel.PUBLIC) {
-//     return true;
-//   }
+/**
+ * Checks if a user has access to view a board based on access level and permissions
+ */
+async function checkBoardAccess(
+  db: any,
+  board: Board,
+  profileId: string | undefined,
+): Promise<boolean> {
+  // If the user is the owner, they always have access
+  if (profileId && board.owner_id === profileId) {
+    return true;
+  }
 
-//   // If no user identified, and board is not public, deny access
-//   if (!profileId) {
-//     return false;
-//   }
+  // Check access based on the board's access level
+  switch (board.access_level) {
+    case BoardAccessLevel.PUBLIC:
+    case BoardAccessLevel.VIEW_ONLY:
+    case BoardAccessLevel.LIMITED_EDIT:
+      // These are publicly viewable by anyone
+      return true;
 
-//   // Check if the user is the owner
-//   if (board.owner_id === profileId) {
-//     return true;
-//   }
+    case BoardAccessLevel.PRIVATE_SHARED:
+    case BoardAccessLevel.ADMIN_ONLY:
+      // These require specific access rights
+      if (!profileId) {
+        return false; // Anonymous users cannot access private boards
+      }
 
-//   // For private boards, check BOARD_ACCESS table
-//   if (board.access_level === BoardAccessLevel.PRIVATE_SHARED /* || add other private levels */) {
-//     const accessRecord = await db.select({ id: BOARD_ACCESS.id }) // Select minimal column
-//       .from(BOARD_ACCESS)
-//       .where(and(
-//         eq(BOARD_ACCESS.board_id, board.board_id),
-//         eq(BOARD_ACCESS.profile_id, profileId)
-//       ))
-//       .limit(1);
-//     return !!accessRecord[0]; // Return true if a record exists
-//   }
+      // Check if the user has been granted access
+      const accessRecord = await db.query.BOARD_ACCESS.findFirst({
+        where: and(
+          eq(BOARD_ACCESS.board_id, board.board_id),
+          eq(BOARD_ACCESS.profile_id, profileId),
+        ),
+      });
 
-//   // Add logic for other access levels (LIMITED_EDIT, VIEW_ONLY, ADMIN_ONLY) as needed
+      return !!accessRecord; // Return true if a record exists
 
-//   // Default deny if no access rule matched
-//   return false;
-// }
+    default:
+      console.warn(`[Board GET] Unknown access level: ${board.access_level}`);
+      return false; // Default to denying access for unknown levels
+  }
+}
+
+/**
+ * Determines if a user can edit a board based on access level and permissions
+ */
+async function canEditBoard(
+  db: any,
+  board: Board,
+  profileId: string | undefined,
+): Promise<boolean> {
+  // If the user is the owner, they always have edit rights
+  if (profileId && board.owner_id === profileId) {
+    return true;
+  }
+
+  // Anonymous users cannot edit boards except PUBLIC ones
+  if (!profileId) {
+    return board.access_level === BoardAccessLevel.PUBLIC;
+  }
+
+  // Check edit rights based on the board's access level
+  switch (board.access_level) {
+    case BoardAccessLevel.PUBLIC:
+      // Anyone can edit
+      return true;
+
+    case BoardAccessLevel.LIMITED_EDIT:
+      // Need to check if user has EDITOR or OWNER role
+      const editorAccessRecord = await db.query.BOARD_ACCESS.findFirst({
+        where: and(
+          eq(BOARD_ACCESS.board_id, board.board_id),
+          eq(BOARD_ACCESS.profile_id, profileId),
+          sql`${BOARD_ACCESS.role} IN ('editor', 'owner')`,
+        ),
+      });
+      return !!editorAccessRecord;
+
+    case BoardAccessLevel.PRIVATE_SHARED:
+      // Need to check user's role in BOARD_ACCESS
+      const privateAccessRecord = await db.query.BOARD_ACCESS.findFirst({
+        where: and(
+          eq(BOARD_ACCESS.board_id, board.board_id),
+          eq(BOARD_ACCESS.profile_id, profileId),
+        ),
+      });
+
+      // Can edit if role is EDITOR or OWNER
+      return (
+        privateAccessRecord &&
+        (privateAccessRecord.role === BoardAccessRole.EDITOR ||
+          privateAccessRecord.role === BoardAccessRole.OWNER)
+      );
+
+    case BoardAccessLevel.VIEW_ONLY:
+      // Only admin/owner can edit
+      return false; // Regular users cannot edit VIEW_ONLY boards
+
+    case BoardAccessLevel.ADMIN_ONLY:
+      // Only admin/owner can view and edit
+      // This is actually redundant since we've already checked for owner
+      return false;
+
+    default:
+      console.warn(`[Board GET] Unknown access level: ${board.access_level}`);
+      return false; // Default to denying edit access for unknown levels
+  }
+}
