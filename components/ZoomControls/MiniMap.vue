@@ -152,7 +152,8 @@ onUnmounted(() => {
           backgroundColor: getItemColor(item),
           backgroundImage: `url(${getItemIcon(item)})`,
           backgroundPosition: 'center center',
-          backgroundRepeat: 'no-repeat'
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'clamp(4px, 33%, 20px)'
         }"
       ></div>
       
