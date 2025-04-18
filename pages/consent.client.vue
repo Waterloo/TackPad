@@ -158,11 +158,14 @@ export default {
     if (!settings) throw new Error("No settings found in localStorage");
 
     const parsed = JSON.parse(settings);
-    const firstSetting = Object.values(parsed)?.[0];
+    const firstEntryArray = Object.values(parsed)?.[0];
 
-    if (!firstSetting?.user_token) throw new Error("User token not found");
+    const firstItem = Array.isArray(firstEntryArray) ? firstEntryArray[0] : null;
+    const token = firstItem?.user_token;
 
-    return `https://t.me/tackpadbot?start=${firstSetting.user_token}`;
+    if (!token) throw new Error("User token not found");
+
+    return `https://t.me/tackpadbot?start=${token}`;
   } catch (error) {
     console.error("Failed to get Tackpad Bot URL:", error);
     return null;
