@@ -154,11 +154,19 @@ export default {
   computed: {
     authUrl() {
       try {
-        const token = Object.values(JSON.parse(localStorage.settings))[0].user_token;
-        return `https://t.me/tackpadbot?start=${token}`;
-      } catch (e) {
-        console.log(e)
-      }
+    const settings = localStorage.getItem("settings");
+    if (!settings) throw new Error("No settings found in localStorage");
+
+    const parsed = JSON.parse(settings);
+    const firstSetting = Object.values(parsed)?.[0];
+
+    if (!firstSetting?.user_token) throw new Error("User token not found");
+
+    return `https://t.me/tackpadbot?start=${firstSetting.user_token}`;
+  } catch (error) {
+    console.error("Failed to get Tackpad Bot URL:", error);
+    return null;
+  }
     },
     // Get user initials for avatar
     userInitials() {
