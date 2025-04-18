@@ -98,7 +98,7 @@ export const useImageStore = defineStore("images", () => {
           width,
           height,
         };
-        boardStore.board.data.items.push(ImageItem);
+        boardStore.addBoardItem(ImageItem);
         console.log("added image");
       };
     });

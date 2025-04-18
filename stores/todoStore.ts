@@ -27,7 +27,7 @@ export const useTodoStore = defineStore('todos', () => {
       height: position.height || 300,
     }
 
-    boardStore.board.data.items.push(newTodo)
+    boardStore.addBoardItem(newTodo)
     boardStore.debouncedSaveBoard()
     return newTodo
   }

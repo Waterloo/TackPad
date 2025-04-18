@@ -32,7 +32,7 @@ export const useLinkStore = defineStore('links', () => {
     };
 
     // Add to board immediately
-    boardStore.board.data.items.push(initialLinkItem);
+    boardStore.addBoardItem(initialLinkItem);
     boardStore.debouncedSaveBoard();
   
     try {

@@ -161,6 +161,7 @@ const { toasts, removeToast } = useToast()
             v-for="item in boardStore.board.data.items"
             :key="item.id"
             :item-id="item.id"
+            :display-name="item.displayName"
             :position="{
               x: item.x_position,
               y: item.y_position,

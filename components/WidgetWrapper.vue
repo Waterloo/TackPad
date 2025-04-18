@@ -14,6 +14,7 @@ const props = defineProps<{
   isSelected: boolean;
   shadow?: boolean;
   isLocked?: boolean;
+  displayName?: string;
 }>();
 
 const emit = defineEmits<{
@@ -146,6 +147,7 @@ const pip = async () => {
         @mouseover="showMenu = true"
 
       ></div>
+      <span class="absolute left-0 -top-6 text-gray-400" @pointerdown.stop.prevent="startMove">{{ props.displayName }}</span>
       <div
         class="flex justify-between w-full widget-controls"
         title="More Options"
@@ -337,7 +339,7 @@ const pip = async () => {
 
 .widget-menu {
   position: absolute;
-  top: -2.75rem;
+  top: -4rem;
   left: 50%;
   transform: translateX(-50%);
   background: white;

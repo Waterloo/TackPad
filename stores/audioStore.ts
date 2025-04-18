@@ -41,7 +41,7 @@ export const useAudioStore = defineStore("audio", () => {
           height,
         };
 
-        boardStore.board.data.items.push(audioItem);
+        boardStore.addBoardItem(audioItem);
         console.log("added audio");
       };
     });
