@@ -88,7 +88,7 @@
       <div class="card-section">
         <div class="actions-container">
           <div class="buttons-container">
-            <a :href="authUrl" class="btn btn-primary" target="_blank">
+            <a :href="authUrl" class="btn btn-primary select-none" target="_blank">
               Authorize
             </a>
             <button type="button" class="btn btn-secondary" @click="cancel">
@@ -154,8 +154,7 @@ export default {
   computed: {
     authUrl() {
       try {
-        const token = Object.values(JSON.parse(localStorage.settings))[0]
-          .user_token;
+        const token = Object.values(JSON.parse(localStorage.settings))[0].user_token;
         return `https://t.me/tackpadbot?start=${token}`;
       } catch (e) {
         console.log(e)
