@@ -58,6 +58,11 @@ isLoading.value = false
               :title="item.title"
               :is-selected="boardStore.selectedId === item.id"
             />
+            <Timer
+              v-else-if="item.kind === 'timer'"
+              :is-selected="boardStore.selectedId === item.id"
+              @update:settings="(settings) => timerStore.updateTimerSettings(item.id, settings)"
+            />
             <Tacklet
               v-else-if="item.kind === 'tacklet'"
               :item-id="item.id"
