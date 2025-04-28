@@ -145,6 +145,7 @@
                         Screen 1: {{ getSelectedItemTitle(0) }}
                     </div>
                     <div
+                        class="mx-auto md:w-fit"
                         :class="
                             selectedSplitScreen === 1
                                 ? 'border-2 border-blue-300'
@@ -163,13 +164,15 @@
                         Screen 2: {{ getSelectedItemTitle(1) }}
                     </div>
                     <div
+                        class="mx-auto md:w-fit"
                         :class="
                             selectedSplitScreen === 2
                                 ? 'border-2 border-blue-300'
                                 : ''
                         "
-                    ></div>
-                    <slot name="screen2" :item="selectedItems.second" />
+                    >
+                        <slot name="screen2" :item="selectedItems.second" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -235,12 +238,6 @@ watch(
         // Select first item by default for screen 1 if there's no selection
         if (items.value.length > 0 && !props.selectedItemIds[0]) {
             emit("updateSelection", [items.value[0].id]);
-            router.push({
-                query: {
-                    compact: true,
-                    compactSelectedItem: props.selectedItemIds[0],
-                },
-            });
 
             // If split screen is active, select second item for screen 2
             if (
@@ -330,12 +327,7 @@ const selectItem = (id) => {
         // In single screen mode, always assign to screen 1
         emit("updateSelection", [id, null]);
     }
-    router.push({
-        query: {
-            compact: true,
-            compactSelectedItem: id, // Use the newly selected ID
-        },
-    });
+
     closeSidebar();
 };
 

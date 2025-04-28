@@ -88,15 +88,15 @@ onMounted(() => {
             boardStore.initializeBoard(id);
         }
     };
-    const compactModeParam = route.query.compact as boolean;
 
-    if (compactModeParam && compactModeParam === true) {
+    const compactModeParam = route.query.compact;
+    if (compactModeParam === "true") {
         compactMode.value = true;
-        const compactSelectedItem = route.query.compactSelectedItem as string;
-        compactSelectedItems.value[0] = compactSelectedItem;
     }
 });
-
+watch(route, () => {
+    compactMode.value = route.query.compact === "true";
+});
 onUnmounted(() => {
     eventSource && eventSource.close();
 });
@@ -144,13 +144,19 @@ const compactItems = computed(() => {
 });
 async function updateList(items) {
     compactSelectedItems.value = items;
+    router.push({
+        query: {
+            ...route.query,
+            compactSelectedItem: compactSelectedItems.value[0],
+        },
+    });
 }
 function toggleCompactMode() {
     compactMode.value = !compactMode.value;
     router.push({
         query: {
+            ...route.query,
             compact: compactMode.value ? "true" : "false",
-            compactSelectedItem: compactSelectedItems.value[0],
         },
     });
 }
