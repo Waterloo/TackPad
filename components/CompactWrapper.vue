@@ -638,11 +638,6 @@ const getItemSubtitle = (item) => {
         flex-direction: row;
     }
 
-    .main-content {
-        margin-left: var(--sidebar-collapsed-width);
-        width: calc(100% - var(--sidebar-collapsed-width));
-    }
-
     .sidebar:not(.collapsed) + .main-content {
         margin-left: var(--sidebar-width);
         width: calc(100% - var(--sidebar-width));
