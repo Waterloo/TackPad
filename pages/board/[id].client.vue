@@ -94,9 +94,9 @@ onMounted(() => {
         compactMode.value = true;
     }
 });
-watch(route, () => {
-    compactMode.value = route.query.compact === "true";
-});
+// watch(route, () => {
+//     compactMode.value = route.query.compact === "true";
+// });
 onUnmounted(() => {
     eventSource && eventSource.close();
 });
@@ -156,9 +156,10 @@ function toggleCompactMode() {
     router.push({
         query: {
             ...route.query,
-            compact: compactMode.value ? "true" : "false",
+            compact: compactMode.value === true ? "true" : "false",
         },
     });
+    console.log("Compact mode toggled", route.query);
 }
 </script>
 <template>
@@ -469,6 +470,7 @@ function toggleCompactMode() {
                         <Tacklet
                             v-else-if="item.kind === 'tacklet'"
                             :item-id="item.id"
+                            :style="`height: ${item.height}px;`"
                             :is-selected="boardStore.selectedId === item.id"
                             class="w-full h-full"
                             :content="item.content"

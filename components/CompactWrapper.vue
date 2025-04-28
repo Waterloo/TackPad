@@ -61,6 +61,9 @@
             :class="{
                 collapsed: isSidebarCollapsed,
             }"
+            :style="{
+                minWidth: isSidebarCollapsed ? '0' : '250px',
+            }"
         >
             <div
                 class="sidebar-header"
