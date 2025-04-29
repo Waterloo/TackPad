@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { templateRef } from "@vueuse/core";
+import { is } from "drizzle-orm";
 import { useItemInteraction } from "~/composables/useItemInteraction";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   position: {
     x: number;
     y: number;
@@ -14,8 +16,7 @@ const props = defineProps<{
   isSelected: boolean;
   shadow?: boolean;
   isLocked?: boolean;
-  displayName?: string;
-}>();
+}>(), {shadow: true});
 
 const emit = defineEmits<{
   (e: "select", id: string): void;
@@ -24,6 +25,8 @@ const emit = defineEmits<{
   (e: "parent"): void;
   (e: "lock", locked: boolean): void;
 }>();
+
+const displayName = defineModel('displayName', {type: String})
 
 const {
   style,
@@ -112,18 +115,32 @@ const pip = async () => {
    pipWindow.document.body.append(iframe)
 
 }
+
+const displayNameInput= useTemplateRef('displayNameInput')
+const isTitleEditing = ref(false)
+
+const toggleTitleEdit = () => {
+  isTitleEditing.value = !isTitleEditing.value
+  if(isTitleEditing.value) {
+    nextTick(()=> {
+      displayNameInput.value?.focus()
+    })
+  }
+}
+
 </script>
 
 <template>
   <div
     ref="elementRef"
-    class="widget-container"
+    class="widget-container hover:-translate-y-0.5 transition duration-300"
     :class="{
       'widget-selected': isSelected,
       'widget-moving': isMoving,
       'widget-resizing': isResizing,
       'select-none': isMoving || isResizing,
       'widget-locked': props.isLocked,
+      'hover:shadow-[0_15px_35px_rgba(0,0,0,0.12)]': props.shadow
     }"
     :style="[
       style,
@@ -147,7 +164,12 @@ const pip = async () => {
         @mouseover="showMenu = true"
 
       ></div>
-      <span class="absolute left-0 -top-6 text-gray-400" @pointerdown.stop.prevent="startMove">{{ props.displayName }}</span>
+      <span v-if="!isTitleEditing" class="absolute left-0 -top-6 text-gray-400 inline-flex items-center" @dblclick="toggleTitleEdit" @touchend="toggleTitleEdit">{{ displayName }} <svg xmlns="http://www.w3.org/2000/svg" :class="!isSelected && 'hidden'" class="h-5 w-5 text-gray-300" viewBox="0 0 20 20"  style="fill: rgb(156,163,175);height: 1.1rem;">
+          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.379-8.379-2.828-2.828z"></path>
+        </svg></span>
+        <span v-else class="absolute left-0 -top-6 text-gray-400 inline-flex items-center">
+          <input ref="displayNameInput" v-model="displayName" @blur="toggleTitleEdit" @keyup.enter="toggleTitleEdit" class="flex-grow bg-transparent text-gray-400 border-b border-gray-300 focus:outline-none"/>
+        </span>
       <div
         class="flex justify-between w-full widget-controls"
         title="More Options"
@@ -185,7 +207,7 @@ const pip = async () => {
     </div>
     
     <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel.stop>
-      <slot></slot>
+      <slot :startMove="startMove"></slot>
     </div>
 
     <div
@@ -229,10 +251,10 @@ const pip = async () => {
   pointer-events: all;
 }
 
-.widget-container:hover {
+/* .widget-container:hover {
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
   transform: translateY(-2px);
-}
+} */
 
 .widget-container.widget-selected {
   outline: 1px solid var(--primary-color, #3498db);
