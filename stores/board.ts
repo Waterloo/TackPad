@@ -2,7 +2,7 @@
 import { ref, computed, unref } from "vue";
 import { defineStore } from "pinia";
 import { useLocalStorage } from "@vueuse/core";
-import { debounce } from "lodash";
+import { assign, debounce } from "lodash";
 import { useRoute } from "vue-router";
 
 // import type { EncryptedData } from '~/types/encryption'
@@ -26,6 +26,49 @@ export const useBoardStore = defineStore("board", () => {
   const showPasswordDialog = ref(false);
   const boards = useLocalStorage<Boards>("boards", {});
   const settings = useLocalStorage<BoardSettings>("settings", {});
+
+  let itemsCounter : Record<string, number>= {}
+  function initalizeCounter(items: BoardItem[]){
+    
+    const localCount: Record<string, number> = {}
+    items.forEach(item => {
+      if(!localCount[item.kind]){
+        localCount[item.kind] = 0;
+      }
+      const match = item.displayName?.match(/(\d+)$/)
+      if (match) {
+        const num = parseInt(match[1], 10);
+        localCount[item.kind] = num > localCount[item.kind] ? num : localCount[item.kind]
+      }
+    });
+
+    itemsCounter = localCount;
+  }
+
+  const getCounter = (kind: string) => {
+    // we need to increment the count and give back the new count
+    if (!itemsCounter[kind]) {
+      itemsCounter[kind] = 0;
+    }
+    itemsCounter[kind]++;
+    return itemsCounter[kind];
+  }
+
+  const assignDisplayNames = () => {
+    board.value?.data.items.forEach(item => {
+      if (!item.displayName) {
+        item.displayName = getDisplayName((item.kind === 'tacklet' && item.content.tackletId) || item.kind);
+      }
+    });
+  }
+
+  function getDisplayName(kind: string) {
+    let prefix = `${(kind ==='tacklet' && item?.content?.tackletId) || kind}`;
+    prefix = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    return `${prefix} ${getCounter(kind)}`;
+  }
+
+
 
   const isProfileVisible = ref(false);
   const isFilePickerVisible = ref(false);
@@ -157,7 +200,12 @@ export const useBoardStore = defineStore("board", () => {
     } finally {
       loading.value = false;
     }
+
+    initalizeCounter(board.value?.data.items || []);
+    assignDisplayNames()
   };
+
+
 
   const setSelectedId = (id: string | null) => {
     selectedId.value = id;
@@ -276,11 +324,18 @@ export const useBoardStore = defineStore("board", () => {
     saveBoard();
   };
   // Create debounced version of saveBoard
-  const debouncedSaveBoard = debounce(saveBoard, 6000);
+  const debouncedSaveBoard = debounce(saveBoard, 3000);
 
   useHead({
     title: computed(() => `${board.value?.data.title || "TackPad"} | TackPad`),
   });
+
+  function addBoardItem(item: BoardItem) {
+    if (!board.value) return;
+    item.displayName = item.displayName || getDisplayName((item.kind === 'tacklet' && item.content.tackletId) || item.kind);
+    board.value.data.items.push(item);
+    debouncedSaveBoard();
+  }
 
   return {
     // State
@@ -319,5 +374,6 @@ export const useBoardStore = defineStore("board", () => {
     debouncedSaveBoard,
     toggleEncryption,
     boards: computed(() => boards.value),
+    addBoardItem
   };
 });

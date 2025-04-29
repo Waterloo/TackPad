@@ -26,7 +26,7 @@ const linkStore = useLinkStore();
 const timerStore = useTimerStore();
 const textWidgetStore = useTextWidgetStore();
 const tackletStore = useTackletStore();
-const { handleDelete, updateItemPosition, toggleLock } = useItemManagement();
+const { handleDelete, updateItemPosition, toggleLock, updateItemDisplayName } = useItemManagement();
 // Initialize composables
 const route = useRoute();
 const { scale, translateX, translateY, startPan, pan, endPan, handleZoom, updateZoom, spacePressed, isPanning } = usePanZoom();
@@ -109,7 +109,10 @@ const {isOpen} = useTackletDirectory();
 const { toasts, removeToast } = useToast()
 
 
-
+const updateDisplayName = (id: string, displayName: string) => {
+  updateItemDisplayName(id, displayName);
+  console.log(id, displayName)
+}
 </script>
 <template>
  <div
@@ -161,6 +164,7 @@ const { toasts, removeToast } = useToast()
             v-for="item in boardStore.board.data.items"
             :key="item.id"
             :item-id="item.id"
+            :display-name="item.displayName"
             :position="{
               x: item.x_position,
               y: item.y_position,
@@ -173,10 +177,11 @@ const { toasts, removeToast } = useToast()
             :is-locked="item.lock"
             @select="boardStore.setSelectedId"
             @update:position="(updates:Object) => updateItemPosition(item.id, updates)"
-            :shadow="item.kind === 'text'"
+            :shadow="item.kind !== 'text'"
             @delete="deleteItemConfirm = true"
             @lock="(locked:boolean) => toggleLock(item.id, locked)"
-           
+            v-slot="{ startMove }"
+            @update:displayName="(value) => updateDisplayName(item.id, value!)"
           >
             <StickyNote
               v-if="item.kind === 'note'"
@@ -213,6 +218,7 @@ const { toasts, removeToast } = useToast()
               :initial-text="item.content.text"
               :is-selected="boardStore.selectedId === item.id"
               @update:text="(text:string) => textWidgetStore.updateTextWidgetContent(item.id, text)"
+              @pointerdown.stop.prevent="startMove"
             />
             <ImageWidget
               v-else-if="item.kind === 'image'"

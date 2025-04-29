@@ -27,7 +27,7 @@ export const useTimerStore = defineStore('timers', () => {
       }
     }
 
-    boardStore.board.data.items.push(newTimer)
+    boardStore.addBoardItem(newTimer)
     boardStore.debouncedSaveBoard()
     return newTimer
   }

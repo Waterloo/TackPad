@@ -58,7 +58,7 @@ export const useFileStore = defineStore("file", () => {
             height,
           };
 
-          boardStore.board.data.items.push(fileItem);
+          boardStore.addBoardItem(fileItem);
         } else {
           // Handle failed uploads
           const failedFileItem: FileItem = {
@@ -75,7 +75,7 @@ export const useFileStore = defineStore("file", () => {
             height: 50,
           };
 
-          boardStore.board.data.items.push(failedFileItem);
+          boardStore.addBoardItem(failedFileItem);
         }
       }
     });

@@ -1,4 +1,4 @@
-const PUBLIC_ROUTES: Array<string | {path: string, method: string}> = ['/api/_auth', '/api/board', '/api/bookmark','/api/metadata','/api/save', '/api/_hub/']
+const PUBLIC_ROUTES: Array<string | {path: string, method: string}> = ['/api/_auth', '/api/board', '/api/bookmark','/api/metadata','/api/save', '/api/_hub/', '/api/board/list']
 
 export default defineEventHandler(async (event) => {
   // Skip auth check during prerendering

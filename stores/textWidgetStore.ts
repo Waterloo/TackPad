@@ -31,7 +31,7 @@ export const useTextWidgetStore = defineStore('textWidgets', () => {
         },
       };
   
-      boardStore.board.data.items.push(textWidget);
+      boardStore.addBoardItem(textWidget);
       boardStore.debouncedSaveBoard();
   
       resolve(textWidget);  // Resolve the promise with the created textWidget

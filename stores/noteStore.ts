@@ -30,7 +30,7 @@ export const useNoteStore = defineStore('notes', () => {
       height: position.height || 216,
     }
 
-    boardStore.board.data.items.push(newNote)
+    boardStore.addBoardItem(newNote)
     boardStore.debouncedSaveBoard()
     return newNote
   }
