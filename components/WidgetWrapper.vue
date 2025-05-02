@@ -150,7 +150,6 @@ const toggleTitleEdit = () => {
     @pointercancel.stop="stopInteraction"
     @pointerleave.stop="stopInteraction"
     @click.stop="$emit('select', props.itemId)"
-    @wheel="(e) => isSelected ? e.stopPropagation() : e.preventDefault()"
   >
 
     <div class="widget-header-minimal">
@@ -219,7 +218,7 @@ const toggleTitleEdit = () => {
       </div>
     </div>
     
-    <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel.stop>
+    <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel="e => isSelected ? e.stopPropagation() : e.preventDefault()">
       <slot :startMove="startMove"></slot>
     </div>
 
