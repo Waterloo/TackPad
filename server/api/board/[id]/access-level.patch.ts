@@ -1,4 +1,8 @@
-import { BOARDS, BoardAccessLevel } from "~/server/database/schema";
+import {
+  BOARDS,
+  BOARD_ACCESS,
+  BoardAccessLevel,
+} from "~/server/database/schema";
 import { useDrizzle, eq } from "~/server/utils/drizzle";
 
 export default defineEventHandler(async (event) => {
@@ -56,18 +60,63 @@ export default defineEventHandler(async (event) => {
       message: "Invalid access level specified",
     });
   }
+  const newAccessLevel = body.accessLevel;
+  const resetCurrentUserAccess = body.removeUserAccess ?? false;
 
-  // Update the board access level
-  await db
-    .update(BOARDS)
-    .set({ access_level: body.accessLevel })
-    .where(eq(BOARDS.board_id, boardId));
+  // --- Operation 2: Update the board access level ---
+  try {
+    await db
+      .update(BOARDS)
+      .set({ access_level: newAccessLevel })
+      .where(eq(BOARDS.board_id, boardId));
+  } catch (error) {
+    console.error("Failed to update board access level:", error);
+    throw createError({
+      statusCode: 500,
+      message: "Failed to update board access level",
+    });
+  }
 
-  // Return success with details
+  // --- Operation 3: Conditionally Clean up BOARD_ACCESS ---
+  // This runs *after* the board level is successfully updated.
+  if (
+    newAccessLevel === BoardAccessLevel.ADMIN_ONLY ||
+    resetCurrentUserAccess === true
+  ) {
+    console.log(
+      `Board ${boardId}  Attempting to remove non-owner access entries.`,
+    );
+    try {
+      const deleteResult = await db
+        .delete(BOARD_ACCESS)
+        .where(
+          and(
+            eq(BOARD_ACCESS.board_id, boardId),
+            // Ensure we do not delete the owner if they have an explicit entry
+            ne(BOARD_ACCESS.profile_id, board.owner_id),
+          ),
+        )
+        .returning({ id: BOARD_ACCESS.id }); // Use returning or similar to check rows affected if your driver supports it easily, otherwise just execute.
+
+      // Cloudflare D1 might return meta.changes or similar instead of rowCount directly
+      // Adapt based on what useDrizzle + D1 adapter provides
+      console.log(`Removed access entries potentially. Result:`, deleteResult); // Log the actual result object
+    } catch (error) {
+      // Log the error, but don't throw - the primary operation succeeded.
+      // The permission logic elsewhere MUST handle this inconsistency.
+      console.error(
+        `Failed to clean up BOARD_ACCESS for board ${boardId} after setting ADMIN_ONLY. Stale entries might exist, but permission logic should prevent access. Error:`,
+        error,
+      );
+      // You could potentially flag this board for a later cleanup job if needed.
+    }
+  }
+
+  // Return success - the primary goal (updating level) was achieved.
   return {
     success: true,
-    message: `Board access level updated to ${body.accessLevel}`,
+    message: `Board access level updated to ${newAccessLevel}. Associated access cleanup attempted if necessary.`,
     boardId,
-    accessLevel: body.accessLevel,
+    accessLevel: newAccessLevel,
   };
 });

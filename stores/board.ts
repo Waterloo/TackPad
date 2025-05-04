@@ -295,7 +295,10 @@ export const useBoardStore = defineStore("board", () => {
   };
 
   // --- NEW: Update Board Access Level Action ---
-  const updateBoardAccessLevel = async (accessLevel: BoardAccessLevel) => {
+  const updateBoardAccessLevel = async (
+    accessLevel: BoardAccessLevel,
+    removeUserAccess: boolean,
+  ) => {
     if (!board.value?.board_id) return;
     loadingAccess.value = true;
     errorAccess.value = null;
@@ -305,7 +308,7 @@ export const useBoardStore = defineStore("board", () => {
         accessLevel: BoardAccessLevel;
       }>(`/api/board/${board.value.board_id}/access-level`, {
         method: "PATCH",
-        body: { accessLevel },
+        body: { accessLevel, removeUserAccess },
       });
       boardAccessLevel.value = response.accessLevel; // Update local state directly
     } catch (err: any) {
