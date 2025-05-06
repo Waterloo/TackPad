@@ -1,70 +1,79 @@
-const PUBLIC_ROUTES: Array<string | {path: string, method: string}> = ['/api/_auth', '/api/board', '/api/bookmark','/api/metadata','/api/save', '/api/_hub/', '/api/board/list']
+const PUBLIC_ROUTES: Array<string | { path: string; method: string }> = [
+  "/api/_auth",
+  "/api/board",
+  "/api/bookmark",
+  "/api/metadata",
+  "/api/save",
+  "/api/_hub/",
+  "/api/board/list",
+  "/api/backup/export",
+];
 
 export default defineEventHandler(async (event) => {
   // Skip auth check during prerendering
   if (process.env.prerender) {
-    return
+    return;
   }
-  
+
   // Only apply to API routes
-  if (!event.path.startsWith('/api/')) {
-    return
+  if (!event.path.startsWith("/api/")) {
+    return;
   }
-  
+
   // Check if route is public
-  const isPublicRoute = PUBLIC_ROUTES.some(route => {
-    if (typeof route === 'string') {
-      return event.path.startsWith(route)
+  const isPublicRoute = PUBLIC_ROUTES.some((route) => {
+    if (typeof route === "string") {
+      return event.path.startsWith(route);
     }
-    return event.path === route.path && event.method === route.method
-  })
-  
+    return event.path === route.path && event.method === route.method;
+  });
+
   try {
     // Always try to get session, regardless of route type
-    let session = null
+    let session = null;
     try {
-      session = await getUserSession(event)
+      session = await getUserSession(event);
     } catch (e) {
       // If we can't get a session and this is a protected route, throw an error
       if (!isPublicRoute) {
         throw createError({
           statusCode: 401,
-          message: 'Unauthorized - No valid session'
-        })
+          message: "Unauthorized - No valid session",
+        });
       }
       // For public routes, just continue with no session
     }
-    
+
     // Set default context with no auth
-    event.context = event.context || {}
+    event.context = event.context || {};
     event.context.session = {
       user: null,
       secure: {
         profileId: null,
-        username: null
-      }
-    }
-    
+        username: null,
+      },
+    };
+
     // If we have a session, use the profileId and username from the session
     if (session?.user) {
       event.context.session = {
         user: session.user,
         secure: {
           profileId: session.user.profileId || null,
-          username: session.user.username || null
-        }
-      }
+          username: session.user.username || null,
+        },
+      };
     }
-    
+
     // For protected routes, ensure we have a valid profileId
     if (!isPublicRoute && !event.context.session.secure.profileId) {
       throw createError({
         statusCode: 401,
-        message: 'Unauthorized - No valid profile'
-      })
+        message: "Unauthorized - No valid profile",
+      });
     }
   } catch (error) {
-    console.error('Auth middleware error:', error)
-    throw error
+    console.error("Auth middleware error:", error);
+    throw error;
   }
-})
+});
