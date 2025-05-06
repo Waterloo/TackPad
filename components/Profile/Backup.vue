@@ -41,6 +41,7 @@ const removeFromExportList = (boardId: string) => {
     selectedBoardIdsForExport.value.delete(boardId);
 };
 
+const BACKUP_LOCALSTORAGE_KEY = "isBackedUp";
 const handleExport = async () => {
     if (selectedBoardIdsForExport.value.size === 0) {
         warning("Please select at least one board to export.");
@@ -71,6 +72,7 @@ const handleExport = async () => {
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
+            localStorage.setItem(BACKUP_LOCALSTORAGE_KEY, "true");
             success(`${boardsToExport.length} board(s) exported successfully!`);
         } catch (err) {
             console.error("Export failed:", err);
