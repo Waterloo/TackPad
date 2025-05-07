@@ -27,18 +27,18 @@ export const useBoardStore = defineStore("board", () => {
   const boards = useLocalStorage<Boards>("boards", {});
   const settings = useLocalStorage<BoardSettings>("settings", {});
 
-  let itemsCounter : Record<string, number>= {}
-  function initalizeCounter(items: BoardItem[]){
-    
-    const localCount: Record<string, number> = {}
-    items.forEach(item => {
-      if(!localCount[item.kind]){
+  let itemsCounter: Record<string, number> = {};
+  function initalizeCounter(items: BoardItem[]) {
+    const localCount: Record<string, number> = {};
+    items.forEach((item) => {
+      if (!localCount[item.kind]) {
         localCount[item.kind] = 0;
       }
-      const match = item.displayName?.match(/(\d+)$/)
+      const match = item.displayName?.match(/(\d+)$/);
       if (match) {
         const num = parseInt(match[1], 10);
-        localCount[item.kind] = num > localCount[item.kind] ? num : localCount[item.kind]
+        localCount[item.kind] =
+          num > localCount[item.kind] ? num : localCount[item.kind];
       }
     });
 
@@ -52,23 +52,23 @@ export const useBoardStore = defineStore("board", () => {
     }
     itemsCounter[kind]++;
     return itemsCounter[kind];
-  }
+  };
 
   const assignDisplayNames = () => {
-    board.value?.data.items.forEach(item => {
+    board.value?.data.items.forEach((item) => {
       if (!item.displayName) {
-        item.displayName = getDisplayName((item.kind === 'tacklet' && item.content.tackletId) || item.kind);
+        item.displayName = getDisplayName(
+          (item.kind === "tacklet" && item.content.tackletId) || item.kind,
+        );
       }
     });
-  }
+  };
 
   function getDisplayName(kind: string) {
-    let prefix = `${(kind ==='tacklet' && item?.content?.tackletId) || kind}`;
+    let prefix = `${(kind === "tacklet" && item?.content?.tackletId) || kind}`;
     prefix = prefix.charAt(0).toUpperCase() + prefix.slice(1);
     return `${prefix} ${getCounter(kind)}`;
   }
-
-
 
   const isProfileVisible = ref(false);
   const isFilePickerVisible = ref(false);
@@ -95,7 +95,7 @@ export const useBoardStore = defineStore("board", () => {
         // Check if settings exist
         const settings = useLocalStorage<Record<string, Array<any>>>(
           "settings",
-          {}
+          {},
         );
         let mostRecentBoardId = null;
         let mostRecentTimestamp = new Date(0); // Start with oldest possible date
@@ -202,10 +202,8 @@ export const useBoardStore = defineStore("board", () => {
     }
 
     initalizeCounter(board.value?.data.items || []);
-    assignDisplayNames()
+    assignDisplayNames();
   };
-
-
 
   const setSelectedId = (id: string | null) => {
     selectedId.value = id;
@@ -332,11 +330,38 @@ export const useBoardStore = defineStore("board", () => {
 
   function addBoardItem(item: BoardItem) {
     if (!board.value) return;
-    item.displayName = item.displayName || getDisplayName((item.kind === 'tacklet' && item.content.tackletId) || item.kind);
+    item.displayName =
+      item.displayName ||
+      getDisplayName(
+        (item.kind === "tacklet" && item.content.tackletId) || item.kind,
+      );
     board.value.data.items.push(item);
     debouncedSaveBoard();
   }
 
+  async function backupBoards(boardsToExport) {
+    const res = await fetch("/api/backup/export", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ boardsToExport }),
+    });
+    if (!res.ok) {
+      console.error("Failed to backup boards");
+      return {
+        success: false,
+        message: "Failed to backup boards",
+      };
+    }
+    const data = await res.json();
+
+    return {
+      success: true,
+      data,
+      message: "Boards backed up successfully",
+    };
+  }
   return {
     // State
     board,
@@ -374,6 +399,8 @@ export const useBoardStore = defineStore("board", () => {
     debouncedSaveBoard,
     toggleEncryption,
     boards: computed(() => boards.value),
-    addBoardItem
+    addBoardItem,
+
+    backupBoards,
   };
 });
