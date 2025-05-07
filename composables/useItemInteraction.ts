@@ -18,8 +18,8 @@ export function useItemInteraction(
   position: Position,
   onUpdate: (updates: Partial<Position>) => void,
   options = {
-    minWidth: 300,
-    minHeight: 300,
+    minWidth: 160,
+    minHeight: 120,
     grid: 1
   }
 ) {

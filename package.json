@@ -18,14 +18,18 @@
     "@tiptap/pm": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",
     "@tiptap/vue-3": "^2.11.5",
-    "@vueuse/core": "^10.9.0",
-    "drizzle-orm": "^0.36.4",
+    "@vueuse/core": "^10.11.1",
+    "aws4fetch": "^1.0.20",
+    "drizzle-orm": "^0.40.1",
     "lodash": "^4.17.21",
     "nanoid": "^5.0.9",
     "nuxt": "^3.13.0",
     "nuxt-auth-utils": "^0.5.16",
+    "penpal": "^7.0.0",
     "pinia": "^2.1.7",
-    "vue-draggable-next": "^2.2.1"
+    "unstorage": "^1.15.0",
+    "vue-draggable-next": "^2.2.1",
+    "wavesurfer.js": "^7.9.4"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",

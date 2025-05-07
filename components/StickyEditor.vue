@@ -1,5 +1,5 @@
 <template>
-    <editor-content :editor="editor" class="h-full px-1"/>
+    <editor-content :editor="editor" class="h-full px-1 overflow-auto"/>
   </template>
   
   <script setup>
@@ -24,7 +24,7 @@
         extensions: [StarterKit],
         editorProps: {
           attributes: {
-            class: 'p-2 prose focus:outline-none marker:text-black prose-li:leading-[0.75] prose-p:m-0 prose-headings:mb-0',
+            class: 'p-2 prose focus:outline-none marker:text-black prose-li:leading-[1.2] prose-p:m-0 prose-headings:mb-0',
           }
         },
         content: props.value || "<h2>Welcome to your board! Try adding more notes and todo lists.</h2>",

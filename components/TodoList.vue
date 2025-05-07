@@ -1,8 +1,9 @@
 <template>
-  <div class="h-full flex flex-col bg-white rounded-lg">
-    <div class="p-4 border-b flex items-center justify-between">
-      <div class="flex items-center gap-2 w-full">
-        <div v-if="isEditingTitle" class="w-full">
+  <div class="h-full flex-col bg-white rounded-lg taskContaner transition-all ease-in-out" :data-list-id="list.id" @drop="handleDrop($event,list.id,list)"  @dragover.prevent>
+<div class="p-4 border-b flex items-center justify-between">
+<!--Header-->
+  <div class="flex items-center gap-2 w-full">
+  <div v-if="isEditingTitle" class="w-full">
           <input
             v-model="localTitle"
             class="w-full text-xl font-semibold bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
@@ -27,38 +28,55 @@
             {{ localTitle }}
           </p>
         </div>
-      </div>
-    </div>
-    
-    <div class="p-4 pt-0 overflow-auto" style="max-height: calc(100% - 64px);">
-      <div class="bg-gray-100 rounded-lg mt-5 mb-5 flex items-center ">
+  </div> 
+</div>
+
+<div class="p-4 pt-0 overflow-auto overflow-x-hidden" style="max-height: calc(100% - 64px);">
+  <!--Input-->
+  <div class="bg-gray-100 rounded-lg mt-5 mb-5 flex items-center ">
         <input
           type="text"
           placeholder="Add a new task"
           class="w-full p-4 bg-gray-100 focus:outline-none text-gray-600"
           v-model="newTask"
-          @keyup.enter="addNewTask"
+          @keyup.enter="handleAddNewTask"
           @mousedown.stop
           @keydown.delete.stop
         />
         <button 
-          @click.stop="addNewTask"
+          @click.stop="handleAddNewTask"
           class="p-4 text-blue-600 hover:text-blue-800"
         >
-          <img src="/icons/Add-Circle.svg" alt="">
+          <img src="public/icons/Add-Circle.svg" alt="">
         </button>
       </div>
-
-      <ul class="space-y-4 overflow-y-auto">
-        <li 
-          v-for="task in list.content.tasks" 
-          :key="task.task_id" 
-          class="flex gap-3"
-        >
+    <ul class="space-y-4 overflow-y-auto overflow-x-hidden min-h-[100px]" >
+      <li
+      v-for="(task,index) in list.content.tasks"
+      :key="task.task_id"
+      class="taskItem flex gap-3 items-center transition-all ease-in-out hover:transdorm hover:-translate-y-1 hover:opacity-55"
+      draggable="true"
+      @dragleave="handleDragLeave"
+      @dragend="handleDragEnd"
+      @dragstart="handleDragStart($event,list.id,index,task)"
+      @dragover.prevent="handleDragOver($event,list.id,index)"
+      @touchstart="handleTouchStart($event,list.id,index,task)"
+      @touchmove="handleTouchMove($event)"
+      @touchend="handleTouchEnd($event,list.id,list)"
+      >
+      <div class="drag-handle cursor-move px-1 text-gray-400 hover:text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="1" />
+              <circle cx="8" cy="16" r="1" />
+              <circle cx="16" cy="8" r="1" />
+              <circle cx="16" cy="16" r="1" />
+            </svg>
+          </div>
           <button 
             class="w-6 h-6 rounded border-2 border-blue-600 flex items-center justify-center flex-shrink-0"
             :class="{ 'bg-blue-600': task.completed }"
             @click.stop="toggleTask(task)"
+             :data-list-id="list.id"
           >
             <svg
               v-if="task.completed"
@@ -91,6 +109,7 @@
             class="flex-grow cursor-pointer text-base"
             :class="{ 'line-through text-gray-400': task.completed }"
             @dblclick.stop="startEditing(task)"
+        
           >
             {{ task.content }}
           </span>
@@ -102,33 +121,74 @@
               <span class="text-2xl">×</span>
             </button>
           </span>
-        </li>
-      </ul>
-    </div>
-  </div>
+      </li>
+    </ul>
+
+</div>
+
+</div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed } from 'vue'
+import { ref, nextTick, computed, watch } from 'vue'
 import { useBoardStore } from '~/stores/board'
 import { useTodoStore } from '~/stores/todoStore'
+import { useTodo } from '~/composables/useTodo'
 import type { TodoList, Task } from '~/types/board'
 
 const props = defineProps<{
   list: TodoList
   isSelected: boolean
 }>()
-
 const boardStore = useBoardStore()
 const todoStore = useTodoStore()
-const localTitle = ref(props.list.content.title)
-const isEditingTitle = ref(false)
-const titleInput = ref<HTMLInputElement | null>(null)
-const titleDisplay = ref<HTMLElement | null>(null)
 const newTask = ref('')
-const editingTaskId = ref<string | null>(null)
-const editingContent = ref('')
-const editInput = ref<HTMLInputElement | null>(null)
+const titleDisplay = ref<HTMLElement | null>(null)
+ const { localTitle,
+  isEditingTitle,
+  titleInput,
+  editingTaskId,
+  editingContent,
+  
+    // Title functions
+    startTitleEdit,
+  saveTitle,
+  cancelTitleEdit,
+  // Task functions
+  addNewTask,
+  deleteTask,
+  toggleTask,
+  // startEditing,
+  saveTaskEdit,
+  cancelTaskEdit,
+// Drag and drop functions
+      handleDragStart,
+      handleDragOver,
+      handleDragEnd,
+      handleDragLeave,
+      handleDrop,
+      handleTouchStart,
+      handleTouchMove,
+      handleTouchEnd
+} = useTodo(props.list)
+const editInput = ref(null)
+
+const startEditing = (task: Task) => {
+    editingTaskId.value = task.task_id
+    editingContent.value = task.content
+    nextTick(() => {
+      if (editInput.value && editInput.value?.length>0) {
+        editInput.value[0].focus();
+      }
+    })
+  }
+// Handle adding a new task
+const handleAddNewTask = () => {
+  if (newTask.value.trim()) {
+    addNewTask(newTask.value)
+    newTask.value = ''
+  }
+}
 
 const titleSizeClass = computed(() => {
   const lines = titleDisplay.value ? 
@@ -142,85 +202,25 @@ const titleSizeClass = computed(() => {
   return 'text-xl'
 })
 
-function startTitleEdit() {
-  isEditingTitle.value = true
-  nextTick(() => {
-    titleInput.value?.focus()
-  })
-}
-
-function saveTitle() {
-  if (localTitle.value.trim() === '') {
-    localTitle.value = props.list.content.title
-  } else if (localTitle.value !== props.list.content.title) {
-    todoStore.updateTodoTitle(props.list.id, localTitle.value)
-  }
-  isEditingTitle.value = false
-}
-
-function cancelTitleEdit() {
-  localTitle.value = props.list.content.title
-  isEditingTitle.value = false
-}
-
-function addNewTask() {
-  if (!newTask.value.trim()) return
-  todoStore.addTask(props.list.id, newTask.value)
-  newTask.value = ''
-}
-
-function deleteTask(task: Task) {
-  todoStore.deleteTask(props.list.id, task.task_id)
-}
-
-function toggleTask(task: Task) {
-  todoStore.toggleTaskCompletion(props.list.id, task.task_id)
-}
-
-function startEditing(task: Task) {
-  editingTaskId.value = task.task_id
-  editingContent.value = task.content
-  nextTick(()=> {
-    editInput.value?.focus()
-  })
-}
-
-function saveTaskEdit(task: Task) {
-  if (editingTaskId.value === null) return
-  if (editingContent.value.trim() !== '') {
-    todoStore.updateTask(props.list.id, task.task_id, editingContent.value)
-  }
-  editingTaskId.value = null
-  editingContent.value = ''
-}
-
-function cancelTaskEdit() {
-  editingTaskId.value = null
-  editingContent.value = ''
-}
 </script>
-
 <style scoped>
-.todo-list {
-  min-width: 300px;
-  min-height: 200px;
+
+.dragged-item{
+  opacity: 0.5;
+  
+}
+.item-drag {
+  border-top: 3px solid #0066ff; /* Increased border width */
+  background-color: rgba(0, 120, 255, 0.1); /* Light background highlight */
+  transition: background-color 200ms, border 200ms ease-in-out;
+  box-shadow: 0 0 10px rgba(0, 120, 255, 0.3); /* Soft glow effect */
+  transform: scale(1.02); /* Slightly enlarge the dragged item for better focus */
+  z-index: 100; /* Ensure it's above other items */
+}
+.list-drop{
+  border: 2px dashed rgba(0, 120, 255, 0.3); 
+  padding: 8px;
 }
 
-/* Custom scrollbar styles */
-.overflow-auto::-webkit-scrollbar {
-  width: 8px;
-}
 
-.overflow-auto::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
 </style>

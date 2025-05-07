@@ -1,69 +1,79 @@
-const PUBLIC_ROUTES = ['/api/_auth', '/api/board', '/api/bookmark','/api/metadata','/api/save']
+const PUBLIC_ROUTES: Array<string | { path: string; method: string }> = [
+  "/api/_auth",
+  "/api/board",
+  "/api/bookmark",
+  "/api/metadata",
+  "/api/save",
+  "/api/_hub/",
+  "/api/board/list",
+  "/api/backup/export",
+];
 
 export default defineEventHandler(async (event) => {
-   // Skip auth check during prerendering
-   if (process.env.prerender) {
-    return
-  }
-   // Only apply to API routes
-   if (!event.path.startsWith('/api/')) {
-    return
+  // Skip auth check during prerendering
+  if (process.env.prerender) {
+    return;
   }
 
-    // Check if route is public
-    const isPublicRoute = PUBLIC_ROUTES.some(route => {
-        if (typeof route === 'string') {
-          return event.path.startsWith(route)
-        }
-        return event.path === route.path && event.method === route.method
-      })
-  
-      if (isPublicRoute) {
-        return
-      }
+  // Only apply to API routes
+  if (!event.path.startsWith("/api/")) {
+    return;
+  }
+
+  // Check if route is public
+  const isPublicRoute = PUBLIC_ROUTES.some((route) => {
+    if (typeof route === "string") {
+      return event.path.startsWith(route);
+    }
+    return event.path === route.path && event.method === route.method;
+  });
+
   try {
-    const session = await getUserSession(event)
-    console.log('Session:', session)
-    
-    if (!session?.user?.providerID) {
-      throw createError({
-        statusCode: 401,
-        message: 'Unauthorized - No valid session'
-      })
+    // Always try to get session, regardless of route type
+    let session = null;
+    try {
+      session = await getUserSession(event);
+    } catch (e) {
+      // If we can't get a session and this is a protected route, throw an error
+      if (!isPublicRoute) {
+        throw createError({
+          statusCode: 401,
+          message: "Unauthorized - No valid session",
+        });
+      }
+      // For public routes, just continue with no session
     }
 
-       // Get user profile
-       const db = useDrizzle()
-       
-       const profile = await db.query.PROFILE.findFirst({
-         where: eq(tables.PROFILE.providerID, session.user.providerID.toString())
-       })
-       console.log('Profile:', profile)
-       if (!profile) {
-         // Instead of throwing error, set session without profile
-         event.context = event.context || {}
-         event.context.session = {
-           user: session.user,
-           secure: {
-             role: null,
-             profileId: null
-           }
-         }
-         return
-       }
-   
-       // Ensure context exists
-       event.context = event.context || {}
-       
-       // Set session in context
-       event.context.session = {
-         user: session.user,  // Keep the original user object
-         secure: {
-           profileId: profile.id
-         }
-       }
+    // Set default context with no auth
+    event.context = event.context || {};
+    event.context.session = {
+      user: null,
+      secure: {
+        profileId: null,
+        username: null,
+      },
+    };
+
+    // If we have a session, use the profileId and username from the session
+    if (session?.user) {
+      event.context.session = {
+        user: session.user,
+        secure: {
+          profileId: session.user.profileId || null,
+          username: session.user.username || null,
+        },
+      };
+    }
+
+    // For protected routes, ensure we have a valid profileId
+    if (!isPublicRoute && !event.context.session.secure.profileId) {
+      throw createError({
+        statusCode: 401,
+        message: "Unauthorized - No valid profile",
+      });
+    }
   } catch (error) {
-    console.error('Auth middleware error:', error)
-    throw error
+    console.error("Auth middleware error:", error);
+    throw error;
   }
-})
+});

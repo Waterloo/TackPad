@@ -1,7 +1,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-
+import UsageIndicator from './UsageIndicator.vue'
 
 const { loggedIn, clear } = useUserSession()
 
@@ -121,7 +121,7 @@ const handleSignOut = async () => {
         <div class="pt-2">
           <button 
             @click="handleSignOut"
-            class="block w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="block w-full px-4 py-2 bg-gray-100  text-gray-700  rounded-lg text-center hover:bg-gray-200  transition-colors"
           >
             Sign Out
           </button>
@@ -130,7 +130,7 @@ const handleSignOut = async () => {
       
       <div v-else-if="profileData" class="space-y-6">
         <!-- Alert for incomplete profile -->
-        <div v-if="isProfileIncomplete" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 dark:bg-yellow-900/20 dark:border-yellow-600">
+        <div v-if="isProfileIncomplete" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4  ">
           <div class="flex">
             <div class="flex-shrink-0">
               <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -138,7 +138,7 @@ const handleSignOut = async () => {
               </svg>
             </div>
             <div class="ml-3">
-              <p class="text-sm text-yellow-700 dark:text-yellow-200">
+              <p class="text-sm text-yellow-700 ">
                 Please complete your profile information below.
               </p>
             </div>
@@ -148,11 +148,11 @@ const handleSignOut = async () => {
         <!-- User profile with editable fields -->
         <div class="space-y-4">
           <div class="flex items-center space-x-4 mb-4">
-            <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-500 dark:text-blue-300 text-xl font-bold">
+            <div class="w-16 h-16 bg-blue-100  rounded-full flex items-center justify-center text-blue-500  text-xl font-bold">
               {{ profileData.firstName ? profileData.firstName.charAt(0).toUpperCase() : 'U' }}
             </div>
             <div>
-              <p class="text-xs text-gray-400 dark:text-gray-500">
+              <p class="text-xs text-gray-400 ">
                 Joined {{ new Date(profileData.createdAt).toLocaleDateString() }}
               </p>
             </div>
@@ -161,31 +161,33 @@ const handleSignOut = async () => {
           <!-- Profile information as editable fields -->
           <div class="space-y-4">
             <div>
-              <label for="displayName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Display Name</label>
+              <label for="displayName" class="block text-sm font-medium text-gray-700  mb-1">Display Name</label>
               <input 
                 id="displayName"
                 type="text" 
                 v-model="profileData.firstName"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                class="w-full px-3 py-2 border border-gray-300  rounded-md bg-white  text-gray-800 "
                 placeholder="Enter your name"
               />
             </div>
             
             <div>
-              <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <label for="email" class="block text-sm font-medium text-gray-700  mb-1">Email</label>
               <input 
                 id="email"
                 type="text" 
                 v-model="profileData.email"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-800 "
                 :disabled="profileData.initialEmail && profileData.initialEmail.length > 0"
                 :class="{'cursor-not-allowed opacity-75': profileData.initialEmail && profileData.initialEmail.length > 0}"
                 placeholder="Enter your email"
               />
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" v-if="profileData.initialEmail && profileData.initialEmail.length > 0">Email cannot be changed</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" v-else>Email can be set since it is currently empty</p>
+              <p class="text-xs text-gray-500  mt-1" v-if="profileData.initialEmail && profileData.initialEmail.length > 0">Email cannot be changed</p>
+              <p class="text-xs text-gray-500  mt-1" v-else>Email can be set since it is currently empty</p>
             </div>
-            
+            <div>
+              <UsageIndicator :consumption="profileData.consumption" :limit="profileData.limit" />
+            </div>
             <div class="pt-2">
               <button 
                 class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
@@ -200,26 +202,27 @@ const handleSignOut = async () => {
             </div>
           </div>
         </div>
+
         
         <!-- Logout Button -->
         <div class="pt-4">
           <button 
            @click="handleSignOut"
-            class="block w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="block w-full px-4 py-2 bg-gray-100  text-gray-700  rounded-lg text-center hover:bg-gray-200 transition-colors"
           >
             Sign Out
         </button>
         </div>
       </div>
       
-      <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
+      <div v-else class="text-center py-8 text-gray-500 ">
         <p class="mb-4">Profile information not available</p>
         
         <!-- Sign Out Button when no profile data -->
         <div class="pt-2">
           <button 
             @click="handleSignOut"
-            class="block w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="block w-full px-4 py-2 bg-gray-100  text-gray-700 rounded-lg text-center hover:bg-gray-200 transition-colors"
           >
             Sign Out
           </button>
@@ -229,10 +232,10 @@ const handleSignOut = async () => {
     
     <div v-else class="space-y-6 py-4">
       <div class="text-center mb-6">
-        <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
+        <h3 class="text-lg font-medium text-gray-800  mb-2">
           Sign in to TackPad
         </h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="text-sm text-gray-500 ">
           Access your boards and settings across devices
         </p>
       </div>
@@ -240,7 +243,7 @@ const handleSignOut = async () => {
       <div class="space-y-3">
         <a 
           href="/api/_auth/google" 
-          class="flex items-center justify-center space-x-2 w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          class="flex items-center justify-center space-x-2 w-full px-4 py-2 bg-white  border border-gray-300  rounded-lg text-gray-700  hover:bg-gray-50  transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -253,7 +256,7 @@ const handleSignOut = async () => {
         
         <a 
           href="/api/_auth/github" 
-          class="flex items-center justify-center space-x-2 w-full px-4 py-2 bg-gray-800 dark:bg-gray-900 border border-gray-800 dark:border-gray-900 rounded-lg text-white hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors"
+          class="flex items-center justify-center space-x-2 w-full px-4 py-2 bg-gray-800  border-gray-800  rounded-lg text-white hover:bg-gray-700  transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>

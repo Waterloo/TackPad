@@ -1,4 +1,4 @@
-import type { Board, BoardItem } from '~/types/board';
+import type { Board, BoardItem } from "~/types/board";
 
 /**
  * Represents the dimensions of an item on the board
@@ -77,7 +77,7 @@ export function calculateBoardBounds(items: BoardItem[]): Bounds {
       maxX: 0,
       maxY: 0,
       width: 0,
-      height: 0
+      height: 0,
     };
   }
 
@@ -90,21 +90,21 @@ export function calculateBoardBounds(items: BoardItem[]): Bounds {
         minX: Math.min(acc.minX, item.x_position),
         minY: Math.min(acc.minY, item.y_position),
         maxX: Math.max(acc.maxX, itemRight),
-        maxY: Math.max(acc.maxY, itemBottom)
+        maxY: Math.max(acc.maxY, itemBottom),
       };
     },
     {
       minX: Infinity,
       minY: Infinity,
       maxX: -Infinity,
-      maxY: -Infinity
+      maxY: -Infinity,
     }
   );
 
   return {
     ...bounds,
     width: bounds.maxX - bounds.minX,
-    height: bounds.maxY - bounds.minY
+    height: bounds.maxY - bounds.minY,
   };
 }
 
@@ -150,26 +150,28 @@ export function calculateOptimalZoom(
 export function calculateBoardCenter(bounds: Bounds): { x: number; y: number } {
   return {
     x: bounds.minX + bounds.width / 2,
-    y: bounds.minY + bounds.height / 2
+    y: bounds.minY + bounds.height / 2,
   };
 }
 
 export function findAvailablePosition(
-  boardData: Board['data'],
+  boardData: Board["data"],
   dimensions: ItemDimensions
 ): Position {
   // If board is empty, start from initial offset
   if (!boardData.items || boardData.items.length === 0) {
     return {
       x: snapToGrid(INITIAL_OFFSET),
-      y: snapToGrid(INITIAL_OFFSET)
+      y: snapToGrid(INITIAL_OFFSET),
     };
   }
 
   // Find the bounds of existing items
   const existingItems = boardData.items;
-  let maxY = Math.max(...existingItems.map(item => item.y_position + item.height));
-  
+  let maxY = Math.max(
+    ...existingItems.map((item) => item.y_position + item.height)
+  );
+
   // Start searching from the top
   let currentY = INITIAL_OFFSET;
   const maxAttempts = 1000; // Prevent infinite loops
@@ -178,12 +180,13 @@ export function findAvailablePosition(
   while (currentY <= maxY + MARGIN && attempts < maxAttempts) {
     let currentX = INITIAL_OFFSET;
 
-    while (currentX < 3000 && attempts < maxAttempts) { // Arbitrary max width of 3000px
+    while (currentX < 3000 && attempts < maxAttempts) {
+      // Arbitrary max width of 3000px
       attempts++;
-      
+
       const position = {
         x: snapToGrid(currentX),
-        y: snapToGrid(currentY)
+        y: snapToGrid(currentY),
       };
 
       // Check if this position overlaps with any existing item
@@ -208,6 +211,24 @@ export function findAvailablePosition(
   // If no space found in existing bounds, place below all items
   return {
     x: snapToGrid(INITIAL_OFFSET),
-    y: snapToGrid(maxY + MARGIN * 2)
+    y: snapToGrid(maxY + MARGIN * 2),
   };
+}
+
+export function hashToBucket(input: any, bucketCount: number) {
+  const text = String(input);
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash % bucketCount);
+}
+
+export function getSSEServer(id: string) {
+  const servers = [
+    "https://tackpad-sse.onrender.com",
+    "https://tackpad-sse-2.onrender.com/",
+  ];
+  return new URL(servers[hashToBucket(id, servers.length)]);
 }

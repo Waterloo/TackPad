@@ -26,11 +26,11 @@ export const useNoteStore = defineStore('notes', () => {
       },
       x_position: position.x,
       y_position: position.y,
-      width: position.width || 200,
-      height: position.height || 200,
+      width: position.width || 216,
+      height: position.height || 216,
     }
 
-    boardStore.board.data.items.push(newNote)
+    boardStore.addBoardItem(newNote)
     boardStore.debouncedSaveBoard()
     return newNote
   }

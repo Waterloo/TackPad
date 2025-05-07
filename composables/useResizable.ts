@@ -1,6 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 
-export function useResizable(minWidth = 200, minHeight = 200) {
+export function useResizable(minWidth = 100, minHeight = 100) {
   const width = ref(300);
   const height = ref(300);
   const isResizing = ref(false);

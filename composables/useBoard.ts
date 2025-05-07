@@ -28,6 +28,10 @@ export function useBoard() {
   const toggleBoardList = () => {
     isBoardListOpen.value = !isBoardListOpen.value;
   };
+  // Delete board
+  const deleteBoard = () => {
+    boardStore.deleteBoard();
+  };
 
   return {
     boardStore,
@@ -36,6 +40,7 @@ export function useBoard() {
     initializeCurrentBoard,
     startEditingTitle,
     saveTitle,
+    deleteBoard,
     toggleBoardList
   };
 }
