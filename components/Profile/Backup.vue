@@ -175,7 +175,7 @@ const switchTab = (tab: string) => {
 
                     <ul
                         v-if="Object.keys(displayedBoardsForExport).length > 0"
-                        class="board-list"
+                        class="board-list h-40 md:h-full"
                     >
                         <li
                             v-for="(

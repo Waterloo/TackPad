@@ -32,7 +32,7 @@
                     Dear valued user, Heads up! We'll be making some significant
                     updates to our system soon. To ensure you don't lose any of
                     your important work, please take a moment to back up your
-                    boards before May 10th, 2025.
+                    boards before <strong> May 15th, 2025.</strong>
                 </span>
                 <div class="backup-actions flex gap-3 pt-3">
                     <button @click="redirectToBackup" class="backup-now-button">
