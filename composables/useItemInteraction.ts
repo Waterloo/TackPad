@@ -15,7 +15,7 @@ interface Point {
 }
 
 export function useItemInteraction(
-  position: Position,
+  position: ComputedRef<Position>,
   onUpdate: (updates: Partial<Position>) => void,
   options = {
     minWidth: 160,
@@ -27,8 +27,8 @@ export function useItemInteraction(
   const isMoving = ref(false)
   const isResizing = ref(false)
   const startPos = ref<Point>({ x: 0, y: 0 })
-  const initialPos = ref({ ...position })
-  const currentPos = ref({ ...position })
+  const initialPos = ref({ ...position.value })
+  const currentPos = ref({ ...position.value })
   const resizeHandle = ref<string | null>(null)
   const elementRef = ref<HTMLElement | null>(null)
   const activePointerId = ref<number | null>(null)
@@ -37,10 +37,10 @@ export function useItemInteraction(
   watch(() => position, (newPos) => {
     if (!isMoving.value && !isResizing.value) {
       currentPos.value = {
-        x: newPos.x,
-        y: newPos.y,
-        width: newPos.width || currentPos.value.width,
-        height: newPos.height || currentPos.value.height
+        x: newPos.value.x,
+        y: newPos.value.y,
+        width: newPos.value.width || currentPos.value.width,
+        height: newPos.value.height || currentPos.value.height
       }
     }
   }, { deep: true })
