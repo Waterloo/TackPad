@@ -28,6 +28,10 @@ const emit = defineEmits<{
 
 const displayName = defineModel('displayName', {type: String})
 
+const reactivePosition = computed(() => ({
+    ...props.position
+}))
+
 const {
     style,
     isMoving,
@@ -38,7 +42,7 @@ const {
     move,
     stopInteraction,
 } = useItemInteraction(
-    props.position,
+    reactivePosition,
     (updates) => {
         const updatedPosition = {
             ...props.position,
