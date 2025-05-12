@@ -26,6 +26,7 @@ export const useBoardStore = defineStore("board", () => {
   const showPasswordDialog = ref(false);
   const boards = useLocalStorage<Boards>("boards", {});
   const settings = useLocalStorage<BoardSettings>("settings", {});
+  const randomNoteColor = useLocalStorage<Boolean>("randomNoteColor", false);
 
   let itemsCounter: Record<string, number> = {};
   function initalizeCounter(items: BoardItem[]) {
@@ -204,7 +205,17 @@ export const useBoardStore = defineStore("board", () => {
     initalizeCounter(board.value?.data.items || []);
     assignDisplayNames();
   };
-
+  const toggleRandomColor = (disable=true) => {
+    if (disable === true) {
+      if (randomNoteColor.value) {
+        randomNoteColor.value = !randomNoteColor.value;
+      } else {
+        randomNoteColor.value = true;
+      }
+    } else{
+      randomNoteColor.value = false;
+    }
+  };
   const setSelectedId = (id: string | null) => {
     selectedId.value = id;
   };
@@ -400,7 +411,8 @@ export const useBoardStore = defineStore("board", () => {
     toggleEncryption,
     boards: computed(() => boards.value),
     addBoardItem,
-
+    randomNoteColor,
+toggleRandomColor,
     backupBoards,
   };
 });
