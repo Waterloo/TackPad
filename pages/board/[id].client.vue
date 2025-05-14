@@ -339,6 +339,21 @@ const updateDisplayName = (id: string, displayName: string) => {
                         />
                     </WidgetWrapper>
                 </template>
+                <div class="alignment-overlay">
+                    <div
+                        v-for="(line, index) in itemStore.snapLines"
+                        :key="index"
+                        class="snap-line"
+                        :style="{
+                            left: `${line.startX}px`,
+                            top: `${line.startY}px`,
+                            width: line.isVertical ? '1px' : `${line.length}px`,
+                            height: line.isVertical
+                                ? `${line.length}px`
+                                : '1px',
+                        }"
+                    ></div>
+                </div>
             </div>
         </div>
 
@@ -422,5 +437,20 @@ body {
 .board-container {
     touch-action: none; /* This is crucial for removing delay */
     -webkit-touch-callout: none;
+}
+
+.alignment-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.snap-line {
+    position: absolute;
+    background-color: rgb(59 130 24);
 }
 </style>

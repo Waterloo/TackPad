@@ -4,7 +4,7 @@ import { defineStore } from "pinia";
 import { useLocalStorage } from "@vueuse/core";
 import { assign, debounce } from "lodash";
 import { useRoute } from "vue-router";
-
+import { applyOptimalZoom } from "~/utils/boardUtils";
 // import type { EncryptedData } from '~/types/encryption'
 import type { Board, BoardItem, Boards, Task } from "~/types/board";
 import { decrypt, encrypt } from "~/utils/crypto";
@@ -187,6 +187,12 @@ export const useBoardStore = defineStore("board", () => {
           [board.value.board_id]: settingsData,
         };
       }
+// spatialIndex setup
+if (board.value?.data.items) {
+      spatialIndex.bulkLoad(board.value.data.items);
+    }
+//
+
 
       // Redirect if needed (for 'create' or when board ID doesn't match route)
       if (
@@ -205,14 +211,14 @@ export const useBoardStore = defineStore("board", () => {
     initalizeCounter(board.value?.data.items || []);
     assignDisplayNames();
   };
-  const toggleRandomColor = (disable=true) => {
+  const toggleRandomColor = (disable = true) => {
     if (disable === true) {
       if (randomNoteColor.value) {
         randomNoteColor.value = !randomNoteColor.value;
       } else {
         randomNoteColor.value = true;
       }
-    } else{
+    } else {
       randomNoteColor.value = false;
     }
   };
@@ -258,7 +264,9 @@ export const useBoardStore = defineStore("board", () => {
         body: JSON.stringify({ file_url: curItem.content.url }),
       });
     }
-
+    if(curItem){
+      spatialIndex.removeItem(curItem.id)
+    }
     selectedId.value = null;
     debouncedSaveBoard();
   };
@@ -339,14 +347,47 @@ export const useBoardStore = defineStore("board", () => {
     title: computed(() => `${board.value?.data.title || "TackPad"} | TackPad`),
   });
 
+  const customUpdateZoom = (
+    newScale: number,
+    centerX: number,
+    centerY: number,
+  ) => {
+    const { scale, translateX, translateY, updateZoom } = usePanZoom();
+    // In the original updateZoom, the first parameter is a multiplier
+    // But in applyOptimalZoom, it's expecting to pass the absolute scale value
+    // So we need to adapt the function to handle this difference
+
+    const zoomPoint = {
+      x: (centerX - translateX.value) / scale.value,
+      y: (centerY - translateY.value) / scale.value,
+    };
+
+    scale.value = newScale;
+    translateX.value = centerX - zoomPoint.x * newScale;
+    translateY.value = centerY - zoomPoint.y * newScale;
+  };
+
+  const setTranslate = (x: number, y: number) => {
+    translateX.value = x;
+    translateY.value = y;
+  };
   function addBoardItem(item: BoardItem) {
+
     if (!board.value) return;
     item.displayName =
       item.displayName ||
       getDisplayName(
         (item.kind === "tacklet" && item.content.tackletId) || item.kind,
       );
+    spatialIndex.addItem(item)
     board.value.data.items.push(item);
+
+    applyOptimalZoom(
+      board.value.data.items,
+      customUpdateZoom,
+      setTranslate,
+      item.id,
+    );
     debouncedSaveBoard();
   }
 
@@ -412,7 +453,7 @@ export const useBoardStore = defineStore("board", () => {
     boards: computed(() => boards.value),
     addBoardItem,
     randomNoteColor,
-toggleRandomColor,
+    toggleRandomColor,
     backupBoards,
   };
 });

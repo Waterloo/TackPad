@@ -51,7 +51,7 @@ export function useItemManagement() {
       x: position.x,
       y: position.y,
       width: 300,
-      height: 150,
+      height: 350,
       lock: false,
     });
   };

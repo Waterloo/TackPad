@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import { useBoardStore } from '~/stores/board'
+import { useItemStore } from '~/stores/itemStore'
 
 interface Position {
   x: number
@@ -24,6 +25,7 @@ export function useItemInteraction(
   }
 ) {
   const boardStore = useBoardStore()
+  const itemStore = useItemStore()
   const isMoving = ref(false)
   const isResizing = ref(false)
   const startPos = ref<Point>({ x: 0, y: 0 })
@@ -62,13 +64,13 @@ export function useItemInteraction(
   function startMove(e: PointerEvent) {
     // Only handle left mouse button or touch
     if (e.button !== 0 && e.pointerType === 'mouse') return
-    
+
     e.preventDefault()
     isMoving.value = true
     initialPos.value = { ...currentPos.value }
     startPos.value = getEventCoordinates(e)
     activePointerId.value = e.pointerId
-    
+
     // Set pointer capture for better tracking
     if (elementRef.value) {
       elementRef.value.setPointerCapture(e.pointerId)
@@ -78,14 +80,14 @@ export function useItemInteraction(
   function startResize(handle: string, e: PointerEvent) {
     // Only handle left mouse button or touch
     if (e.button !== 0 && e.pointerType === 'mouse') return
-    
+
     e.preventDefault()
     isResizing.value = true
     resizeHandle.value = handle
     initialPos.value = { ...currentPos.value }
     startPos.value = getEventCoordinates(e)
     activePointerId.value = e.pointerId
-    
+
     // Set pointer capture for better tracking
     if (elementRef.value) {
       elementRef.value.setPointerCapture(e.pointerId)
@@ -93,9 +95,9 @@ export function useItemInteraction(
   }
 
   function move(e: PointerEvent) {
-    if ((!isMoving.value && !isResizing.value) || 
+    if ((!isMoving.value && !isResizing.value) ||
         (activePointerId.value !== null && e.pointerId !== activePointerId.value)) return
-    
+
     const coords = getEventCoordinates(e)
     const scale = boardStore.scale
 
@@ -149,9 +151,9 @@ export function useItemInteraction(
   }
 
   function stopInteraction(e: PointerEvent) {
-    if ((isMoving.value || isResizing.value) && 
+    if ((isMoving.value || isResizing.value) &&
         (activePointerId.value === null || e.pointerId === activePointerId.value)) {
-      
+
       // Release pointer capture
       if (elementRef.value && activePointerId.value !== null) {
         try {
@@ -160,11 +162,12 @@ export function useItemInteraction(
           // Ignore errors when pointer is already released
         }
       }
-      
+
       isMoving.value = false
       isResizing.value = false
       resizeHandle.value = null
       activePointerId.value = null
+      itemStore.snapLines = []
     }
   }
 
