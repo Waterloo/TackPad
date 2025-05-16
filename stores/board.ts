@@ -404,7 +404,7 @@ const calculateSelectionBoxBounds = (itemIds: string[], boardItems: any[], paddi
 
   const saveBoard = async () => {
     if (!board.value) return;
-    board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
+    // board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
     let { data, board_id } = unref(board.value);
     let encrypted: any | null = null;
 
