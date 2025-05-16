@@ -22,7 +22,8 @@ export function useItemInteraction(
     minWidth: 160,
     minHeight: 120,
     grid: 1
-  }
+  },
+   kind: string,
 ) {
   const boardStore = useBoardStore()
   const itemStore = useItemStore()
@@ -34,7 +35,10 @@ export function useItemInteraction(
   const resizeHandle = ref<string | null>(null)
   const elementRef = ref<HTMLElement | null>(null)
   const activePointerId = ref<number | null>(null)
-
+  // Add this for storing initial positions locally
+  const selectedItemsInitialPositions = ref<
+    Record<string, { x: number; y: number }>
+  >({});
   // Watch for external position changes
   watch(() => position, (newPos) => {
     if (!isMoving.value && !isResizing.value) {
@@ -70,7 +74,27 @@ export function useItemInteraction(
     initialPos.value = { ...currentPos.value }
     startPos.value = getEventCoordinates(e)
     activePointerId.value = e.pointerId
+    // Store initial positions when selection box movement starts
+    if (kind === "selection") {
+      // Reset the initial positions object
+      selectedItemsInitialPositions.value = {};
 
+      // Store initial positions of all selected items
+      const selectedItems = boardStore.selectedId.filter(
+        (id) => id !== "SELECTION-BOX",
+      );
+      selectedItems.forEach((itemId) => {
+        const item = boardStore.board?.data.items.find(
+          (item) => item.id === itemId,
+        );
+        if (item) {
+          selectedItemsInitialPositions.value[itemId] = {
+            x: item.x_position,
+            y: item.y_position,
+          };
+        }
+      });
+    }
     // Set pointer capture for better tracking
     if (elementRef.value) {
       elementRef.value.setPointerCapture(e.pointerId)
@@ -95,58 +119,90 @@ export function useItemInteraction(
   }
 
   function move(e: PointerEvent) {
-    if ((!isMoving.value && !isResizing.value) ||
-        (activePointerId.value !== null && e.pointerId !== activePointerId.value)) return
+    if (
+      (!isMoving.value && !isResizing.value) ||
+      (activePointerId.value !== null && e.pointerId !== activePointerId.value)
+    )
+      return;
 
-    const coords = getEventCoordinates(e)
-    const scale = boardStore.scale
+    const coords = getEventCoordinates(e);
+    const scale = boardStore.scale;
 
     if (isMoving.value) {
-      const dx = (coords.x - startPos.value.x)
-      const dy = (coords.y - startPos.value.y)
-
-      const newX = Math.round((initialPos.value.x + dx / scale) / options.grid) * options.grid
-      const newY = Math.round((initialPos.value.y + dy / scale) / options.grid) * options.grid
-
+      const dx = coords.x - startPos.value.x;
+      const dy = coords.y - startPos.value.y;
+      const newX =
+        Math.round((initialPos.value.x + dx / scale) / options.grid) *
+        options.grid;
+      const newY =
+        Math.round((initialPos.value.y + dy / scale) / options.grid) *
+        options.grid;
       currentPos.value = {
         ...currentPos.value,
         x: newX,
-        y: newY
-      }
+        y: newY,
+      };
+      onUpdate({ x: newX, y: newY });
 
-      onUpdate({ x: newX, y: newY })
+      // If this is the selection box, move all selected items along with it
+      if (kind === "selection") {
+        // Calculate the movement delta
+        const deltaX = newX - initialPos.value.x;
+        const deltaY = newY - initialPos.value.y;
+        // Get the selected item IDs excluding the selection box itself
+        const selectedItems = boardStore.selectedId.filter(
+          (id) => id !== "SELECTION-BOX",
+        );
+        // For each selected item, update its position using the delta
+        selectedItems.forEach((itemId) => {
+          const itemInitialPos = selectedItemsInitialPositions.value[itemId];
+          if (itemInitialPos) {
+            const itemNewX =
+              Math.round((itemInitialPos.x + deltaX) / options.grid) *
+              options.grid;
+            const itemNewY =
+              Math.round((itemInitialPos.y + deltaY) / options.grid) *
+              options.grid;
+            itemStore.updateItemPosition(itemId, {
+              x: itemNewX,
+              y: itemNewY,
+            });
+          }
+        });
+      }
     }
 
+    // Add back the resize handling code
     if (isResizing.value && resizeHandle.value) {
-      const dx = (coords.x - startPos.value.x)
-      const dy = (coords.y - startPos.value.y)
-      const newPos = { ...initialPos.value }
-      const handle = resizeHandle.value
+      const dx = (coords.x - startPos.value.x);
+      const dy = (coords.y - startPos.value.y);
+      const newPos = { ...initialPos.value };
+      const handle = resizeHandle.value;
 
       // Handle width changes
       if (handle.includes('e')) {
-        newPos.width = Math.max(options.minWidth, initialPos.value.width + dx / scale)
+        newPos.width = Math.max(options.minWidth, initialPos.value.width + dx / scale);
       } else if (handle.includes('w')) {
-        const newWidth = Math.max(options.minWidth, initialPos.value.width - dx / scale)
+        const newWidth = Math.max(options.minWidth, initialPos.value.width - dx / scale);
         if (newWidth !== initialPos.value.width) {
-          newPos.x = initialPos.value.x + (initialPos.value.width - newWidth)
-          newPos.width = newWidth
+          newPos.x = initialPos.value.x + (initialPos.value.width - newWidth);
+          newPos.width = newWidth;
         }
       }
 
       // Handle height changes
       if (handle.includes('s')) {
-        newPos.height = Math.max(options.minHeight, initialPos.value.height + dy / scale)
+        newPos.height = Math.max(options.minHeight, initialPos.value.height + dy / scale);
       } else if (handle.includes('n')) {
-        const newHeight = Math.max(options.minHeight, initialPos.value.height - dy / scale)
+        const newHeight = Math.max(options.minHeight, initialPos.value.height - dy / scale);
         if (newHeight !== initialPos.value.height) {
-          newPos.y = initialPos.value.y + (initialPos.value.height - newHeight)
-          newPos.height = newHeight
+          newPos.y = initialPos.value.y + (initialPos.value.height - newHeight);
+          newPos.height = newHeight;
         }
       }
 
-      currentPos.value = newPos
-      onUpdate(newPos)
+      currentPos.value = newPos;
+      onUpdate(newPos);
     }
   }
 

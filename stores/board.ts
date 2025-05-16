@@ -14,7 +14,7 @@ export const useBoardStore = defineStore("board", () => {
   const board = ref<Board | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
-  const selectedId = ref<string | null>(null);
+  const selectedId = ref<string[]>([]);
   const scale = ref(1);
   const isOldBoard = ref(false);
   const isOwner = ref(false);
@@ -222,10 +222,128 @@ if (board.value?.data.items) {
       randomNoteColor.value = false;
     }
   };
-  const setSelectedId = (id: string | null) => {
-    selectedId.value = id;
-  };
+  let multiSelectionMode = ref(false)
+  const setSelectedId = (id: string | null, multiple = false) => {
+    // Handle null id case (deselect all)
+    if (id === null) {
+      selectedId.value = [];
+      board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
+      multiSelectionMode.value = false;
+      return;
+    }
 
+    // Special handling when selection box is clicked
+    if (id === "SELECTION-BOX") {
+      // Keep the existing selection intact, just add the selection box to selectedIds if not already there
+      if (!selectedId.value.includes("SELECTION-BOX")) {
+        selectedId.value.push("SELECTION-BOX");
+      }
+      return;
+    }
+
+    if (multiple) {
+      // Toggle the selected item
+      if (selectedId.value.includes(id)) {
+        selectedId.value = selectedId.value.filter(item => item !== id);
+      } else {
+        selectedId.value.push(id);
+      }
+
+      // Update selection box based on number of items selected (excluding SELECTION-BOX itself)
+      const realSelectedItems = selectedId.value.filter(item => item !== "SELECTION-BOX");
+
+      if (realSelectedItems.length <= 1) {
+        // Remove selection box if 1 or fewer items selected
+        board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
+        // Also remove from selectedId if it's there
+        selectedId.value = selectedId.value.filter(item => item !== "SELECTION-BOX");
+        multiSelectionMode.value = false;
+      } else {
+        // Calculate the bounds for the selection box
+        const bounds = calculateSelectionBoxBounds(realSelectedItems, board.value!.data.items);
+
+        if (!bounds) return; // No items to select
+
+        const selectionBox = board.value?.data.items.find(item => item.id === "SELECTION-BOX");
+        if (selectionBox) {
+          // Update existing selection box content and dimensions
+          selectionBox.content = realSelectedItems;
+          selectionBox.x_position = bounds.x_position;
+          selectionBox.y_position = bounds.y_position;
+          selectionBox.width = bounds.width;
+          selectionBox.height = bounds.height;
+        } else {
+          // Add new selection box
+          board.value?.data.items.push({
+            "id": "SELECTION-BOX",
+            "kind": "selection",
+            "content": realSelectedItems,
+            "x_position": bounds.x_position,
+            "y_position": bounds.y_position,
+            "width": bounds.width,
+            "height": bounds.height,
+            "displayName":"selection"
+          });
+          if (!selectedId.value.includes("SELECTION-BOX")) {
+                 selectedId.value.push("SELECTION-BOX");
+               }
+          multiSelectionMode.value = true;
+        }
+      }
+    } else {
+      // Single selection mode
+      // If the same ID is clicked again, deselect it
+      if (selectedId.value.length === 1 && selectedId.value[0] === id) {
+        selectedId.value = [];
+      } else {
+        selectedId.value = [id];
+      }
+      // Remove selection box since only one or no items selected
+      board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
+    }
+
+    console.log(selectedId.value);
+  };
+// HELPER FUNCTION TO CALCULATE SELECTION BOUNDS
+const calculateSelectionBoxBounds = (itemIds: string[], boardItems: any[], padding: number = 20) => {
+  // Filter out the items that are selected
+  const selectedItems = boardItems.filter(item => itemIds.includes(item.id));
+
+  if (selectedItems.length === 0) {
+    return null;
+  }
+
+  // Initialize min/max with the first item's bounds
+  let minX = selectedItems[0].x_position;
+  let minY = selectedItems[0].y_position;
+  let maxX = selectedItems[0].x_position + selectedItems[0].width;
+  let maxY = selectedItems[0].y_position + selectedItems[0].height;
+
+  // Find the min/max bounds across all selected items
+  selectedItems.forEach(item => {
+    minX = Math.min(minX, item.x_position);
+    minY = Math.min(minY, item.y_position);
+    maxX = Math.max(maxX, item.x_position + item.width);
+    maxY = Math.max(maxY, item.y_position + item.height);
+  });
+
+  // Apply padding to give some space around the items
+  minX -= padding;
+  minY -= padding;
+  maxX += padding;
+  maxY += padding;
+
+  return {
+    x_position: minX,
+    y_position: minY,
+    width: maxX - minX,
+    height: maxY - minY
+  };
+};
+
+
+
+// END SELECTION HELPER
   const setScale = (newScale: number) => {
     scale.value = newScale;
   };
@@ -243,31 +361,37 @@ if (board.value?.data.items) {
   };
 
   const deleteSelected = () => {
-    if (!board.value || !selectedId.value) return;
+    if (!board.value || !selectedId.value || selectedId.value.length < 1) return;
 
-    let curItem = null;
+    const itemsToDelete = selectedId.value;
+    const deletedItems: BoardItem[] = [];
 
     board.value.data.items = board.value.data.items.filter((item) => {
-      if (item.id !== selectedId.value) return true;
-      curItem = item;
+      if (!itemsToDelete.includes(item.id)) return true;
+      deletedItems.push(item);
       return false;
     });
 
-    if (
-      (curItem && curItem.kind === "image") ||
-      (curItem && curItem?.kind === "audio") ||
-      (curItem && curItem?.kind === "file")
-    ) {
-      fetch(`/api/upload/delete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file_url: curItem.content.url }),
-      });
+    // Process each deleted item
+    for (const item of deletedItems) {
+      // Handle file deletion for uploaded content
+      if (
+        (item.kind === "image") ||
+        (item.kind === "audio") ||
+        (item.kind === "file")
+      ) {
+        fetch(`/api/upload/delete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file_url: item.content.url }),
+        });
+      }
+
+      // Remove from spatial index
+      spatialIndex.removeItem(item.id);
     }
-    if(curItem){
-      spatialIndex.removeItem(curItem.id)
-    }
-    selectedId.value = null;
+
+    selectedId.value = [];
     debouncedSaveBoard();
   };
 
@@ -280,7 +404,7 @@ if (board.value?.data.items) {
 
   const saveBoard = async () => {
     if (!board.value) return;
-
+    board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
     let { data, board_id } = unref(board.value);
     let encrypted: any | null = null;
 
@@ -315,7 +439,7 @@ if (board.value?.data.items) {
       // Remove board from local storage
       delete boards.value[board.value.board_id];
       board.value = null;
-      selectedId.value = null;
+      selectedId.value = [];
       // redirect to old board
       const lastBoardId = Object.keys(boards.value).pop();
       if (lastBoardId) {
@@ -419,7 +543,7 @@ if (board.value?.data.items) {
     board,
     loading,
     error,
-    selectedId,
+
     scale,
     translateX,
     translateY,
@@ -439,7 +563,7 @@ if (board.value?.data.items) {
 
     // Actions
     initializeBoard,
-    setSelectedId,
+
     setScale,
     setZoomLevel,
     setTranslateX,
@@ -455,5 +579,10 @@ if (board.value?.data.items) {
     randomNoteColor,
     toggleRandomColor,
     backupBoards,
+
+    // selection
+    selectedId,
+    setSelectedId,
+    multiSelectionMode
   };
 });

@@ -9,9 +9,9 @@ export const useItemStore = defineStore("items", () => {
   const boardStore = useBoardStore();
   const snapLines = ref([]);
 
-  const getItemById = (itemId: string) => {
+  const getItemById = (itemIds: string[]) => {
     if (!boardStore.board) return null;
-    return boardStore.board.data.items.find((item) => item.id === itemId);
+    return boardStore.board.data.items.filter((item) => itemIds.includes(item.id));
   };
 
   // Generic update item function
@@ -51,6 +51,7 @@ export const useItemStore = defineStore("items", () => {
 
     const item = boardStore.board.data.items.find((item) => item.id === itemId);
     if (item) {
+      console.log('oldItemPosition',item)
       if (position.x !== undefined) item.x_position = position.x;
       if (position.y !== undefined) item.y_position = position.y;
       if (position.width !== undefined) item.width = position.width;
@@ -59,11 +60,50 @@ export const useItemStore = defineStore("items", () => {
       boardStore.debouncedSaveBoard();
     }
   };
+  const getSelectedItems = ()=>{
+    if (!boardStore.board) return;
+    if (boardStore.selectedId?.length < 1) return;
+
+    const selectedItemIds = boardStore.selectedId.filter((id)=> id!=='SELECTION-BOX')
+    const items = getItemById(selectedItemIds)
+    return items ?? [];
+
+  }
+
+  const updateAlignItem = (
+    itemId: string,
+    position: { x_position?: number; y_position?: number; width?: number; height?: number },
+  ) => {
+    if (!boardStore.board) return;
+
+    const item = boardStore.board.data.items.find((item) => item.id === itemId);
+    if (item) {
+      console.log('oldItemPosition',item)
+      if (position.x_position !== undefined) item.x_position = position.x_position;
+      if (position.y_position !== undefined) item.y_position = position.y_position;
+      if (position.width !== undefined) item.width = position.width;
+      if (position.height !== undefined) item.height = position.height;
+
+      boardStore.debouncedSaveBoard();
+    }
+  };
+  const updateItemsPosition= (updates)=>{
+    if (!boardStore.board) return;
+    if(updates && updates.length>0){
+      updates.forEach((item)=>{
+        console.log(item)
+        updateAlignItem(item.id,item)
+      })
+    }
+
+  }
 
   return {
     updateItem,
     updateItemPosition,
     getItemById,
-    snapLines
+    snapLines,
+    getSelectedItems,
+    updateItemsPosition
   };
 });

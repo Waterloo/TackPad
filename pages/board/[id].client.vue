@@ -134,6 +134,12 @@ const updateDisplayName = (id: string, displayName: string) => {
     updateItemDisplayName(id, displayName);
     console.log(id, displayName);
 };
+function getIsSelected(itemId: string): boolean {
+  if(boardStore.selectedId.length>0){
+    return boardStore.selectedId.includes(itemId);
+  }
+  return false;
+}
 </script>
 <template>
     <div
@@ -192,6 +198,7 @@ const updateDisplayName = (id: string, displayName: string) => {
                         :key="item.id"
                         :item-id="item.id"
                         :display-name="item.displayName"
+                        :style="{ pointerEvents: item.kind === 'selection' ? 'none' : 'auto' }"
                         :position="{
                             x: item.x_position,
                             y: item.y_position,
@@ -202,9 +209,10 @@ const updateDisplayName = (id: string, displayName: string) => {
                             item.kind === 'image' ? item.contrastColor : false
                         "
                         :kind="item.kind"
-                        :is-selected="boardStore.selectedId === item.id"
+                        :is-selected="getIsSelected(item.id)"
                         :is-locked="item.lock"
                         @select="boardStore.setSelectedId"
+                        @selectMultiple="(itemId) => { boardStore.setSelectedId(itemId,multiple=true) }"
                         @update:position="
                             (updates: Object) =>
                                 updateItemPosition(item.id, updates)
@@ -337,6 +345,7 @@ const updateDisplayName = (id: string, displayName: string) => {
                             :file-url="item.content.url"
                             :is-selected="boardStore.selectedId === item.id"
                         />
+                        <SelectBox v-else-if="item.kind==='selection'" mode="select" :itemId="item.id" />
                     </WidgetWrapper>
                 </template>
                 <div class="alignment-overlay">

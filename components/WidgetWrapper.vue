@@ -2,6 +2,7 @@
 import { templateRef } from "@vueuse/core";
 import { is } from "drizzle-orm";
 import { useItemInteraction } from "~/composables/useItemInteraction";
+import { useBoardStore } from "~/stores/board";
 
 const props = withDefaults(defineProps<{
   position: {
@@ -20,6 +21,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
     (e: "select", id: string): void;
+    (e: "selectMultiple", id: string): void;
     (e: "update:position", updates: Partial<typeof props.position>): void;
     (e: "delete"): void;
     (e: "parent"): void;
@@ -55,6 +57,7 @@ const {
         minHeight: 120,
         grid: 1,
     },
+    props.kind
 );
 
 const showMenu = ref(false);
@@ -130,6 +133,7 @@ const toggleTitleEdit = () => {
     })
   }
 }
+const boardStore = useBoardStore()
 
 </script>
 
@@ -153,10 +157,16 @@ const toggleTitleEdit = () => {
     @pointerup.stop="stopInteraction"
     @pointercancel.stop="stopInteraction"
     @pointerleave.stop="stopInteraction"
-    @click.stop="$emit('select', props.itemId)"
+    @click.stop="(event) => {
+      if (event.shiftKey) {
+        $emit('selectMultiple', itemId)
+      } else {
+        $emit('select', itemId)
+      }
+    }"
   >
 
-    <div class="widget-header-minimal">
+    <div class="widget-header-minimal pointer-events-auto">
       <div
         v-if="!props.isLocked"
         class="drag-handle-horizontal"
@@ -175,6 +185,7 @@ const toggleTitleEdit = () => {
       <div
         class="flex justify-between w-full widget-controls"
         title="More Options"
+        v-show="!boardStore.multiSelectionMode || kind === 'selection'"
       >
         <transition name="fade">
           <div v-show="isSelected && !isMoving" class="shadow-lg widget-menu rounded-xl">
@@ -189,6 +200,7 @@ const toggleTitleEdit = () => {
               />
             </button>
             <button
+            v-if="kind!=='selection'"
                             @click.stop="handleMenuAction('lock', $event)"
                             class="menu-item"
                         >
@@ -206,7 +218,7 @@ const toggleTitleEdit = () => {
                             />
                         </button>
                         <button
-                            v-if="isPipAvailable"
+                            v-if="isPipAvailable && kind!=='selection'"
                             @click.stop="pip"
                             class="menu-item"
                         >
@@ -221,9 +233,9 @@ const toggleTitleEdit = () => {
         </transition>
       </div>
     </div>
-    
+
     <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel="e => isSelected ? e.stopPropagation() : e.preventDefault()">
-      <slot :startMove="startMove"></slot>
+        <slot startMove="startMove"></slot>
     </div>
 
         <div
