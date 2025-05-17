@@ -1,44 +1,49 @@
 export default defineNuxtConfig({
-  devtools:{
-    enabled: true
+  devtools: {
+    enabled: true,
   },
   modules: [
-    '@nuxtjs/tailwindcss',
-    '@pinia/nuxt',
-    '@nuxthub/core',
-    '@nuxt/fonts',
-    'nuxt-auth-utils'
+    "@nuxtjs/tailwindcss",
+    "@pinia/nuxt",
+    "@nuxthub/core",
+    "@nuxt/fonts",
+    "nuxt-auth-utils",
   ],
 
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || '/api'
-    },
-    oauth:{
-      google: {
-        clientId: '...',
-        clientSecret: '...',
-        redirectURL: '...'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || "/api",
+      posthog: {
+        apiKey: process.env.NUXT_POSTHOG_API_KEY,
+        host: process.env.NUXT_POSTHOG_HOST,
+        uiHost: process.env.NUXT_POSTHOG_UI_HOST
       }
     },
-        bucket: process.env.NUXT_BUCKET,
-        endpoint: process.env.NUXT_ENDPOINT,
-        accessKeyId: process.env.NUXT_ACCESS_KEY_ID,
-        secretAccessKey: process.env.NUXT_SECRET_ACCESS_KEY,
-        region: process.env.NUXT_REGION
+    oauth: {
+      google: {
+        clientId: "...",
+        clientSecret: "...",
+        redirectURL: "...",
+      },
+    },
+    bucket: process.env.NUXT_BUCKET,
+    endpoint: process.env.NUXT_ENDPOINT,
+    accessKeyId: process.env.NUXT_ACCESS_KEY_ID,
+    secretAccessKey: process.env.NUXT_SECRET_ACCESS_KEY,
+    region: process.env.NUXT_REGION
   },
-  hub:{
-    database:true
+  hub: {
+    database: true,
   },
   app: {
     head: {
-      title: 'Sticky Board',
+      title: "Sticky Board",
       meta: [
-        { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' }
-      ]
-    }
+        { charset: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+      ],
+    },
   },
 
-  compatibilityDate: '2024-11-28'
-})
+  compatibilityDate: "2024-11-28",
+});

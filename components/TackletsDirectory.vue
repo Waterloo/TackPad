@@ -115,6 +115,9 @@
 import { useTackletStore, type Tacklet } from '@/stores/tackletStore';
 import  useTackletDirectory  from '@/composables/useTackletDirectory';
 
+
+const {$posthog} = useNuxtApp()
+
 // State
 const searchQuery = ref('');
 const activeTab = ref('tacklets-widgets');
@@ -172,6 +175,13 @@ const filteredTacklets = computed(() => {
 
 // Methods
 const addTacklet = (tacklet: Tacklet) => {
+  
+  const posthog = $posthog()
+  posthog.capture('add_tacklet', {
+    tacklet_id: tacklet.id,
+    tacklet_name: tacklet.name
+  })
+
   tackletStore.addTacklet(tacklet);
   closeTackletDirectory()
   

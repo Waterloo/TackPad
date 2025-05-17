@@ -51,13 +51,13 @@ export default function useTackletDirectory() {
     })
 
   const fetchTacklets = async () => {
-    try {
-      const response = await fetch('/api/tacklets');
-      const data = await response.json();
-      tacklets.value = data;
-    } catch (error) {
-      console.error('Error fetching tacklets:', error);
-    }
+    // try {
+    //   const response = await fetch('/api/tacklets');
+    //   const data = await response.json();
+    //   tacklets.value = data;
+    // } catch (error) {
+    //   console.error('Error fetching tacklets:', error);
+    // }
   };
 
   const openTackletDirectory = () => {
