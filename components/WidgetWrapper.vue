@@ -87,7 +87,7 @@ const closeMenu = () => {
 const route = useRoute();
 const isPipAvailable = "documentPictureInPicture" in globalThis;
 const pip = async () => {
-    console.log({ ...props.position });
+
     const pipWindow = await documentPictureInPicture.requestWindow({
         width: props.position.width,
         height: props.position.height,
@@ -158,7 +158,7 @@ const boardStore = useBoardStore()
     @pointercancel.stop="stopInteraction"
     @pointerleave.stop="stopInteraction"
     @click.stop="(event) => {
-      if (event.shiftKey) {
+      if (event.ctrlKey) {
         $emit('selectMultiple', itemId)
       } else {
         $emit('select', itemId)

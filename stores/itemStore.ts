@@ -94,10 +94,46 @@ export const useItemStore = defineStore("items", () => {
         console.log(item)
         updateAlignItem(item.id,item)
       })
+
+      const selectionUpdate = calculateSelectionBoxBounds(updates)
+      updateAlignItem('SELECTION-BOX',selectionUpdate)
     }
 
-  }
 
+  }
+  const calculateSelectionBoxBounds = (selectedItems: any[], padding: number = 20) => {
+    // Filter out the items that are selected
+    if (selectedItems.length === 0) {
+      return null;
+    }
+
+    // Initialize min/max with the first item's bounds
+    let minX = selectedItems[0].x_position;
+    let minY = selectedItems[0].y_position;
+    let maxX = selectedItems[0].x_position + selectedItems[0].width;
+    let maxY = selectedItems[0].y_position + selectedItems[0].height;
+
+    // Find the min/max bounds across all selected items
+    selectedItems.forEach(item => {
+      minX = Math.min(minX, item.x_position);
+      minY = Math.min(minY, item.y_position);
+      maxX = Math.max(maxX, item.x_position + item.width);
+      maxY = Math.max(maxY, item.y_position + item.height);
+    });
+
+    // Apply padding to give some space around the items
+    minX -= padding;
+    minY -= padding;
+    maxX += padding;
+    maxY += padding;
+
+    return {
+      x_position: minX,
+      y_position: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
+  };
   return {
     updateItem,
     updateItemPosition,
