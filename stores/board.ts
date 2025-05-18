@@ -260,6 +260,7 @@ if (board.value?.data.items) {
         multiSelectionMode.value = false;
       } else {
         // Calculate the bounds for the selection box
+
         const bounds = calculateSelectionBoxBounds(realSelectedItems, board.value!.data.items);
 
         if (!bounds) return; // No items to select
@@ -272,6 +273,7 @@ if (board.value?.data.items) {
           selectionBox.y_position = bounds.y_position;
           selectionBox.width = bounds.width;
           selectionBox.height = bounds.height;
+
         } else {
           // Add new selection box
           board.value?.data.items.push({
@@ -284,6 +286,7 @@ if (board.value?.data.items) {
             "height": bounds.height,
             "displayName":"selection"
           });
+
           if (!selectedId.value.includes("SELECTION-BOX")) {
                  selectedId.value.push("SELECTION-BOX");
                }
@@ -302,13 +305,11 @@ if (board.value?.data.items) {
       board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
     }
 
-    console.log(selectedId.value);
   };
 // HELPER FUNCTION TO CALCULATE SELECTION BOUNDS
 const calculateSelectionBoxBounds = (itemIds: string[], boardItems: any[], padding: number = 20) => {
   // Filter out the items that are selected
   const selectedItems = boardItems.filter(item => itemIds.includes(item.id));
-
   if (selectedItems.length === 0) {
     return null;
   }
@@ -342,6 +343,20 @@ const calculateSelectionBoxBounds = (itemIds: string[], boardItems: any[], paddi
 };
 
 
+const mouseSelectionItems = (selectionBox) => {
+  // Find everything in the drag-box
+  const items = spatialIndex.findItemsInBox(selectionBox)
+  if (items.length < 2) return
+
+  // 1) Clear any existing selection (and remove old SELECTION-BOX)
+  setSelectedId(null)
+
+  // 2) Now select each hit, ALWAYS in “multi” mode
+  items.forEach(item => {
+    setSelectedId(item.id, true)
+  })
+  console.log(board.value?.data.items)
+}
 
 // END SELECTION HELPER
   const setScale = (newScale: number) => {
@@ -583,6 +598,7 @@ const calculateSelectionBoxBounds = (itemIds: string[], boardItems: any[], paddi
     // selection
     selectedId,
     setSelectedId,
-    multiSelectionMode
+    multiSelectionMode,
+    mouseSelectionItems
   };
 });

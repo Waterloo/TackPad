@@ -112,6 +112,41 @@ export class SpatialIndex {
         );
       });
   }
+  findItemsInBox(box: { x: number, y: number, width: number, height: number }): BoardItem[] {
+    // Calculate the grid cells that intersect with the box
+    const startGridX = Math.floor(box.x / this.gridSize);
+    const endGridX = Math.floor((box.x + box.width) / this.gridSize);
+    const startGridY = Math.floor(box.y / this.gridSize);
+    const endGridY = Math.floor((box.y + box.height) / this.gridSize);
+
+    const candidateIds = new Set<string>();
+
+    // Collect all items from grid cells that potentially intersect with the box
+    for (let gridX = startGridX; gridX <= endGridX; gridX++) {
+      for (let gridY = startGridY; gridY <= endGridY; gridY++) {
+        const key = `${gridX},${gridY}`;
+        const bucket = this.index.get(key);
+        if (bucket) {
+          bucket.forEach((id) => candidateIds.add(id));
+        }
+      }
+    }
+
+    // Filter items that actually intersect with the box
+    return Array.from(candidateIds)
+      .map((id) => this.items.get(id)!)
+      .filter((item) => this.isItemInBox(item, box));
+  }
+
+  private isItemInBox(item: BoardItem, box: { x: number, y: number, width: number, height: number }): boolean {
+    // Check if the item intersects with the box using axis-aligned bounding box intersection
+    return !(
+      item.x_position > box.x + box.width ||
+      item.x_position + item.width < box.x ||
+      item.y_position > box.y + box.height ||
+      item.y_position + item.height < box.y
+    );
+  }
 
   private calculateDistance(item1: BoardItem, item2: BoardItem): number {
     const centerX1 = item1.x_position + item1.width / 2;
@@ -126,26 +161,3 @@ export class SpatialIndex {
 }
 
 export const spatialIndex = new SpatialIndex();
-
-// export function useSpatialIndex(gridSize = 100) {
-//   const spatialIndex = ref(new SpatialIndex(gridSize));
-
-//   const addItem = (item: BoardItem) => {
-//     spatialIndex.value.addItem(item);
-//   };
-
-//   const findNearbyItems = (item: BoardItem, radius = 100) => {
-//     return spatialIndex.value.findNearbyItems(item, radius);
-//   };
-
-//   const bulkLoad = (items: BoardItem[]) => {
-//     spatialIndex.value.bulkLoad(items);
-//   };
-
-//   return {
-//     spatialIndex,
-//     addItem,
-//     findNearbyItems,
-//     bulkLoad
-//   };
-// }
