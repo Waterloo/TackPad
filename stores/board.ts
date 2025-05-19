@@ -147,6 +147,11 @@ export const useBoardStore = defineStore("board", () => {
       if (!response.ok) throw new Error("Failed to load board");
       const raw = await response.json();
       const boardData = raw.data;
+
+      const oldSelectionBox = ref(null)
+      if(board.value?.data){
+        oldSelectionBox.value = board.value.data?.items.find((item)=>item.id == 'SELECTION-BOX')
+      }
       const settingsData = raw.settings;
       isOldBoard.value = raw.OldBoard;
       isOwner.value = raw.isOwner;
@@ -171,9 +176,13 @@ export const useBoardStore = defineStore("board", () => {
         }
       } else {
         isEncrypted.value = false;
+
         board.value = boardData;
       }
-
+      // re add selection if exist on old board
+      if(oldSelectionBox.value!==null && oldSelectionBox.value!==undefined && board.value?.data){
+              board.value.data.items.push(oldSelectionBox.value)
+      }
       // Save to local storage
       boards.value[board.value!.board_id] = {
         board_id: board.value!.board_id,
@@ -355,7 +364,7 @@ const mouseSelectionItems = (selectionBox) => {
   items.forEach(item => {
     setSelectedId(item.id, true)
   })
-  console.log(board.value?.data.items)
+
 }
 
 // END SELECTION HELPER
@@ -419,12 +428,19 @@ const mouseSelectionItems = (selectionBox) => {
 
   const saveBoard = async () => {
     if (!board.value) return;
-    // board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
-    let { data, board_id } = unref(board.value);
-    let encrypted: any | null = null;
 
+    // Destructure the original data
+    let { data, board_id } = unref(board.value);
+
+    // Create a deep copy of the data for saving
+    let dataToSave = JSON.parse(JSON.stringify(data));
+
+    // Filter out the SELECTION-BOX only from the copy
+    dataToSave.items = dataToSave.items.filter(item => item.id !== "SELECTION-BOX");
+
+    let encrypted: any | null = null;
     if (password.value) {
-      encrypted = await encrypt(data, password.value);
+      encrypted = await encrypt(dataToSave, password.value);
       isEncrypted.value = true;
     }
 
@@ -432,9 +448,8 @@ const mouseSelectionItems = (selectionBox) => {
       const response = await fetch(`/api/save/${board_id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ board_id, data: encrypted || data }),
+        body: JSON.stringify({ board_id, data: encrypted || dataToSave }),
       });
-
       if (!response.ok) throw new Error("Failed to save board");
     } catch (err) {
       error.value = "Failed to save board";

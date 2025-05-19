@@ -107,7 +107,7 @@ definePageMeta({
     alias: "/",
 });
 
-const deleteItemConfirm = ref(false);
+
 
 const computedDotScale = computed(() => `${scale.value * 3}px`);
 
@@ -188,15 +188,29 @@ function handleSelectionMove(e) {
     };
 }
 
+// Add these variables
+const lastMouseUpTime = ref(0);
+const CLICK_THRESHOLD = 200; // milliseconds
+
+// Modified handleSelectionEnd function
 function handleSelectionEnd(e) {
     if (isSelecting.value) {
-      boardStore.mouseSelectionItems(selectionBox.value)
+        boardStore.mouseSelectionItems(selectionBox.value);
+        lastMouseUpTime.value = Date.now(); // Record when selection ended
     }
     isSelecting.value = false;
 }
-watch(()=>boardStore.board?.data.items,(newvalue)=>{
-  console.log(newvalue)
-})
+
+// Modified click handler
+function handleBoardClick(e) {
+    // Only deselect if this is a genuine click, not the end of a selection
+    const timeSinceMouseUp = Date.now() - lastMouseUpTime.value;
+console.log("board click")
+    // If we just finished selecting or we're currently selecting, don't deselect
+    if (timeSinceMouseUp > CLICK_THRESHOLD && !isSelecting.value) {
+        handleDeselect();
+    }
+}
 </script>
 <template>
     <div
@@ -233,7 +247,7 @@ watch(()=>boardStore.board?.data.items,(newvalue)=>{
         @touchmove.stop.prevent="pan"
         @touchend.stop="endPan"
         @touchcancel.stop="endPan"
-        @click.stop="handleDeselect"
+        @click.stop="handleBoardClick"
         tabindex="0"
     >
         <div
@@ -288,7 +302,7 @@ watch(()=>boardStore.board?.data.items,(newvalue)=>{
                                 updateItemPosition(item.id, updates)
                         "
                         :shadow="item.kind !== 'text'"
-                        @delete="deleteItemConfirm = true"
+                        @delete="itemStore.deleteItem = true"
                         @lock="(locked: boolean) => toggleLock(item.id, locked)"
                         v-slot="{ startMove }"
                         @update:displayName="
@@ -474,7 +488,7 @@ watch(()=>boardStore.board?.data.items,(newvalue)=>{
         <BoardPasswordDialog />
         <OfflineIndicator />
         <BackupAlertBanner />
-        <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
+        <DeleteItemConfirm v-model="itemStore.deleteItem" @delete="handleDelete" />
         <ZoomControls class="fixed right-2 bottom-16 z-10" />
         <ErrorModal
             v-model="isErrorModalVisible"

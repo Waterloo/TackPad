@@ -5,6 +5,11 @@ import type { BoardItem, Position } from "~/types/board";
 import { update } from "lodash";
 
 export const useItemStore = defineStore("items", () => {
+  // delete item modal
+
+  let deleteItem = ref(false)
+
+
   // Get reference to the board store
   const boardStore = useBoardStore();
   const snapLines = ref([]);
@@ -51,7 +56,7 @@ export const useItemStore = defineStore("items", () => {
 
     const item = boardStore.board.data.items.find((item) => item.id === itemId);
     if (item) {
-      console.log('oldItemPosition',item)
+
       if (position.x !== undefined) item.x_position = position.x;
       if (position.y !== undefined) item.y_position = position.y;
       if (position.width !== undefined) item.width = position.width;
@@ -78,7 +83,6 @@ export const useItemStore = defineStore("items", () => {
 
     const item = boardStore.board.data.items.find((item) => item.id === itemId);
     if (item) {
-      console.log('oldItemPosition',item)
       if (position.x_position !== undefined) item.x_position = position.x_position;
       if (position.y_position !== undefined) item.y_position = position.y_position;
       if (position.width !== undefined) item.width = position.width;
@@ -91,7 +95,6 @@ export const useItemStore = defineStore("items", () => {
     if (!boardStore.board) return;
     if(updates && updates.length>0){
       updates.forEach((item)=>{
-        console.log(item)
         updateAlignItem(item.id,item)
       })
 
@@ -140,6 +143,7 @@ export const useItemStore = defineStore("items", () => {
     getItemById,
     snapLines,
     getSelectedItems,
-    updateItemsPosition
+    updateItemsPosition,
+    deleteItem
   };
 });
