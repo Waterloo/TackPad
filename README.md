@@ -40,3 +40,11 @@ npm run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+## Running End-to-End Tests
+
+This project uses [Playwright](https://playwright.dev/) for end-to-end testing. To run the tests, use the following command:
+
+```bash
+npm run test:e2e
+```

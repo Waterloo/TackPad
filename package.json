@@ -8,7 +8,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@nuxt/fonts": "^0.10.2",
@@ -31,6 +32,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/lodash": "^4.17.13",
     "@types/uuid": "^9.0.8",
+    "@playwright/test": "^1.45.3",
     "drizzle-kit": "^0.28.1",
     "sass": "^1.85.1",
     "sass-embedded": "^1.85.1",
