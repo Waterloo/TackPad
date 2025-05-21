@@ -205,7 +205,6 @@ function handleSelectionEnd(e) {
 function handleBoardClick(e) {
     // Only deselect if this is a genuine click, not the end of a selection
     const timeSinceMouseUp = Date.now() - lastMouseUpTime.value;
-console.log("board click")
     // If we just finished selecting or we're currently selecting, don't deselect
     if (timeSinceMouseUp > CLICK_THRESHOLD && !isSelecting.value) {
         handleDeselect();
@@ -302,7 +301,7 @@ console.log("board click")
                                 updateItemPosition(item.id, updates)
                         "
                         :shadow="item.kind !== 'text'"
-                        @delete="itemStore.deleteItem = true"
+                        @delete="itemStore.deleteItemConfirm = true"
                         @lock="(locked: boolean) => toggleLock(item.id, locked)"
                         v-slot="{ startMove }"
                         @update:displayName="
@@ -488,7 +487,7 @@ console.log("board click")
         <BoardPasswordDialog />
         <OfflineIndicator />
         <BackupAlertBanner />
-        <DeleteItemConfirm v-model="itemStore.deleteItem" @delete="handleDelete" />
+        <DeleteItemConfirm v-model="itemStore.deleteItemConfirm" @delete="handleDelete" />
         <ZoomControls class="fixed right-2 bottom-16 z-10" />
         <ErrorModal
             v-model="isErrorModalVisible"

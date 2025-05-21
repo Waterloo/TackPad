@@ -20,7 +20,7 @@ export function useGlobalShortcuts(handlers: {
 
     if (e.key === 'Delete' && handlers.handleDelete) {
       // handlers.handleDelete(e);
-      itemStore.deleteItem = true
+      itemStore.deleteItemConfirm = true
     }
   };
 

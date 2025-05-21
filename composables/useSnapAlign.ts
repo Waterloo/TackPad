@@ -1,39 +1,33 @@
-/**
- * Calculate alignment snap lines for an item being moved
- * @param {Object} movingItem - The item being moved (with proposed new position)
- * @param {Array} nearbyItems - Array of nearby items from your spatial index
- * @param {Number} snapThreshold - Distance threshold for snapping in pixels
- * @returns {Object} - { snapLines, snappedPosition }
- */
 export function calculateAlignmentGuides(movingItem, nearbyItems, snapThreshold = 10) {
-  // Use let instead of const for snapLines so we can reassign it
-  let snapLines = [];
+  const isSelection = movingItem.kind === 'selection';
+  const padding = isSelection ? 20 : 0;
 
-  // Start with the proposed position
+  const snapLines = [];
   let snappedPosition = {
     x: movingItem.x_position,
     y: movingItem.y_position
   };
 
-  // Track best snap distances to prioritize closest alignments
+  // Track best snap distances
   let bestXSnapDistance = snapThreshold;
   let bestYSnapDistance = snapThreshold;
 
-  // Track vertical and horizontal lines separately
-  let verticalLines = [];
-  let horizontalLines = [];
+  // For selection, the actual content is 20px inside the box
+  // So we need to adjust our edge calculations accordingly
+  const activeLeft = isSelection ? movingItem.x_position + padding : movingItem.x_position;
+  const activeRight = isSelection ? movingItem.x_position + movingItem.width - padding : movingItem.x_position + movingItem.width;
+  const activeTop = isSelection ? movingItem.y_position + padding : movingItem.y_position;
+  const activeBottom = isSelection ? movingItem.y_position + movingItem.height - padding : movingItem.y_position + movingItem.height;
+  const activeCenterX = activeLeft + ((activeRight - activeLeft) / 2);
+  const activeCenterY = activeTop + ((activeBottom - activeTop) / 2);
 
-  // Calculate edges and center of the moving item
-  const activeLeft = movingItem.x_position;
-  const activeRight = movingItem.x_position + movingItem.width;
-  const activeTop = movingItem.y_position;
-  const activeBottom = movingItem.y_position + movingItem.height;
-  const activeCenterX = activeLeft + (movingItem.width / 2);
-  const activeCenterY = activeTop + (movingItem.height / 2);
+  // Maps to track best alignments
+  const bestVerticalAlignments = new Map();
+  const bestHorizontalAlignments = new Map();
 
   // Check each nearby item for potential alignments
-  nearbyItems.forEach(item => {
-    if (item.id === movingItem.id) return;
+  for (const item of nearbyItems) {
+    if (item.id === movingItem.id) continue;
 
     // Calculate edges and center of the nearby item
     const otherLeft = item.x_position;
@@ -45,109 +39,128 @@ export function calculateAlignmentGuides(movingItem, nearbyItems, snapThreshold 
 
     // Check vertical alignments (x-axis)
     const verticalAlignments = [
-      { active: activeLeft, other: otherLeft, type: "left-to-left", priority: 1 },
-      { active: activeRight, other: otherRight, type: "right-to-right", priority: 1 },
-      { active: activeCenterX, other: otherCenterX, type: "center-x", priority: 2 },
-      { active: activeLeft, other: otherRight, type: "left-to-right", priority: 3 },
-      { active: activeRight, other: otherLeft, type: "right-to-left", priority: 3 }
+      { value: otherLeft, type: "left-to-left", active: activeLeft, priority: 1,
+        newX: isSelection ? otherLeft - padding : otherLeft },
+      { value: otherRight, type: "right-to-right", active: activeRight, priority: 1,
+        newX: isSelection ? otherRight - movingItem.width + padding : otherRight - movingItem.width },
+      { value: otherCenterX, type: "center-x", active: activeCenterX, priority: 2,
+        newX: isSelection ? otherCenterX - (movingItem.width / 2) : otherCenterX - (movingItem.width / 2) },
+      { value: otherRight, type: "left-to-right", active: activeLeft, priority: 3,
+        newX: isSelection ? otherRight - padding : otherRight },
+      { value: otherLeft, type: "right-to-left", active: activeRight, priority: 3,
+        newX: isSelection ? otherLeft - movingItem.width + padding : otherLeft - movingItem.width }
     ];
 
     for (const align of verticalAlignments) {
-      const distance = Math.abs(align.active - align.other);
-
+      const distance = Math.abs(align.active - align.value);
       if (distance < snapThreshold && distance <= bestXSnapDistance) {
-        // If this is a better snap (closer or higher priority), clear previous vertical lines
-        if (distance < bestXSnapDistance ||
-           (distance === bestXSnapDistance && align.priority < verticalAlignments.find(a => a.active === align.active).priority)) {
-          // Clear previous vertical lines
-          verticalLines = [];
+        const key = align.type;
+
+        if (distance < bestXSnapDistance) {
           bestXSnapDistance = distance;
+          bestVerticalAlignments.clear();
         }
 
-        // Define extent of the vertical line
-        const minY = Math.min(activeTop, otherTop) - 20;
-        const maxY = Math.max(activeBottom, otherBottom) + 20;
+        if (!bestVerticalAlignments.has(key) ||
+            bestVerticalAlignments.get(key).distance > distance) {
 
-        // Add the snap line to vertical lines
-        verticalLines.push({
-          startX: align.other,
-          startY: minY,
-          length: maxY - minY,
-          isVertical: true
-        });
+          // Define extent of the vertical line
+          const minY = Math.min(activeTop, otherTop) - 20;
+          const maxY = Math.max(activeBottom, otherBottom) + 20;
 
-        // Update snapped position based on alignment type
-        if (align.type === "left-to-left") {
-          snappedPosition.x = otherLeft;
-        } else if (align.type === "right-to-right") {
-          snappedPosition.x = otherRight - movingItem.width;
-        } else if (align.type === "left-to-right") {
-          snappedPosition.x = otherRight;
-        } else if (align.type === "right-to-left") {
-          snappedPosition.x = otherLeft - movingItem.width;
-        } else if (align.type === "center-x") {
-          snappedPosition.x = otherCenterX - (movingItem.width / 2);
+          bestVerticalAlignments.set(key, {
+            distance,
+            priority: align.priority,
+            line: {
+              startX: align.value,
+              startY: minY,
+              length: maxY - minY,
+              isVertical: true
+            },
+            newX: align.newX
+          });
         }
       }
     }
 
     // Check horizontal alignments (y-axis)
     const horizontalAlignments = [
-      { active: activeTop, other: otherTop, type: "top-to-top", priority: 1 },
-      { active: activeBottom, other: otherBottom, type: "bottom-to-bottom", priority: 1 },
-      { active: activeCenterY, other: otherCenterY, type: "center-y", priority: 2 },
-      { active: activeTop, other: otherCenterY, type: "top-to-center", priority: 3 },
-      { active: activeBottom, other: otherCenterY, type: "bottom-to-center", priority: 3 },
-      { active: activeTop, other: otherBottom, type: "top-to-bottom", priority: 4 },
-      { active: activeBottom, other: otherTop, type: "bottom-to-top", priority: 4 }
+      { value: otherTop, type: "top-to-top", active: activeTop, priority: 1,
+        newY: isSelection ? otherTop - padding : otherTop },
+      { value: otherBottom, type: "bottom-to-bottom", active: activeBottom, priority: 1,
+        newY: isSelection ? otherBottom - movingItem.height + padding : otherBottom - movingItem.height },
+      { value: otherCenterY, type: "center-y", active: activeCenterY, priority: 2,
+        newY: isSelection ? otherCenterY - (movingItem.height / 2) : otherCenterY - (movingItem.height / 2) },
+      { value: otherCenterY, type: "top-to-center", active: activeTop, priority: 3,
+        newY: isSelection ? otherCenterY - padding : otherCenterY },
+      { value: otherCenterY, type: "bottom-to-center", active: activeBottom, priority: 3,
+        newY: isSelection ? otherCenterY - movingItem.height + padding : otherCenterY - movingItem.height },
+      { value: otherBottom, type: "top-to-bottom", active: activeTop, priority: 4,
+        newY: isSelection ? otherBottom - padding : otherBottom },
+      { value: otherTop, type: "bottom-to-top", active: activeBottom, priority: 4,
+        newY: isSelection ? otherTop - movingItem.height + padding : otherTop - movingItem.height }
     ];
 
     for (const align of horizontalAlignments) {
-      const distance = Math.abs(align.active - align.other);
-
+      const distance = Math.abs(align.active - align.value);
       if (distance < snapThreshold && distance <= bestYSnapDistance) {
-        // If this is a better snap (closer or higher priority), clear previous horizontal lines
-        if (distance < bestYSnapDistance ||
-           (distance === bestYSnapDistance && align.priority < horizontalAlignments.find(a => a.active === align.active).priority)) {
-          // Clear previous horizontal lines
-          horizontalLines = [];
+        const key = align.type;
+
+        if (distance < bestYSnapDistance) {
           bestYSnapDistance = distance;
+          bestHorizontalAlignments.clear();
         }
 
-        // Define extent of the horizontal line
-        const minX = Math.min(activeLeft, otherLeft) - 20;
-        const maxX = Math.max(activeRight, otherRight) + 20;
+        if (!bestHorizontalAlignments.has(key) ||
+            bestHorizontalAlignments.get(key).distance > distance) {
 
-        // Add the snap line to horizontal lines
-        horizontalLines.push({
-          startX: minX,
-          startY: align.other,
-          length: maxX - minX,
-          isVertical: false
-        });
+          // Define extent of the horizontal line
+          const minX = Math.min(activeLeft, otherLeft) - 20;
+          const maxX = Math.max(activeRight, otherRight) + 20;
 
-        // Update snapped position based on alignment type
-        if (align.type === "top-to-top") {
-          snappedPosition.y = otherTop;
-        } else if (align.type === "bottom-to-bottom") {
-          snappedPosition.y = otherBottom - movingItem.height;
-        } else if (align.type === "top-to-bottom") {
-          snappedPosition.y = otherBottom;
-        } else if (align.type === "bottom-to-top") {
-          snappedPosition.y = otherTop - movingItem.height;
-        } else if (align.type === "center-y") {
-          snappedPosition.y = otherCenterY - (movingItem.height / 2);
-        } else if (align.type === "top-to-center") {
-          snappedPosition.y = otherCenterY;
-        } else if (align.type === "bottom-to-center") {
-          snappedPosition.y = otherCenterY - movingItem.height;
+          bestHorizontalAlignments.set(key, {
+            distance,
+            priority: align.priority,
+            line: {
+              startX: minX,
+              startY: align.value,
+              length: maxX - minX,
+              isVertical: false
+            },
+            newY: align.newY
+          });
         }
       }
     }
-  });
+  }
 
-  // Combine vertical and horizontal lines after all checks
-  snapLines = [...verticalLines, ...horizontalLines];
+  // Get the best vertical alignment
+  if (bestVerticalAlignments.size > 0) {
+    let bestAlign = null;
+    for (const [_, align] of bestVerticalAlignments) {
+      if (!bestAlign || align.priority < bestAlign.priority) {
+        bestAlign = align;
+      }
+    }
+    if (bestAlign) {
+      snapLines.push(bestAlign.line);
+      snappedPosition.x = bestAlign.newX;
+    }
+  }
+
+  // Get the best horizontal alignment
+  if (bestHorizontalAlignments.size > 0) {
+    let bestAlign = null;
+    for (const [_, align] of bestHorizontalAlignments) {
+      if (!bestAlign || align.priority < bestAlign.priority) {
+        bestAlign = align;
+      }
+    }
+    if (bestAlign) {
+      snapLines.push(bestAlign.line);
+      snappedPosition.y = bestAlign.newY;
+    }
+  }
 
   return {
     snapLines,

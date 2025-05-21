@@ -68,7 +68,7 @@
                                     <span class="material-icons text-sm"
                                         >grid_view</span
                                     >
-                                    <span class="btn-label">Grid</span>
+                                    <span class="btn-label">More</span>
                                 </button>
 
                                 <!-- Grid Options Popover -->
@@ -76,6 +76,11 @@
                                     class="popover grid-popover"
                                     v-show="showGridOptions"
                                 >
+                                    <div class="flex gap-3">
+                                    <div>
+                                    <div class="text-gray-500 py-3 text-xs">
+                                        Grid Options
+                                    </div>
                                     <div class="grid-presets">
                                         <button
                                             v-for="preset in gridPresets"
@@ -101,8 +106,47 @@
                                             {{ preset.label }}
                                         </button>
                                     </div>
+                                    </div>
                                     <div class="text-gray-500 py-3 text-xs">
-                                        Advanced Options
+                                                                          Item Spacing and Sorting
+                                                                      </div>
+                                                                      <div class="common-controls my-2">
+                                                                          <div class="spacing-control">
+                                                                              <span class="material-icons text-sm"
+                                                                                  >space_bar</span
+                                                                              >
+                                                                              <input
+                                                                                  type="number"
+                                                                                  v-model.number="
+                                                                                      itemStore.itemSpacing
+                                                                                  "
+                                                                                  min="0"
+                                                                                  max="100"
+                                                                                  class="spacing-input"
+                                                                                  @change="applyCurrentLayout"
+                                                                                  title="Item Spacing"
+                                                                              />
+                                                                          </div>
+
+                                                                          <label
+                                                                              class="checkbox-control"
+                                                                              title="Group items by type"
+                                                                          >
+                                                                              <input
+                                                                                  type="checkbox"
+                                                                                  v-model="
+                                                                                      itemStore.itemSortOnAlign
+                                                                                  "
+                                                                                  @change="applyCurrentLayout"
+                                                                              />
+                                                                              <span class="material-icons text-sm"
+                                                                                  >sort</span
+                                                                              >
+                                                                          </label>
+                                                                      </div>
+                                    </div>
+                                    <div class="text-gray-500 py-3 text-xs">
+                                        Advanced Grid Options
                                     </div>
                                     <div class="grid-custom">
                                         <div class="dimension-inputs">
@@ -136,65 +180,39 @@
                                             </div>
                                         </div>
                                         <button
-                                            class="apply-grid-btn"
+                                            class="apply-grid-btn my-2"
                                             @click="applyCustomGrid"
                                             title="Apply Custom Grid"
                                         >
                                             Apply
                                         </button>
                                     </div>
+
+
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Common Controls: Spacing and Sort -->
-                        <div class="common-controls">
-                            <div class="spacing-control">
-                                <span class="material-icons text-sm"
-                                    >space_bar</span
-                                >
-                                <input
-                                    type="number"
-                                    v-model.number="spacing"
-                                    min="0"
-                                    max="100"
-                                    class="spacing-input"
-                                    @change="applyCurrentLayout"
-                                    title="Item Spacing"
-                                />
-                            </div>
-
-                            <label
-                                class="checkbox-control"
-                                title="Group items by type"
-                            >
-                                <input
-                                    type="checkbox"
-                                    v-model="sortByKind"
-                                    @change="applyCurrentLayout"
-                                />
-                                <span class="material-icons text-sm">sort</span>
-                            </label>
-                            <div class="text-center text-gray-500 text-xs">
-                                             <span v-if="selectedItems" class="text-blue-500 font-bold"
-                                                 >{{ selectedItems.length }}
-                                             </span>
-                                             Items Selected
-                                         </div>
+                        <div title="Group Items" class="border-r-2 border-gray-400 pr-4">
+                           <span class="flex p-2 justify-center items-center hover:bg-gray-200 text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><!-- Icon from Material Symbols by Google - https://github.com/google/material-design-icons/blob/master/LICENSE --><path fill="currentColor" d="M8 17.95q.25.025.488.038T9 18t.513-.012t.487-.038V20h10V10h-2.05q.025-.25.038-.488T18 9t-.012-.513T17.95 8H20q.825 0 1.413.588T22 10v10q0 .825-.587 1.413T20 22H10q-.825 0-1.412-.587T8 20zM9 16q-2.925 0-4.962-2.037T2 9t2.038-4.962T9 2t4.963 2.038T16 9t-2.037 4.963T9 16m0-2q2.075 0 3.538-1.463T14 9t-1.463-3.537T9 4T5.463 5.463T4 9t1.463 3.538T9 14m0-5"/></svg>
+                           </span>
+                        </div>
+                        <div class="text-center text-gray-500 text-xs">
+                            <span
+                                v-if="selectedItems"
+                                class="text-blue-500 font-bold"
+                                >{{ selectedItems.length }}
+                            </span>
+                            Items Selected
                         </div>
                     </div>
                 </div>
-
-
             </div>
         </WidgetOptions>
     </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { useItemStore } from "~/stores/itemStore";
-
 const itemStore = useItemStore();
 const props = defineProps({
     itemId: {
@@ -281,13 +299,13 @@ function applyCurrentLayout() {
 function applySmartAlignment() {
     const options = {
         direction: selectedDirection.value,
-        sort: sortByKind.value,
-        spacing: spacing.value,
+        sort: itemStore.itemSortOnAlign,
+        spacing: itemStore.itemSpacing,
     };
 
     if (selectedItems.value?.length) {
         const newPos = smartAlign(selectedItems.value, options);
-        console.log(newPos);
+
         itemStore.updateItemsPosition(newPos);
     }
 }
@@ -296,13 +314,13 @@ function applyGridArrangement() {
     const options = {
         columns: gridColumns.value,
         rows: gridRows.value,
-        sort: sortByKind.value,
-        spacing: spacing.value,
+        sort: itemStore.itemSortOnAlign,
+        spacing: itemStore.itemSpacing,
     };
 
     if (selectedItems.value?.length) {
         const newPos = gridArrange(selectedItems.value, options);
-        console.log(newPos);
+
         itemStore.updateItemsPosition(newPos);
     }
 }

@@ -7,7 +7,11 @@ import { update } from "lodash";
 export const useItemStore = defineStore("items", () => {
   // delete item modal
 
-  let deleteItem = ref(false)
+  let deleteItemConfirm = ref(false)
+  let itemSpacing = ref(10)
+  let itemSortOnAlign = ref(false)
+
+
 
 
   // Get reference to the board store
@@ -144,6 +148,8 @@ export const useItemStore = defineStore("items", () => {
     snapLines,
     getSelectedItems,
     updateItemsPosition,
-    deleteItem
+    deleteItemConfirm,
+    itemSpacing,
+    itemSortOnAlign
   };
 });

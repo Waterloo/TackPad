@@ -171,6 +171,7 @@ const boardStore = useBoardStore()
         v-if="!props.isLocked"
         class="drag-handle-horizontal"
         :class="`${kind!=='image' ? '' : !contrastColor ? 'drag-handle-contrast' : ''}`"
+        :style="`${kind==='selection'?'width:80px;height:20px;':''}`"
         title="Drag to move"
         @pointerdown.stop.prevent="startMove"
         @mouseover="showMenu = true"
