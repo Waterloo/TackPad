@@ -87,6 +87,10 @@ export function useItemManagement() {
     itemStore.updateItem(itemId, { lock: locked });
   };
 
+  const updateItemDisplayName = (itemId: string, displayName: string) => {
+    itemStore.updateItem(itemId, { displayName: displayName });
+  };
+
   // Helper function to calculate center position
   const calculateCenterPosition = (width: number, height: number, itemType: string = '') => {
     // Get the current viewport center in board coordinates
@@ -132,6 +136,7 @@ export function useItemManagement() {
     handleDelete,
     updateItemPosition,
     toggleLock,
-    calculateCenterPosition
+    calculateCenterPosition,
+    updateItemDisplayName
   };
 }

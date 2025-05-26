@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   });
 
   console.log(
-    `[Auth Middleware] Path: ${event.path}, Method: ${event.method}, IsPublic: ${isPublicRoute}`,
+    `[Auth Middleware] Path: ${event.path}, Method: ${event.method}, IsPublic: ${isPublicRoute}`
   );
 
   event.context.session = {
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
     if (session?.user?.profileId) {
       // --- User is logged in via OAuth session ---
       console.log(
-        `[Auth Middleware] User identified via session: ${session.user.profileId}`,
+        `[Auth Middleware] User identified via session: ${session.user.profileId}`
       );
       event.context.session.user = session.user;
       event.context.session.secure = {
@@ -78,12 +78,12 @@ export default defineEventHandler(async (event) => {
       };
       // Logged-in user found, skip anonymous token logic
       console.debug(
-        "[Auth Middleware] Logged-in session found, skipping anonymous check.",
+        "[Auth Middleware] Logged-in session found, skipping anonymous check."
       );
     } else {
       // --- 2. Attempt to identify OR CREATE via anonymous user-token ---
       console.debug(
-        "[Auth Middleware] No valid session found, checking/setting user-token.",
+        "[Auth Middleware] No valid session found, checking/setting user-token."
       );
 
       // Use setupAndGetHashedUserToken:
@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
         // This case should ideally not happen if setupAndGetHashedUserToken works correctly,
         // but handle defensively.
         console.error(
-          "[Auth Middleware] Failed to get or set up a user token.",
+          "[Auth Middleware] Failed to get or set up a user token."
         );
         // Decide how to proceed: maybe throw an error if identification is critical?
         // For now, we'll proceed, and the authorization check later will handle it.
@@ -105,7 +105,7 @@ export default defineEventHandler(async (event) => {
           const db = useDrizzle();
           // Log before DB lookup
           console.log(
-            `[Auth Middleware] Checking DB for token hash. Route IsPublic: ${isPublicRoute}`,
+            `[Auth Middleware] Checking DB for token hash. Route IsPublic: ${isPublicRoute}`
           );
 
           let profile = await db.query.PROFILE.findFirst({
@@ -119,7 +119,7 @@ export default defineEventHandler(async (event) => {
           if (profile) {
             // --- Found existing anonymous profile matching the token ---
             console.log(
-              `[Auth Middleware] Existing anonymous profile found via token: ${profile.id}. Route IsPublic: ${isPublicRoute}`,
+              `[Auth Middleware] Existing anonymous profile found via token: ${profile.id}. Route IsPublic: ${isPublicRoute}`
             );
             event.context.session.secure = {
               profileId: profile.id,
@@ -129,7 +129,7 @@ export default defineEventHandler(async (event) => {
           } else {
             // --- Token exists (or was just created), but no matching profile: CREATE NEW ANONYMOUS PROFILE ---
             console.log(
-              `[Auth Middleware] Token hash processed, no matching profile. Creating new anonymous profile. Route IsPublic: ${isPublicRoute}`,
+              `[Auth Middleware] Token hash processed, no matching profile. Creating new anonymous profile. Route IsPublic: ${isPublicRoute}`
             );
             const newProfileId = generateProfileId();
             const now = new Date().toISOString();
@@ -145,13 +145,13 @@ export default defineEventHandler(async (event) => {
 
             if (!newProfile || !newProfile.id) {
               console.error(
-                `[Auth Middleware] Failed to create new anonymous profile in DB. Route IsPublic: ${isPublicRoute}`,
+                `[Auth Middleware] Failed to create new anonymous profile in DB. Route IsPublic: ${isPublicRoute}`
               );
               // Decide how to handle DB failure - maybe throw 500?
             } else {
               console.log(
                 // Changed from error to log for successful creation
-                `[Auth Middleware] New anonymous profile created: ${newProfile.id}. Route IsPublic: ${isPublicRoute}`,
+                `[Auth Middleware] New anonymous profile created: ${newProfile.id}. Route IsPublic: ${isPublicRoute}`
               );
               event.context.session.secure = {
                 profileId: newProfile.id,
@@ -163,7 +163,7 @@ export default defineEventHandler(async (event) => {
         } catch (dbError: any) {
           console.error(
             `[Auth Middleware] Database error during token lookup/creation. Route IsPublic: ${isPublicRoute}:`,
-            dbError.message,
+            dbError.message
           );
           // Decide how to handle DB failure - maybe throw 500?
           // For now, let the authorization check handle the lack of profileId
@@ -177,7 +177,11 @@ export default defineEventHandler(async (event) => {
       // - Access attempts to protected routes without a valid session OR a successfully identified/created anonymous profile.
       // - Cases where token setup or DB operations failed earlier, leaving profileId null.
       console.warn(
-        `[Auth Middleware] Unauthorized access attempt to PROTECTED route: ${event.path}. No profileId identified. Session Error: ${sessionError?.message ?? "None"}`,
+        `[Auth Middleware] Unauthorized access attempt to PROTECTED route: ${
+          event.path
+        }. No profileId identified. Session Error: ${
+          sessionError?.message ?? "None"
+        }`
       );
 
       if (sessionError) {
@@ -198,12 +202,20 @@ export default defineEventHandler(async (event) => {
 
     // Final access log
     console.debug(
-      `[Auth Middleware] Access outcome: ${!isPublicRoute && !event.context.session.secure.profileId ? "DENIED (by 401 above)" : "GRANTED"}. Route: ${event.path}, ProfileID: ${event.context.session.secure.profileId}, IsPublic: ${isPublicRoute}, IsAnonymous: ${event.context.session.secure.isAnonymous}`,
+      `[Auth Middleware] Access outcome: ${
+        !isPublicRoute && !event.context.session.secure.profileId
+          ? "DENIED (by 401 above)"
+          : "GRANTED"
+      }. Route: ${event.path}, ProfileID: ${
+        event.context.session.secure.profileId
+      }, IsPublic: ${isPublicRoute}, IsAnonymous: ${
+        event.context.session.secure.isAnonymous
+      }`
     );
   } catch (error: any) {
     if (error.statusCode === 401) {
       console.warn(
-        `[Auth Middleware] Access DENIED with 401. Route: ${event.path}, Message: ${error.message}`,
+        `[Auth Middleware] Access DENIED with 401. Route: ${event.path}, Message: ${error.message}`
       );
       // Re-throw the specific 401 error
       throw error;
@@ -211,7 +223,7 @@ export default defineEventHandler(async (event) => {
     // Catch unexpected errors during the process
     console.error(
       `[Auth Middleware] Unexpected error during auth check. Route: ${event.path}:`,
-      error,
+      error
     );
     throw createError({
       statusCode: 500,

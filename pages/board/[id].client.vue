@@ -16,6 +16,7 @@ import { useGlobalShortcuts } from "~/composables/useGlobalShortcuts";
 import { useClipboard } from "~/composables/useClipboard";
 import { applyOptimalZoom } from "~/utils/boardUtils";
 import { getSSEServer } from "~/shared/board";
+import BackupAlertBanner from "~/components/BackupAlertBanner.vue";
 
 // Initialize stores
 const boardStore = useBoardStore();
@@ -26,7 +27,8 @@ const linkStore = useLinkStore();
 const timerStore = useTimerStore();
 const textWidgetStore = useTextWidgetStore();
 const tackletStore = useTackletStore();
-const { handleDelete, updateItemPosition, toggleLock } = useItemManagement();
+const { handleDelete, updateItemPosition, toggleLock, updateItemDisplayName } =
+    useItemManagement();
 // Initialize composables
 const route = useRoute();
 const {
@@ -129,6 +131,11 @@ const computedBackgroundPosition = computed(
 const { isOpen } = useTackletDirectory();
 
 const { toasts, removeToast } = useToast();
+
+const updateDisplayName = (id: string, displayName: string) => {
+    updateItemDisplayName(id, displayName);
+    console.log(id, displayName);
+};
 </script>
 <template>
     <div
@@ -186,6 +193,7 @@ const { toasts, removeToast } = useToast();
                         v-for="item in boardStore.board.data.items"
                         :key="item.id"
                         :item-id="item.id"
+                        :display-name="item.displayName"
                         :position="{
                             x: item.x_position,
                             y: item.y_position,
@@ -203,9 +211,13 @@ const { toasts, removeToast } = useToast();
                             (updates: Object) =>
                                 updateItemPosition(item.id, updates)
                         "
-                        :shadow="item.kind === 'text'"
+                        :shadow="item.kind !== 'text'"
                         @delete="deleteItemConfirm = true"
                         @lock="(locked: boolean) => toggleLock(item.id, locked)"
+                        v-slot="{ startMove }"
+                        @update:displayName="
+                            (value) => updateDisplayName(item.id, value!)
+                        "
                     >
                         <StickyNote
                             v-if="item.kind === 'note'"
@@ -286,6 +298,7 @@ const { toasts, removeToast } = useToast();
                                         text,
                                     )
                             "
+                            @pointerdown.stop.prevent="startMove"
                         />
                         <ImageWidget
                             v-else-if="item.kind === 'image'"
@@ -467,10 +480,15 @@ const { toasts, removeToast } = useToast();
             @wheel.stop
         />
 
+        <!-- <BoardHeader />
+
+    <BoardToolbar /> -->
+
         <ProfilePopup v-if="!isPanning" />
 
         <BoardPasswordDialog />
         <OfflineIndicator />
+        <BackupAlertBanner />
         <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
         <ZoomControls class="fixed right-2 bottom-16 z-10" />
         <ErrorModal
@@ -483,6 +501,7 @@ const { toasts, removeToast } = useToast();
 
         <UIToast
             class="fixed top-4 right-4"
+            style="z-index: 9999"
             v-for="toast in toasts"
             :key="toast.id"
             v-bind="toast"

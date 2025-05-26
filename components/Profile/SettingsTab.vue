@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
 import DeleteBoardModal from "./Delete.vue";
 import { useBoardStore } from "~/stores/board";
+import Backup from "./Backup.vue";
 import BoardSharePopup from "./BoardSharePopup.vue";
-import type { BoardAccessLevel } from "~/types/access"; // Make sure this type is defined correctly
+import type { BoardAccessLevel } from "@/types/access"; // Make sure this type is defined correctly
 import Modal from "@/components/UI/Modal.vue";
 const boardStore = useBoardStore();
 
@@ -61,11 +61,13 @@ const colorScheme = ref("system"); // 'light', 'dark', or 'system'
 
 // Initialize color scheme from local storage or system preference (existing code)
 onMounted(() => {
+    // Get saved preference from localStorage
     const savedScheme = localStorage.getItem("color-scheme");
     if (savedScheme) {
         colorScheme.value = savedScheme;
         applyColorScheme(savedScheme);
     } else {
+        // Default to system preference
         colorScheme.value = "system";
         const prefersDark = window.matchMedia(
             "(prefers-color-scheme: dark)",
@@ -530,6 +532,14 @@ const confirmationDetails = computed(() => {
 }
 
 .delete-button {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    transition: all 0.2s;
+    font-size: 14px;
     padding: 8px 20px;
     border-radius: 6px;
     font-weight: 500;

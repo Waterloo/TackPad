@@ -1,20 +1,22 @@
 <script setup lang="ts">
+import { templateRef } from "@vueuse/core";
+import { is } from "drizzle-orm";
 import { useItemInteraction } from "~/composables/useItemInteraction";
 
-const props = defineProps<{
-    position: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-    };
-    contrastColor?: boolean;
-    kind?: string;
-    itemId: string;
-    isSelected: boolean;
-    shadow?: boolean;
-    isLocked?: boolean;
-}>();
+const props = withDefaults(defineProps<{
+  position: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  contrastColor?: boolean;
+  kind?: string;
+  itemId: string;
+  isSelected: boolean;
+  shadow?: boolean;
+  isLocked?: boolean;
+}>(), {shadow: true});
 
 const emit = defineEmits<{
     (e: "select", id: string): void;
@@ -23,6 +25,12 @@ const emit = defineEmits<{
     (e: "parent"): void;
     (e: "lock", locked: boolean): void;
 }>();
+
+const displayName = defineModel('displayName', {type: String})
+
+const reactivePosition = computed(() => ({
+    ...props.position
+}))
 
 const {
     style,
@@ -34,7 +42,7 @@ const {
     move,
     stopInteraction,
 } = useItemInteraction(
-    props.position,
+    reactivePosition,
     (updates) => {
         const updatedPosition = {
             ...props.position,
@@ -110,59 +118,77 @@ const pip = async () => {
     iframe.src = `/pip/${route.params.id}/${props.itemId}`;
     pipWindow.document.body.append(iframe);
 };
+
+const displayNameInput= useTemplateRef('displayNameInput')
+const isTitleEditing = ref(false)
+
+const toggleTitleEdit = () => {
+  isTitleEditing.value = !isTitleEditing.value
+  if(isTitleEditing.value) {
+    nextTick(()=> {
+      displayNameInput.value?.focus()
+    })
+  }
+}
+
 </script>
 
 <template>
-    <div
-        ref="elementRef"
-        class="widget-container"
-        :class="{
-            'widget-selected': isSelected,
-            'widget-moving': isMoving,
-            'widget-resizing': isResizing,
-            'select-none': isMoving || isResizing,
-            'widget-locked': props.isLocked,
-        }"
-        :style="[
-            style,
-            { touchAction: 'none' }, // Explicitly disable browser touch actions
-        ]"
-        @pointermove.stop.prevent="move"
-        @pointerup.stop="stopInteraction"
-        @pointercancel.stop="stopInteraction"
-        @pointerleave.stop="stopInteraction"
-        @click.stop="$emit('select', props.itemId)"
-        @wheel="(e) => (isSelected ? e.stopPropagation() : e.preventDefault())"
-    >
-        <div class="widget-header-minimal">
-            <div
-                v-if="!props.isLocked"
-                class="drag-handle-horizontal"
-                :class="`${kind !== 'image' ? '' : !contrastColor ? 'drag-handle-contrast' : ''}`"
-                title="Drag to move"
-                @pointerdown.stop.prevent="startMove"
-                @mouseover="showMenu = true"
-            ></div>
-            <div
-                class="flex justify-between w-full widget-controls"
-                title="More Options"
+  <div
+    ref="elementRef"
+    class="widget-container hover:-translate-y-0.5 transition duration-300"
+    :class="{
+      'widget-selected': isSelected,
+      'widget-moving': isMoving,
+      'widget-resizing': isResizing,
+      'select-none': isMoving || isResizing,
+      'widget-locked': props.isLocked,
+      'hover:shadow-[0_15px_35px_rgba(0,0,0,0.12)]': props.shadow
+    }"
+    :style="[
+      style,
+      { touchAction: 'none' }, // Explicitly disable browser touch actions
+    ]"
+    @pointermove.stop.prevent="move"
+    @pointerup.stop="stopInteraction"
+    @pointercancel.stop="stopInteraction"
+    @pointerleave.stop="stopInteraction"
+    @click.stop="$emit('select', props.itemId)"
+  >
+
+    <div class="widget-header-minimal">
+      <div
+        v-if="!props.isLocked"
+        class="drag-handle-horizontal"
+        :class="`${kind!=='image' ? '' : !contrastColor ? 'drag-handle-contrast' : ''}`"
+        title="Drag to move"
+        @pointerdown.stop.prevent="startMove"
+        @mouseover="showMenu = true"
+
+      ></div>
+      <span v-if="!isTitleEditing" class="absolute left-0 -top-6 text-gray-400 inline-flex items-center" @dblclick="toggleTitleEdit" @touchend="toggleTitleEdit">{{ displayName }} <svg xmlns="http://www.w3.org/2000/svg" :class="!isSelected && 'hidden'" class="h-5 w-5 text-gray-300" viewBox="0 0 20 20"  style="fill: rgb(156,163,175);height: 1.1rem;">
+          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.379-8.379-2.828-2.828z"></path>
+        </svg></span>
+        <span v-else class="absolute left-0 -top-6 text-gray-400 inline-flex items-center">
+          <input ref="displayNameInput" v-model="displayName" @blur="toggleTitleEdit" @keyup.enter="toggleTitleEdit" class="flex-grow bg-transparent text-gray-400 border-b border-gray-300 focus:outline-none"/>
+        </span>
+      <div
+        class="flex justify-between w-full widget-controls"
+        title="More Options"
+      >
+        <transition name="fade">
+          <div v-show="isSelected && !isMoving" class="shadow-lg widget-menu rounded-xl">
+            <button
+              @click.stop="handleMenuAction('delete', $event)"
+              class="menu-item"
             >
-                <transition name="fade">
-                    <div
-                        v-show="isSelected && !isMoving"
-                        class="shadow-lg widget-menu rounded-xl"
-                    >
-                        <button
-                            @click.stop="handleMenuAction('delete', $event)"
-                            class="menu-item"
-                        >
-                            <img
-                                src="public/icons/Delete.svg"
-                                alt="Delete"
-                                class="w-4 h-4 sm:h-4 sm:w-4"
-                            />
-                        </button>
-                        <button
+              <img
+                src="public/icons/Delete.svg"
+                alt="Delete"
+                class="w-4 h-4 sm:h-4 sm:w-4"
+              />
+            </button>
+            <button
                             @click.stop="handleMenuAction('lock', $event)"
                             class="menu-item"
                         >
@@ -190,22 +216,15 @@ const pip = async () => {
                                 class="w-4 h-4 sm:h-4 sm:w-4"
                             />
                         </button>
-                        <div
-                            class="widget-custom-item"
-                            :class="props.itemId"
-                        ></div>
-                    </div>
-                </transition>
-            </div>
-        </div>
-
-        <div
-            class="widget-content"
-            @widgetInteraction="$emit('select', props.itemId)"
-            @wheel.stop
-        >
-            <slot></slot>
-        </div>
+            <div class="widget-custom-item" :class="props.itemId"></div>
+          </div>
+        </transition>
+      </div>
+    </div>
+    
+    <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel="e => isSelected ? e.stopPropagation() : e.preventDefault()">
+      <slot :startMove="startMove"></slot>
+    </div>
 
         <div
             v-if="!props.isLocked"
@@ -248,10 +267,10 @@ const pip = async () => {
     pointer-events: all;
 }
 
-.widget-container:hover {
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
-    transform: translateY(-2px);
-}
+/* .widget-container:hover {
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+} */
 
 .widget-container.widget-selected {
     outline: 1px solid var(--primary-color, #3498db);
@@ -357,17 +376,17 @@ const pip = async () => {
 }
 
 .widget-menu {
-    position: absolute;
-    top: -2.75rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
-    border-radius: 4px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 20;
-    /* overflow: hidden; */
-    width: auto;
-    display: flex;
+  position: absolute;
+  top: -4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+  /* overflow: hidden; */
+  width: auto;
+  display: flex;
 }
 
 .menu-item {
