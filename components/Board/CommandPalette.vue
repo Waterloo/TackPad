@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import Modal from "../UI/Modal.vue";
 import { useMagicKeys } from "@vueuse/core";
 import { whenever } from "@vueuse/core";
+import Modal from "@/components/UI/Modal.vue";
+
 const {
     addNote,
     addTodoList,

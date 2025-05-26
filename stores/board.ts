@@ -1,4 +1,3 @@
-// stores/boardStore.ts
 import { ref, computed, unref } from "vue";
 import { defineStore } from "pinia";
 import { useLocalStorage } from "@vueuse/core";
@@ -7,10 +6,22 @@ import { useRoute } from "vue-router";
 
 // import type { EncryptedData } from '~/types/encryption'
 import type { Board, BoardItem, Boards, Task } from "~/types/board";
+import type { BoardSettings } from "~/types/settings";
+import type { BoardAccessRole, BoardAccessLevel } from "~/types/access";
 import { decrypt, encrypt } from "~/utils/crypto";
 
+// Define a type for the access list items based on the API response
+export interface BoardAccessUser {
+  id: number;
+  profileId: string;
+  role: BoardAccessRole | "owner";
+  username: string | null;
+  firstName: string | null;
+  lastAccessed: string | null;
+}
+
 export const useBoardStore = defineStore("board", () => {
-  // State
+  // === Existing State ===
   const board = ref<Board | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -20,14 +31,15 @@ export const useBoardStore = defineStore("board", () => {
   const isOwner = ref(false);
   const translateX = ref(0);
   const translateY = ref(0);
-  const ZOOM_LEVEL = ref(1); // New reference for tracking zoom levels (1 = overview zoom level)
-  const password = ref(null);
+  const ZOOM_LEVEL = ref(1);
+  const password = ref<string | null>(null);
   const isEncrypted = ref(false);
   const showPasswordDialog = ref(false);
   const boards = useLocalStorage<Boards>("boards", {});
   const settings = useLocalStorage<BoardSettings>("settings", {});
 
   let itemsCounter: Record<string, number> = {};
+
   function initalizeCounter(items: BoardItem[]) {
     const localCount: Record<string, number> = {};
     items.forEach((item) => {
@@ -46,7 +58,6 @@ export const useBoardStore = defineStore("board", () => {
   }
 
   const getCounter = (kind: string) => {
-    // we need to increment the count and give back the new count
     if (!itemsCounter[kind]) {
       itemsCounter[kind] = 0;
     }
@@ -58,7 +69,7 @@ export const useBoardStore = defineStore("board", () => {
     board.value?.data.items.forEach((item) => {
       if (!item.displayName) {
         item.displayName = getDisplayName(
-          (item.kind === "tacklet" && item.content.tackletId) || item.kind,
+          (item.kind === "tacklet" && item.content.tackletId) || item.kind
         );
       }
     });
@@ -80,82 +91,87 @@ export const useBoardStore = defineStore("board", () => {
   const targetIndex = ref<number | null>(null);
   const draggedTask = ref<Task | null>(null);
 
+  // === New Access Control State ===
+  const accessList = ref<BoardAccessUser[]>([]);
+  const boardAccessLevel = ref<BoardAccessLevel | null>(null);
+  const boardOwnerId = ref<string | null>(null);
+  const loadingAccess = ref(false);
+  const errorAccess = ref<string | null>(null);
+  const currentUserProfileId = ref<string | null>(null);
+
   // Get route at the store level
   const route = useRoute();
 
   // Actions
   const initializeBoard = async (boardId: string = "load") => {
     loading.value = true;
+    error.value = null;
+    errorAccess.value = null;
+    accessList.value = [];
+    boardAccessLevel.value = null;
+    boardOwnerId.value = null;
+    currentUserProfileId.value = null;
+    isOwner.value = false;
 
-    // Case: 'load' - Load the latest board from local storage
+    // Case: 'load' - Load the latest board from local storage (or redirect)
     if (boardId === "load") {
-      const existingBoardIds = Object.keys(boards.value);
+      const settingsData = useLocalStorage<Record<string, any>>("settings", {});
+      let mostRecentBoardId: string | null = null;
+      let mostRecentTimestamp = 0;
 
-      if (existingBoardIds.length > 0) {
-        // Check if settings exist
-        const settings = useLocalStorage<Record<string, Array<any>>>(
-          "settings",
-          {},
-        );
-        let mostRecentBoardId = null;
-        let mostRecentTimestamp = new Date(0); // Start with oldest possible date
-
-        // Only proceed with timestamp-based logic if we have settings data
-        if (Object.keys(settings.value).length > 0) {
-          // Find board with most recent last_accessed timestamp from settings
-          Object.keys(settings.value).forEach((boardId) => {
-            const boardSettings = settings.value[boardId];
-
-            // Check if settings for this board exist and have at least one entry
-            if (boardSettings && boardSettings.length > 0) {
-              // Get the latest entry for this board (assuming the array might contain multiple entries)
-              const latestEntry = boardSettings[boardSettings.length - 1];
-
-              if (latestEntry && latestEntry.last_accessed) {
-                const accessTime = new Date(latestEntry.last_accessed);
-                if (accessTime > mostRecentTimestamp) {
-                  mostRecentTimestamp = accessTime;
-                  mostRecentBoardId = boardId;
-                }
-              }
-            }
-          });
-
-          // If we found a board with last_accessed, use it
-          if (mostRecentBoardId) {
-            await navigateTo(`/board/${mostRecentBoardId}`);
-            return;
+      Object.entries(settingsData.value).forEach(([id, boardSetting]) => {
+        let lastAccessedTime = 0;
+        if (Array.isArray(boardSetting) && boardSetting.length > 0) {
+          const lastEntry = boardSetting[boardSetting.length - 1];
+          if (lastEntry?.last_accessed) {
+            lastAccessedTime = new Date(lastEntry.last_accessed).getTime();
           }
+        } else if (
+          typeof boardSetting === "object" &&
+          boardSetting?.last_accessed
+        ) {
+          lastAccessedTime = new Date(boardSetting.last_accessed).getTime();
         }
 
-        // Fallback to previous behavior if no settings or no last_accessed timestamps
-        const lastBoardId =
-          boards.value[existingBoardIds[existingBoardIds.length - 1]].board_id;
-        await navigateTo(`/board/${lastBoardId}`);
+        if (lastAccessedTime > mostRecentTimestamp) {
+          mostRecentTimestamp = lastAccessedTime;
+          mostRecentBoardId = id;
+        }
+      });
+
+      if (mostRecentBoardId) {
+        await navigateTo(`/board/${mostRecentBoardId}`);
+        loading.value = false;
         return;
       } else {
-        // No boards in local storage, redirect to create
-        await navigateTo("/board/create");
-        return;
+        const existingBoardIds = Object.keys(boards.value);
+        if (existingBoardIds.length > 0) {
+          const lastBoardId =
+            boards.value[existingBoardIds[existingBoardIds.length - 1]]
+              .board_id;
+          await navigateTo(`/board/${lastBoardId}`);
+          loading.value = false;
+          return;
+        } else {
+          await navigateTo("/board/create");
+          loading.value = false;
+          return;
+        }
       }
     }
 
+    // Case: 'create' or specific board ID
     try {
-      // Case: 'create' or specific board ID - fetch from API
-      const response = await fetch(`/api/board/${boardId}`);
-      if (!response.ok) throw new Error("Failed to load board");
-      const raw = await response.json();
-      const boardData = raw.data;
-      const settingsData = raw.settings;
-      isOldBoard.value = raw.OldBoard;
-      isOwner.value = raw.isOwner;
-      // settings.value = settingsData;
+      const response = await $fetch(`/api/board/${boardId}`);
+      const boardData = response.data;
+      const settingsData = response.settings;
+      isOldBoard.value = response.OldBoard ?? false;
 
-      if (boardData.data.encrypted) {
-        console.log("encrypted");
+      if (boardData.data?.encrypted) {
         isEncrypted.value = true;
         if (!password.value) {
           showPasswordDialog.value = true;
+          loading.value = false;
           return;
         }
         try {
@@ -164,45 +180,176 @@ export const useBoardStore = defineStore("board", () => {
             data: await decrypt(boardData.data, password.value!),
           };
         } catch (e) {
-          console.error(e);
-          alert("Error decrypting");
-          window.location.reload();
+          console.error("Decryption failed:", e);
+          error.value = "Decryption failed. Please check the password.";
+          password.value = null;
+          showPasswordDialog.value = true;
+          loading.value = false;
+          return;
         }
       } else {
         isEncrypted.value = false;
         board.value = boardData;
       }
 
-      // Save to local storage
-      boards.value[board.value!.board_id] = {
-        board_id: board.value!.board_id,
+      if (!board.value) {
+        throw new Error("Board data could not be processed.");
+      }
+
+      const loadedBoardId = board.value.board_id;
+
+      boards.value[loadedBoardId] = {
+        board_id: loadedBoardId,
         title: board.value?.data.title || "New TackPad",
       };
 
-      // save settings to localStorage
-      if (board.value?.board_id) {
+      if (settingsData) {
         settings.value = {
           ...settings.value,
-          [board.value.board_id]: settingsData,
+          [loadedBoardId]: settingsData,
         };
       }
 
-      // Redirect if needed (for 'create' or when board ID doesn't match route)
+      await fetchAccessDetails(loadedBoardId);
+
       if (
         boardId === "create" ||
-        (route?.params?.id && route.params.id !== board.value?.board_id)
+        (route?.params?.id && route.params.id !== loadedBoardId)
       ) {
-        await navigateTo(`/board/${board.value?.board_id}`);
+        await navigateTo(`/board/${loadedBoardId}`);
       }
-    } catch (err) {
-      error.value = "Failed to load board";
-      console.error(err);
+    } catch (err: any) {
+      console.error("Failed to load board:", err);
+      if (err.response?.status === 404) {
+        error.value = "Board not found.";
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        error.value = "You don't have permission to access this board.";
+      } else {
+        error.value = "Failed to load board data.";
+      }
+      board.value = null;
     } finally {
       loading.value = false;
     }
 
     initalizeCounter(board.value?.data.items || []);
     assignDisplayNames();
+  };
+
+  const fetchAccessDetails = async (boardId: string) => {
+    if (!boardId) return;
+    loadingAccess.value = true;
+    errorAccess.value = null;
+    try {
+      const response = await $fetch<{
+        boardId: string;
+        accessLevel: BoardAccessLevel;
+        owner: string;
+        accessList: BoardAccessUser[];
+        currentUserProfileId: string;
+      }>(`/api/board/${boardId}/access`);
+      accessList.value = response.accessList;
+      boardAccessLevel.value = response.accessLevel;
+      boardOwnerId.value = response.owner;
+      currentUserProfileId.value = response.currentUserProfileId;
+
+      if (currentUserProfileId.value && boardOwnerId.value) {
+        isOwner.value = currentUserProfileId.value === boardOwnerId.value;
+      } else {
+        isOwner.value = false;
+      }
+    } catch (err: any) {
+      console.error("Failed to load access details:", err);
+      errorAccess.value = err.data?.message || "Failed to load access details.";
+      accessList.value = [];
+      boardAccessLevel.value = null;
+      boardOwnerId.value = null;
+      isOwner.value = false;
+    } finally {
+      loadingAccess.value = false;
+    }
+  };
+
+  const updateUserRole = async (
+    targetProfileId: string,
+    role: BoardAccessRole
+  ) => {
+    if (!board.value?.board_id) return;
+    loadingAccess.value = true;
+    errorAccess.value = null;
+    try {
+      await $fetch(`/api/board/${board.value.board_id}/access`, {
+        method: "PATCH",
+        body: { profileId: targetProfileId, role },
+      });
+      await fetchAccessDetails(board.value.board_id);
+    } catch (err: any) {
+      console.error("Failed to update user role:", err);
+      errorAccess.value = err.data?.message || "Failed to update role.";
+    } finally {
+      loadingAccess.value = false;
+    }
+  };
+
+  const removeUserAccess = async (targetProfileId: string) => {
+    if (!board.value?.board_id) return;
+    loadingAccess.value = true;
+    errorAccess.value = null;
+    try {
+      await $fetch(`/api/board/${board.value.board_id}/access`, {
+        method: "DELETE",
+        body: { profileId: targetProfileId },
+      });
+      await fetchAccessDetails(board.value.board_id);
+    } catch (err: any) {
+      console.error("Failed to remove user access:", err);
+      errorAccess.value = err.data?.message || "Failed to remove user.";
+    } finally {
+      loadingAccess.value = false;
+    }
+  };
+
+  const updateBoardAccessLevel = async (
+    accessLevel: BoardAccessLevel,
+    removeUserAccess: boolean
+  ) => {
+    if (!board.value?.board_id) return;
+    loadingAccess.value = true;
+    errorAccess.value = null;
+    try {
+      const response = await $fetch<{
+        boardId: string;
+        accessLevel: BoardAccessLevel;
+      }>(`/api/board/${board.value.board_id}/access-level`, {
+        method: "PATCH",
+        body: { accessLevel, removeUserAccess },
+      });
+      boardAccessLevel.value = response.accessLevel;
+    } catch (err: any) {
+      console.error("Failed to update board access level:", err);
+      errorAccess.value = err.data?.message || "Failed to update access level.";
+    } finally {
+      loadingAccess.value = false;
+    }
+  };
+
+  const inviteUser = async (username: string, role: BoardAccessRole) => {
+    if (!board.value?.board_id) return;
+    loadingAccess.value = true;
+    errorAccess.value = null;
+    try {
+      await $fetch(`/api/board/${board.value.board_id}/invite`, {
+        method: "POST",
+        body: { username, role },
+      });
+      await fetchAccessDetails(board.value.board_id);
+    } catch (err: any) {
+      console.error("Failed to invite user:", err);
+      errorAccess.value = err.data?.message || "Failed to invite user.";
+      throw err;
+    } finally {
+      loadingAccess.value = false;
+    }
   };
 
   const setSelectedId = (id: string | null) => {
@@ -228,7 +375,7 @@ export const useBoardStore = defineStore("board", () => {
   const deleteSelected = () => {
     if (!board.value || !selectedId.value) return;
 
-    let curItem = null;
+    let curItem: BoardItem | null = null;
 
     board.value.data.items = board.value.data.items.filter((item) => {
       if (item.id !== selectedId.value) return true;
@@ -237,15 +384,16 @@ export const useBoardStore = defineStore("board", () => {
     });
 
     if (
-      (curItem && curItem.kind === "image") ||
-      (curItem && curItem?.kind === "audio") ||
-      (curItem && curItem?.kind === "file")
+      curItem &&
+      (curItem.kind === "image" ||
+        curItem.kind === "audio" ||
+        curItem.kind === "file") &&
+      curItem.content?.url
     ) {
-      fetch(`/api/upload/delete`, {
+      $fetch(`/api/upload/delete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file_url: curItem.content.url }),
-      });
+        body: { file_url: curItem.content.url },
+      }).catch((err) => console.error("Failed to delete uploaded file:", err));
     }
 
     selectedId.value = null;
@@ -255,91 +403,117 @@ export const useBoardStore = defineStore("board", () => {
   const setBoardTitle = (title: string) => {
     if (!board.value) return;
     board.value.data.title = title;
-    boards.value[board.value.board_id].title = title;
+    if (boards.value[board.value.board_id]) {
+      boards.value[board.value.board_id].title = title;
+    }
     debouncedSaveBoard();
   };
 
   const saveBoard = async () => {
     if (!board.value) return;
+    error.value = null;
 
     let { data, board_id } = unref(board.value);
-    let encrypted: any | null = null;
+    let dataToSend: any = data;
 
     if (password.value) {
-      encrypted = await encrypt(data, password.value);
-      isEncrypted.value = true;
+      try {
+        dataToSend = await encrypt(data, password.value);
+        isEncrypted.value = true;
+      } catch (encErr) {
+        console.error("Encryption failed during save:", encErr);
+        error.value = "Encryption failed. Board not saved.";
+        return;
+      }
+    } else {
+      isEncrypted.value = false;
     }
 
     try {
-      const response = await fetch(`/api/save/${board_id}`, {
+      await $fetch(`/api/save/${board_id}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ board_id, data: encrypted || data }),
+        body: { board_id, data: dataToSend },
       });
-
-      if (!response.ok) throw new Error("Failed to save board");
-    } catch (err) {
-      error.value = "Failed to save board";
-      console.error(err);
+    } catch (err: any) {
+      console.error("Failed to save board:", err);
+      error.value = err.data?.message || "Failed to save board.";
+      if (err.response?.status === 403) {
+        error.value = "Permission denied. You might not have edit access.";
+      }
     }
   };
 
   const deleteBoard = async () => {
     if (!board.value) return;
+    error.value = null;
 
     try {
-      const response = await fetch(`/api/board/${board.value.board_id}`, {
+      await $fetch(`/api/board/${board.value.board_id}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to delete board");
 
-      // Remove board from local storage
       delete boards.value[board.value.board_id];
+      delete settings.value[board.value.board_id];
+
       board.value = null;
       selectedId.value = null;
-      // redirect to old board
-      const lastBoardId = Object.keys(boards.value).pop();
-      if (lastBoardId) {
-        await navigateTo(`/board/${lastBoardId}`);
-      } else {
-        await navigateTo("/home");
-      }
-    } catch (err) {
-      error.value = "Failed to delete board";
-      console.error(err);
-    }
-  };
-
-  const toggleEncryption = async () => {
-    if (!password.value) {
-      showPasswordDialog.value = true;
-      return;
-    }
-    if (isEncrypted.value === true) {
       password.value = null;
       isEncrypted.value = false;
-    }
-    saveBoard();
-  };
-  // Create debounced version of saveBoard
-  const debouncedSaveBoard = debounce(saveBoard, 3000);
+      accessList.value = [];
+      boardAccessLevel.value = null;
+      boardOwnerId.value = null;
+      isOwner.value = false;
 
-  useHead({
-    title: computed(() => `${board.value?.data.title || "TackPad"} | TackPad`),
-  });
+      const remainingBoardIds = Object.keys(boards.value);
+      if (remainingBoardIds.length > 0) {
+        const lastBoardId =
+          boards.value[remainingBoardIds[remainingBoardIds.length - 1]]
+            .board_id;
+        await navigateTo(`/board/${lastBoardId}`);
+      }
+    } catch (err: any) {
+      console.error("Failed to delete board:", err);
+      error.value = err.data?.message || "Failed to delete board.";
+      if (err.response?.status === 403) {
+        error.value = "Permission denied. Only the owner can delete the board.";
+      }
+    }
+  };
+
+  const toggleEncryption = async (newPassword?: string) => {
+    if (!board.value) return;
+
+    if (isEncrypted.value) {
+      password.value = null;
+      isEncrypted.value = false;
+      console.log("Board encryption disabled.");
+      await saveBoard();
+    } else {
+      if (!newPassword) {
+        console.warn("Password needed to enable encryption.");
+        showPasswordDialog.value = true;
+        return;
+      }
+      password.value = newPassword;
+      isEncrypted.value = true;
+      showPasswordDialog.value = false;
+      console.log("Board encryption enabled.");
+      await saveBoard();
+    }
+  };
 
   function addBoardItem(item: BoardItem) {
     if (!board.value) return;
     item.displayName =
       item.displayName ||
       getDisplayName(
-        (item.kind === "tacklet" && item.content.tackletId) || item.kind,
+        (item.kind === "tacklet" && item.content.tackletId) || item.kind
       );
     board.value.data.items.push(item);
     debouncedSaveBoard();
   }
 
-  async function backupBoards(boardsToExport) {
+  async function backupBoards(boardsToExport: any) {
     const res = await fetch("/api/backup/export", {
       method: "POST",
       headers: {
@@ -362,6 +536,44 @@ export const useBoardStore = defineStore("board", () => {
       message: "Boards backed up successfully",
     };
   }
+
+  // Debounced save action
+  const debouncedSaveBoard = debounce(saveBoard, 3000);
+
+  // Set page title
+  useHead({
+    title: computed(() => `${board.value?.data.title || "TackPad"} | TackPad`),
+  });
+
+  // === Computed properties (DEDUPLICATED) ===
+  const canEdit = computed(() => {
+    if (!board.value || !currentUserProfileId.value) return false;
+    if (isOwner.value) return true;
+
+    const userAccess = accessList.value.find(
+      (u) => u.profileId === currentUserProfileId.value
+    );
+    return userAccess?.role === "editor";
+  });
+
+  const canView = computed(() => {
+    if (!board.value) return false;
+    if (canEdit.value) return true;
+
+    if (
+      boardAccessLevel.value === "public" ||
+      boardAccessLevel.value === "view_only"
+    ) {
+      return true;
+    }
+
+    if (!currentUserProfileId.value) return false;
+    const userAccess = accessList.value.find(
+      (u) => u.profileId === currentUserProfileId.value
+    );
+    return !!userAccess;
+  });
+
   return {
     // State
     board,
@@ -384,6 +596,16 @@ export const useBoardStore = defineStore("board", () => {
     profileTab,
     isFilePickerVisible,
     isVoiceRecorderVisible,
+    boards: computed(() => boards.value),
+    settings: computed(() => settings.value),
+
+    // Access Control State
+    accessList,
+    boardAccessLevel,
+    boardOwnerId,
+    loadingAccess,
+    errorAccess,
+    currentUserProfileId,
 
     // Actions
     initializeBoard,
@@ -398,9 +620,18 @@ export const useBoardStore = defineStore("board", () => {
     deleteBoard,
     debouncedSaveBoard,
     toggleEncryption,
-    boards: computed(() => boards.value),
     addBoardItem,
-
     backupBoards,
+
+    // Access Control Actions
+    fetchAccessDetails,
+    updateUserRole,
+    removeUserAccess,
+    updateBoardAccessLevel,
+    inviteUser,
+
+    // Computed Permissions
+    canEdit,
+    canView,
   };
 });

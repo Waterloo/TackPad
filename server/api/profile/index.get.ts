@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
     id: result[0].Profile.id,
     firstName: result[0].Profile.firstName,
     email: result[0].Profile.email,
+    username: result[0].Profile.username,
     createdAt: result[0].Profile.createdAt,
     consumption: result[0].usage_quota?.consumption || 0,
     limit: result[0].usage_quota?.limit || 25000000,
