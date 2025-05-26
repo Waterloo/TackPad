@@ -466,7 +466,21 @@ const formatRoleText = (role: BoardAccessRole | "owner" | null): string => {
     }
 };
 const formatAccessLevelText = (level: BoardAccessLevel | null): string => {
-    /* ... */
+    if (!level) return "Unknown";
+    switch (level) {
+        case BoardAccessLevel.PUBLIC:
+            return "Public - Anyone can view and edit";
+        case BoardAccessLevel.LIMITED_EDIT:
+            return "Limited - Signed-in users can edit";
+        case BoardAccessLevel.PRIVATE_SHARED:
+            return "Private - Only invited users can access";
+        case BoardAccessLevel.VIEW_ONLY:
+            return "View Only - No one can edit";
+        case BoardAccessLevel.ADMIN_ONLY:
+            return "Admin Only - Only owner can access";
+        default:
+            return level;
+    }
 };
 
 // --- Watchers ---
