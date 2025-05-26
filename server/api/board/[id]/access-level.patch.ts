@@ -3,7 +3,8 @@ import {
   BOARD_ACCESS,
   BoardAccessLevel,
 } from "~/server/database/schema";
-import { useDrizzle, eq } from "~/server/utils/drizzle";
+-import { useDrizzle, eq } from "~/server/utils/drizzle";
++import { useDrizzle, eq, and, ne } from "~/server/utils/drizzle";
 
 export default defineEventHandler(async (event) => {
   const currentProfileId = event.context.session?.secure?.profileId;
