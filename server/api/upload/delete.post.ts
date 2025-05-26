@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   if (!authCount) {
     throw createError({
       statusCode: 403,
-      message: "Only authenticated users can upload files",
+      message: "Only authenticated users can delete files",
     });
   }
   const storage = useStorage("tackpad");
