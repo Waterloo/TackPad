@@ -413,7 +413,7 @@ async function canEditBoard(
       // Anyone can edit
       return true;
 
-    case BoardAccessLevel.LIMITED_EDIT:
+    case BoardAccessLevel.LIMITED_EDIT: {
       // Need to check if user has EDITOR or OWNER role
       const editorAccessRecord = await db.query.BOARD_ACCESS.findFirst({
         where: and(
@@ -423,6 +423,7 @@ async function canEditBoard(
         ),
       });
       return !!editorAccessRecord;
+    }
 
     case BoardAccessLevel.PRIVATE_SHARED:
       // Need to check user's role in BOARD_ACCESS
