@@ -58,45 +58,50 @@ export const useProfileStore = defineStore("profile", () => {
     }
   };
 
-  /**
-   * Updates the current user's profile details.
-   * Sends only the fields provided in the payload.
-   * Intended for setting email/username for the first time or updating firstName.
-   * @param payload - An object containing the fields to update (firstName, email, username).
-   * @returns A Promise resolving to the updated UserDetails object on success, or null on failure.
-   */
   const updateProfile = async (
     payload: ProfileUpdatePayload,
-  ): Promise<UserDetails | null> => {
+  ): Promise<{ data: UserDetails | null; error?: { message: string; field?: string } }> => {
     // Ensure there's actually something to update
     if (!payload || Object.keys(payload).length === 0) {
       console.warn("updateProfile called with empty payload.");
-      // Or throw an error, depending on desired behavior
-      return null; // Nothing to do
+      return {
+        data: null,
+        error: { message: "No valid fields to update" }
+      };
     }
 
     try {
       // Use Nuxt's $fetch to call the PATCH endpoint
-      // The backend returns the updated profile, matching UserDetails structure
       const updatedUser = await $fetch<UserDetails>("/api/profile", {
         method: "PATCH",
         body: payload, // Send only the fields needing update/setting
       });
 
-      // Optional: If you store the current user's details in this store,
-      // update them here. Example (assuming you add a currentUser ref):
-      // currentUser.value = { ...currentUser.value, ...updatedUser };
-
-      return updatedUser; // Return the updated profile data from the API
+      return { data: updatedUser };
     } catch (error: any) {
-      // Catch specific errors if needed (e.g., from createError)
       console.error("Error updating profile:", error);
-      // You might want to inspect error.data or error.statusCode
-      // to provide more specific feedback to the user
-      // e.g., if (error.statusCode === 409) { show message "Username taken" }
-      return null; // Indicate failure
+
+      // Extract error information from the API response
+      const errorMessage = error.data?.message || "Update failed. Please try again.";
+      const field = getFieldFromErrorMessage(errorMessage);
+
+      return {
+        data: null,
+        error: { message: errorMessage, field }
+      };
     }
   };
+
+  // Helper function to determine which field an error relates to
+  function getFieldFromErrorMessage(message: string): string | undefined {
+    if (message.includes("Username already taken") || message.includes("Username can only be set")) {
+      return "username";
+    }
+    if (message.includes("Email can only be set")) {
+      return "email";
+    }
+    return undefined;
+  }
   return {
     // Existing state and actions
     isProfileOpen,
@@ -109,5 +114,6 @@ export const useProfileStore = defineStore("profile", () => {
     // New action
     fetchUsersByUsername,
     updateProfile,
+    getFieldFromErrorMessage
   };
 });
