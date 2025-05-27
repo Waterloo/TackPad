@@ -3,6 +3,7 @@ import { getRandomBoardName } from "~/server/utils/boardNames";
 import {
   BOARDS,
   BOARD_ACCESS,
+  PROFILE,
   BoardAccessRole,
   BoardAccessLevel,
 } from "~/server/database/schema";
@@ -60,10 +61,45 @@ export default defineEventHandler(async (event) => {
 
   // --- 3. Handle Board Existence ---
   if (boardData) {
-    // --- Scenario: Board Exists ---
     console.debug(`[Board GET] Found board: ${boardData.board_id}`);
 
-    // Determine ownership
+    // --- CHECK FOR ORPHANED BOARD ---
+    // An orphaned board has no owner_id or references a non-existent profile
+    let isOrphanedBoard = false;
+
+    if (!boardData.owner_id) {
+      isOrphanedBoard = true;
+      console.log(`[Board GET] Found orphaned board (no owner_id): ${boardData.board_id}`);
+    } else {
+      // Check if owner profile exists
+      const ownerProfile = await db.query.PROFILE.findFirst({
+        where: eq(PROFILE.id, boardData.owner_id)
+      });
+      if (!ownerProfile) {
+        isOrphanedBoard = true;
+        console.log(`[Board GET] Found orphaned board (invalid owner_id): ${boardData.board_id}`);
+      }
+    }
+
+    // --- CLAIM ORPHANED BOARD if authenticated ---
+    if (isOrphanedBoard && profileId) {
+      console.log(`[Board GET] Claiming orphaned board ${boardData.board_id} for profile ${profileId}`);
+
+      // Update the board's owner_id
+      await db.update(BOARDS)
+        .set({ owner_id: profileId })
+        .where(eq(BOARDS.board_id, boardData.board_id));
+
+      // Refresh board data after claiming
+      const refreshedResult = await db
+        .select()
+        .from(BOARDS)
+        .where(eq(BOARDS.board_id, boardData.board_id))
+        .limit(1);
+      boardData = refreshedResult[0];
+    }
+
+    // Determine ownership (now includes claimed boards)
     isOwner = !!profileId && boardData.owner_id === profileId;
 
     // --- 3a. Access Control Check ---
@@ -264,6 +300,17 @@ export default defineEventHandler(async (event) => {
 
 // Helper function to sanitize board IDs
 function makeUrlSafe(str: string): string {
+  // For new board IDs that start with "BOARD-", preserve case
+  if (str.toUpperCase().startsWith("BOARD-")) {
+    return str
+      .replace(/\s+/g, "-")
+      .replace(/[^\w\-]+/g, "")
+      .replace(/\-\-+/g, "-")
+      .replace(/^-+/, "")
+      .replace(/-+$/, "");
+  }
+
+  // For other IDs or when looking up existing boards, convert to lowercase for case-insensitive matching
   return str
     .toLowerCase()
     .replace(/\s+/g, "-")
@@ -272,6 +319,7 @@ function makeUrlSafe(str: string): string {
     .replace(/^-+/, "")
     .replace(/-+$/, "");
 }
+
 
 // Function to create and save a new board
 async function createAndSaveNewBoard(
