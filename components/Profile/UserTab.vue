@@ -24,112 +24,115 @@ const isProfileIncomplete = computed(() => {
 });
 
 // Fetch user profile data (Modified to store initial email/username)
+
 const fetchProfileData = async () => {
-    if (!loggedIn.value) return;
+  if (!loggedIn) return;
 
-    isLoading.value = true;
-    error.value = null;
-    profileData.value = null; // Clear previous data
+  isLoading.value = true;
+  error.value = null;
 
-    try {
-        // Use $fetch for better error handling and type inference with Nuxt 3
-        // Assuming GET /api/profile returns { id, firstName, email, username, createdAt, ... }
-        const profile = await $fetch("/api/profile");
+  try {
+    const response = await $fetch("/api/profile", {
+      method: "GET",
+    });
 
-        if (!profile) {
-            // Handle cases where the API might return empty/null unexpectedly
-            throw new Error("Received empty profile data");
-        }
+    // Add the initial tracking properties to the response
+    profileData.value = {
+      ...response,
+      initialEmail: response.email,     // Track initial email to disable field if already set
+      initialUsername: response.username, // Track initial username to disable field if already set
+      fieldErrors: {                     // Add field errors object
+        firstName: null,
+        username: null,
+        email: null
+      }
+    };
 
-        profileData.value = {
-            ...profile,
-            // Store initial values to check if they can be edited
-            initialEmail: profile.email,
-            initialUsername: profile.username,
-        };
-    } catch (err) {
-        console.error("Error fetching profile:", err);
-        // Use error data from $fetch if available (e.g., err.data from createError)
-        if (err.statusCode === 401 || err.statusCode === 403) {
-            error.value =
-                "Authentication error. Please sign out and sign back in.";
-        } else if (err.statusCode === 404) {
-            error.value = "Profile not found. It might need to be created.";
-            // Potentially guide the user or automatically create one if applicable
-        } else {
-            error.value = err.data?.message || "Unable to load profile data";
-        }
-        profileData.value = null; // Ensure profileData is null on error
-    } finally {
-        isLoading.value = false;
-    }
+    isLoading.value = false;
+  } catch (e) {
+    console.error("Error fetching profile:", e);
+    isLoading.value = false;
+    error.value = "Failed to load profile data. Please try again.";
+  }
 };
-
 // --- 3. Use Store Action to Update Profile ---
+
 const updateProfile = async () => {
-    if (!profileData.value) return;
+  if (!profileData.value) return;
 
-    updateStatus.value = { loading: true, success: false, error: null };
+  // Reset all field errors
+  profileData.value.fieldErrors = {
+    firstName: null,
+    username: null,
+    email: null
+  };
 
-    // Construct the payload with only the necessary fields
-    const payload = {};
-    // Always allow firstName update (or add check if it changed if desired)
-    if (profileData.value.firstName !== undefined) {
-        // Or check against an initialFirstName if needed
-        payload.firstName = profileData.value.firstName;
-    }
-    // Only include email if it's being set for the first time
-    if (!profileData.value.initialEmail && profileData.value.email) {
-        payload.email = profileData.value.email;
-    }
-    // Only include username if it's being set for the first time
-    if (!profileData.value.initialUsername && profileData.value.username) {
-        payload.username = profileData.value.username;
-    }
+  updateStatus.value = { loading: true, success: false, error: null };
 
-    // Don't call API if nothing needs updating
-    if (Object.keys(payload).length === 0) {
-        updateStatus.value = {
-            loading: false,
-            success: false,
-            error: "No changes to save.",
-        };
-        // Clear error message after a delay
-        setTimeout(() => {
-            if (updateStatus.value.error === "No changes to save.") {
-                updateStatus.value.error = null;
-            }
-        }, 3000);
-        return;
-    }
+  // Construct the payload with only the necessary fields
+  const payload = {};
+  // Always allow firstName update (or add check if it changed if desired)
+  if (profileData.value.firstName !== undefined) {
+    // Or check against an initialFirstName if needed
+    payload.firstName = profileData.value.firstName;
+  }
+  // Only include email if it's being set for the first time
+  if (!profileData.value.initialEmail && profileData.value.email) {
+    payload.email = profileData.value.email;
+  }
+  // Only include username if it's being set for the first time
+  if (!profileData.value.initialUsername && profileData.value.username) {
+    payload.username = profileData.value.username;
+  }
 
-    const updatedProfile = await profileStore.updateProfile(payload);
+  // Don't call API if nothing needs updating
+  if (Object.keys(payload).length === 0) {
+    updateStatus.value = {
+      loading: false,
+      success: false,
+      error: "No changes to save.",
+    };
+    // Clear error message after a delay
+    setTimeout(() => {
+      if (updateStatus.value.error === "No changes to save.") {
+        updateStatus.value.error = null;
+      }
+    }, 3000);
+    return;
+  }
 
-    if (updatedProfile) {
-        // Success: Update local state with the response from the store/API
-        profileData.value = {
-            ...profileData.value, // Keep existing fields like createdAt etc.
-            ...updatedProfile, // Overwrite with updated data (id, firstName, email, username)
-            // Re-set initial values based on the successful update
-            initialEmail: updatedProfile.email,
-            initialUsername: updatedProfile.username,
-        };
-        updateStatus.value = { loading: false, success: true, error: null };
-        // Reset success status after 3 seconds
-        setTimeout(() => {
-            updateStatus.value.success = false;
-        }, 3000);
-    } else {
-        // Failure: Store action returned null, check console for specific error from store
-        // You could potentially grab a more specific error message if the store provided one
-        updateStatus.value = {
-            loading: false,
-            success: false,
-            error: "Update failed. Check console or try again.",
-        }; // Generic message
-        // More specific error handling could be added here based on error types/codes if the store exposed them
+  const result = await profileStore.updateProfile(payload);
+
+  if (result.data) {
+    // Success: Update local state with the response from the store/API
+    profileData.value = {
+      ...profileData.value, // Keep existing fields like createdAt etc.
+      ...result.data, // Overwrite with updated data (id, firstName, email, username)
+      // Re-set initial values based on the successful update
+      initialEmail: result.data.email,
+      initialUsername: result.data.username,
+      fieldErrors: { firstName: null, username: null, email: null } // Clear any field errors
+    };
+    updateStatus.value = { loading: false, success: true, error: null };
+    // Reset success status after 3 seconds
+    setTimeout(() => {
+      updateStatus.value.success = false;
+    }, 3000);
+  } else if (result.error) {
+    // Handle specific field errors
+    updateStatus.value = {
+      loading: false,
+      success: false,
+      error: result.error.field ? null : result.error.message, // Only show generic error if no field is specified
+    };
+
+    // If we have a field-specific error, update the field error
+    if (result.error.field && profileData.value.fieldErrors) {
+      profileData.value.fieldErrors[result.error.field] = result.error.message;
     }
+  }
 };
+
 // --- End Store Action Usage ---
 
 // Watch for login state changes
@@ -306,48 +309,38 @@ const handleSignOut = async () => {
 
                     <!-- 5. Username Input Field -->
                     <div>
-                        <label
-                            for="username"
-                            class="block text-sm font-medium text-gray-700 mb-1"
-                            >Username</label
-                        >
+                        <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
                         <div class="relative rounded-md shadow-sm">
-                            <div
-                                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-                            >
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 sm:text-sm">@</span>
                             </div>
                             <input
                                 id="username"
                                 type="text"
                                 v-model="profileData.username"
-                                class="w-full px-3 py-2 pl-7 border border-gray-300 rounded-md bg-white text-gray-800"
-                                :disabled="!!profileData.initialUsername"
+                                class="w-full px-3 py-2 pl-7 border rounded-md bg-white text-gray-800"
                                 :class="{
-                                    'cursor-not-allowed opacity-75':
-                                        !!profileData.initialUsername,
+                                    'cursor-not-allowed opacity-75': !!profileData.initialUsername,
+                                    'border-red-500': profileData.fieldErrors?.username,
+                                    'border-gray-300': !profileData.fieldErrors?.username
                                 }"
+                                :disabled="!!profileData.initialUsername"
                                 placeholder="Choose a username"
                                 autocomplete="username"
                                 aria-describedby="username-description"
                             />
                         </div>
-                        <p
-                            id="username-description"
-                            class="text-xs text-gray-500 mt-1"
-                            v-if="!!profileData.initialUsername"
-                        >
+                        <p v-if="profileData.fieldErrors?.username" class="mt-1 text-sm text-red-600" id="username-error">
+                            {{ profileData.fieldErrors.username }}
+                        </p>
+                        <p id="username-description" class="text-xs text-gray-500 mt-1" v-else-if="!!profileData.initialUsername">
                             Username cannot be changed once set.
                         </p>
-                        <p
-                            id="username-description"
-                            class="text-xs text-gray-500 mt-1"
-                            v-else
-                        >
-                            Choose your unique username (cannot be changed
-                            later).
+                        <p id="username-description" class="text-xs text-gray-500 mt-1" v-else>
+                            Choose your unique username (cannot be changed later).
                         </p>
                     </div>
+
                     <!-- End Username Input -->
                     <div>
                         <UsageIndicator
