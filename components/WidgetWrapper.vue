@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { templateRef } from "@vueuse/core";
-import { is } from "drizzle-orm";
 import { useItemInteraction } from "~/composables/useItemInteraction";
 import { useBoardStore } from "~/stores/board";
 
@@ -57,7 +55,8 @@ const {
         minHeight: 120,
         grid: 1,
     },
-    props.kind
+    props.kind,
+    props.itemId
 );
 
 const showMenu = ref(false);
@@ -171,7 +170,7 @@ const boardStore = useBoardStore()
         v-if="!props.isLocked"
         class="drag-handle-horizontal"
         :class="`${kind!=='image' ? '' : !contrastColor ? 'drag-handle-contrast' : ''}`"
-        :style="`${kind==='selection'?'width:80px;height:20px;':''}`"
+        :style="`${kind==='selection' || kind==='group' ?'width:80px;height:20px;':''}`"
         title="Drag to move"
         @pointerdown.stop.prevent="startMove"
         @mouseover="showMenu = true"
@@ -241,7 +240,7 @@ const boardStore = useBoardStore()
 
         <div
             v-if="!props.isLocked"
-            class="resize-handle"
+            class="resize-handle pointer-events-auto"
             title="Resize"
             @pointerdown.stop.prevent="startResize('se', $event)"
         ></div>

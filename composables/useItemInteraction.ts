@@ -1,7 +1,6 @@
-import { ref, computed, watch } from 'vue'
-import { useEventListener } from '@vueuse/core'
 import { useBoardStore } from '~/stores/board'
 import { useItemStore } from '~/stores/itemStore'
+import { useGroupStore } from '~/stores/groupStore'
 
 interface Position {
   x: number
@@ -24,9 +23,11 @@ export function useItemInteraction(
     grid: 1
   },
    kind: string,
+   itemId: string | null
 ) {
   const boardStore = useBoardStore()
   const itemStore = useItemStore()
+  const groupStore = useGroupStore()
   const isMoving = ref(false)
   const isResizing = ref(false)
   const startPos = ref<Point>({ x: 0, y: 0 })
@@ -95,6 +96,30 @@ export function useItemInteraction(
         }
       });
     }
+    // Store initial positions when group movement starts
+    if (kind === "group" && itemId) {
+      // Reset the initial positions object
+      selectedItemsInitialPositions.value = {};
+
+      // Find the group item
+      const groupItem = boardStore.board?.data.items.find(
+        (item) => item.id === itemId && item.kind === "group"
+      );
+
+      if (groupItem && groupItem.content && groupItem.content.itemIds) {
+        groupItem.content.itemIds.forEach((groupedItemId) => {
+          const item = boardStore.board?.data.items.find(
+            (item) => item.id === groupedItemId,
+          );
+          if (item) {
+            selectedItemsInitialPositions.value[groupedItemId] = {
+              x: item.x_position,
+              y: item.y_position,
+            };
+          }
+        });
+      }
+    }
     // Set pointer capture for better tracking
     if (elementRef.value) {
       elementRef.value.setPointerCapture(e.pointerId)
@@ -143,7 +168,16 @@ export function useItemInteraction(
         y: newY,
       };
       onUpdate({ x: newX, y: newY });
-
+      // Process group interactions for non-group items during movement
+          if (kind !== 'group' && kind !== 'selection' && itemId) {
+            const itemRect = {
+              x: newX,
+              y: newY,
+              width: currentPos.value.width,
+              height: currentPos.value.height
+            }
+            groupStore.processGroupInteractions(itemId, itemRect)
+          }
       // If this is the selection box, move all selected items along with it
       if (kind === "selection") {
         // Calculate the movement delta
@@ -170,7 +204,38 @@ export function useItemInteraction(
           }
         });
       }
-    }
+      // If this is a group, move all grouped items along with it
+        if (kind === "group" && itemId) {
+          // Calculate the movement delta
+          const deltaX = newX - initialPos.value.x;
+          const deltaY = newY - initialPos.value.y;
+
+          // Find the group item and get its contained items
+          const groupItem = boardStore.board?.data.items.find(
+            (item) => item.id === itemId && item.kind === "group"
+          );
+
+          if (groupItem && groupItem.content && groupItem.content.itemIds) {
+            // For each grouped item, update its position using the delta
+            groupItem.content.itemIds.forEach((groupedItemId) => {
+              const itemInitialPos = selectedItemsInitialPositions.value[groupedItemId];
+              if (itemInitialPos) {
+                const itemNewX =
+                  Math.round((itemInitialPos.x + deltaX) / options.grid) *
+                  options.grid;
+                const itemNewY =
+                  Math.round((itemInitialPos.y + deltaY) / options.grid) *
+                  options.grid;
+                itemStore.updateItemPosition(groupedItemId, {
+                  x: itemNewX,
+                  y: itemNewY,
+                });
+              }
+            });
+          }
+        }
+  }
+
 
     // Add back the resize handling code
     if (isResizing.value && resizeHandle.value) {

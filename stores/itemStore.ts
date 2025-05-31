@@ -1,6 +1,7 @@
 // stores/itemStore.ts
 import { defineStore } from "pinia";
 import { useBoardStore } from "./board";
+ import { useGroupStore } from "./groupStore"
 import type { BoardItem, Position } from "~/types/board";
 import { update } from "lodash";
 
@@ -16,6 +17,7 @@ export const useItemStore = defineStore("items", () => {
 
   // Get reference to the board store
   const boardStore = useBoardStore();
+   const groupStore = useGroupStore();
   const snapLines = ref([]);
 
   const getItemById = (itemIds: string[]) => {
@@ -75,7 +77,8 @@ export const useItemStore = defineStore("items", () => {
 
     const selectedItemIds = boardStore.selectedId.filter((id)=> id!=='SELECTION-BOX')
     const items = getItemById(selectedItemIds)
-    return items ?? [];
+    const allItems = items ?? [];
+    return groupStore.filterItemsNotInGroups(allItems);
 
   }
 
@@ -87,6 +90,24 @@ export const useItemStore = defineStore("items", () => {
 
     const item = boardStore.board.data.items.find((item) => item.id === itemId);
     if (item) {
+
+           // If this is a group, calculate the movement delta and move contained items
+           if (item.kind === 'group' && (position.x_position !== undefined || position.y_position !== undefined)) {
+             const deltaX = (position.x_position !== undefined) ? position.x_position - item.x_position : 0;
+             const deltaY = (position.y_position !== undefined) ? position.y_position - item.y_position : 0;
+
+             // Move all items in the group by the same delta
+             if (deltaX !== 0 || deltaY !== 0) {
+               const groupData = item as any; // Cast to access group-specific properties
+               groupData.content?.itemIds?.forEach((containedItemId: string) => {
+                 const containedItem = boardStore.board!.data.items.find(i => i.id === containedItemId);
+                 if (containedItem) {
+                   containedItem.x_position += deltaX;
+                   containedItem.y_position += deltaY;
+                 }
+               });
+             }
+           }
       if (position.x_position !== undefined) item.x_position = position.x_position;
       if (position.y_position !== undefined) item.y_position = position.y_position;
       if (position.width !== undefined) item.width = position.width;

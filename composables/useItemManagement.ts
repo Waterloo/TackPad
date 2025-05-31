@@ -1,16 +1,22 @@
+
 import { useBoardStore } from '~/stores/board';
 import {useNoteStore} from '~/stores/noteStore'
 import {useTodoStore} from '~/stores/todoStore'
 import {useTimerStore} from '~/stores/timerStore'
 import {useTextWidgetStore} from '~/stores/textWidgetStore'
 import { useItemStore } from '~/stores/itemStore';
+import { useGroupStore } from '~/stores/groupStore';
 import { usePanZoom } from '~/composables/usePanZoom';
+
+
+
 
 export function useItemManagement() {
   const boardStore = useBoardStore();
     const noteStore = useNoteStore();
     const todoStore = useTodoStore();
     const timerStore = useTimerStore();
+    const groupStore = useGroupStore()
     const textWidgetStore=useTextWidgetStore()
     const itemStore = useItemStore()
     const { scale, translateX, translateY } = usePanZoom();
@@ -97,7 +103,14 @@ export function useItemManagement() {
   const updateItemDisplayName = (itemId: string, displayName: string) => {
     itemStore.updateItem(itemId, { displayName: displayName });
   };
+  // Group management functions
+  const createGroup = () => {
+    return groupStore.createGroupFromSelected();
+  };
 
+  const ungroupItems = (groupId: string) => {
+    groupStore.ungroupItems(groupId);
+  };
   // Helper function to calculate center position
   const calculateCenterPosition = (width: number, height: number, itemType: string = '') => {
     // Get the current viewport center in board coordinates
@@ -144,6 +157,8 @@ export function useItemManagement() {
     updateItemPosition,
     toggleLock,
     calculateCenterPosition,
-    updateItemDisplayName
+    updateItemDisplayName,
+    createGroup,
+     ungroupItems
   };
 }

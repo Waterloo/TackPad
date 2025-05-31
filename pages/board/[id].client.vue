@@ -107,8 +107,6 @@ definePageMeta({
     alias: "/",
 });
 
-
-
 const computedDotScale = computed(() => `${scale.value * 3}px`);
 
 const computedDotScaleWidth = computed(() => `${scale.value * 50}px`);
@@ -271,10 +269,12 @@ function handleBoardClick(e) {
                         :key="item.id"
                         :item-id="item.id"
                         :display-name="item.displayName"
+
                         :style="{
                             pointerEvents:
-                                item.kind === 'selection' ? 'none' : 'auto',
+                                item.kind === 'selection' || item.kind === 'group' ? 'none' : 'auto',
                         }"
+
                         :position="{
                             x: item.x_position,
                             y: item.y_position,
@@ -310,10 +310,15 @@ function handleBoardClick(e) {
                     >
                         <SelectBox
                             v-if="item.kind === 'selection'"
-                                                  mode="select"
-                                                  :itemId="item.id"
-                                                  :key="item.id"
-                                              />
+                            mode="select"
+                            :itemId="item.id"
+                            :key="item.id"
+                        />
+                        <GroupBox
+                            v-else-if="item.kind === 'group'"
+                            :itemId="item.id"
+                            :key="item.id"
+                        />
                         <StickyNote
                             v-if="item.kind === 'note'"
                             :item-id="item.id"
@@ -434,7 +439,6 @@ function handleBoardClick(e) {
                             :file-url="item.content.url"
                             :is-selected="boardStore.selectedId === item.id"
                         />
-
                     </WidgetWrapper>
                 </template>
                 <div class="alignment-overlay">
@@ -487,7 +491,10 @@ function handleBoardClick(e) {
         <BoardPasswordDialog />
         <OfflineIndicator />
         <BackupAlertBanner />
-        <DeleteItemConfirm v-model="itemStore.deleteItemConfirm" @delete="handleDelete" />
+        <DeleteItemConfirm
+            v-model="itemStore.deleteItemConfirm"
+            @delete="handleDelete"
+        />
         <ZoomControls class="fixed right-2 bottom-16 z-10" />
         <ErrorModal
             v-model="isErrorModalVisible"
