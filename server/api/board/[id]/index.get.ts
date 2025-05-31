@@ -44,18 +44,22 @@ export default defineEventHandler(async (event) => {
   // --- 2. Fetch existing board OR handle creation intent ---
   if (requestedId !== "create") {
     boardId = makeUrlSafe(requestedId);
+    if (!boardId || requestedId === undefined) {
+        throw createError({
+          statusCode: 400,
+          message: "Board ID is required and cannot be empty",
+        });
+      }
+
     console.debug(`[Board GET] Looking up board: ${boardId}`);
-    const result = await db
-      .select()
-      .from(BOARDS)
-      .where(
-        boardId
-          ? sql`lower(${BOARDS.board_id}) = lower(${boardId})`
-          : undefined,
-      )
-      .limit(1);
-    boardData = result[0] ?? null;
-  } else {
+     const result = await db
+       .select()
+       .from(BOARDS)
+       .where(eq(BOARDS.board_id, boardId))
+       .limit(1);
+     boardData = result[0] ?? null;
+
+   }else {
     boardData = null; // Signal that we need to create
   }
 
