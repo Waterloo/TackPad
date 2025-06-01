@@ -29,8 +29,14 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // --- 1. Get Profile ID from Middleware Context ---
+  // --- INPUT VALIDATION ---
   const profileId = event.context.session?.secure?.profileId;
+  if (profileId !== undefined && (typeof profileId !== 'string' || !profileId.trim())) {
+    throw createError({
+      statusCode: 401,
+      message: "Invalid session data",
+    });
+  }
 
   const db = useDrizzle();
   let boardData: Board | null = null;
