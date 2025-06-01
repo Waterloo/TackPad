@@ -89,18 +89,39 @@ export default defineEventHandler(async (event) => {
     if (isOrphanedBoard && profileId) {
       console.log(`[Board GET] Claiming orphaned board ${boardData.board_id} for profile ${profileId}`);
 
-      // Update the board's owner_id
-      await db.update(BOARDS)
-        .set({ owner_id: profileId })
-        .where(eq(BOARDS.board_id, boardData.board_id));
+      try {
+        // Use conditional update - only claim if still orphaned
+        const claimResult = await db.update(BOARDS)
+          .set({ owner_id: profileId })
+          .where(and(
+            eq(BOARDS.board_id, boardData.board_id),
+            sql`owner_id IS NULL` // Only update if still null
+          ))
+          .returning();
 
-      // Refresh board data after claiming
-      const refreshedResult = await db
-        .select()
-        .from(BOARDS)
-        .where(eq(BOARDS.board_id, boardData.board_id))
-        .limit(1);
-      boardData = refreshedResult[0];
+        if (claimResult.length > 0) {
+          boardData = claimResult[0];
+          console.log(`[Board GET] Successfully claimed board ${boardData.board_id}`);
+        } else {
+          // Board was already claimed, re-fetch current state
+          console.log(`[Board GET] Board was already claimed by someone else`);
+          const refreshedResult = await db
+            .select()
+            .from(BOARDS)
+            .where(eq(BOARDS.board_id, boardData.board_id))
+            .limit(1);
+          boardData = refreshedResult[0];
+        }
+      } catch (claimError: any) {
+        console.error(`[Board GET] Error during board claiming:`, claimError.message);
+        // Re-fetch current state on error
+        const refreshedResult = await db
+          .select()
+          .from(BOARDS)
+          .where(eq(BOARDS.board_id, boardData.board_id))
+          .limit(1);
+        boardData = refreshedResult[0];
+      }
     }
 
     // Determine ownership (now includes claimed boards)
