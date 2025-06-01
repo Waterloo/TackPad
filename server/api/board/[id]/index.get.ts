@@ -306,26 +306,13 @@ export default defineEventHandler(async (event) => {
 
 // Helper function to sanitize board IDs
 function makeUrlSafe(str: string): string {
-  // For new board IDs that start with "BOARD-", preserve case
-  if (str.toUpperCase().startsWith("BOARD-")) {
-    return str
-      .replace(/\s+/g, "-")
-      .replace(/[^\w\-]+/g, "")
-      .replace(/\-\-+/g, "-")
-      .replace(/^-+/, "")
-      .replace(/-+$/, "");
-  }
-
-  // For other IDs or when looking up existing boards, convert to lowercase for case-insensitive matching
   return str
-    .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "")
     .replace(/\-\-+/g, "-")
     .replace(/^-+/, "")
     .replace(/-+$/, "");
 }
-
 
 // Function to create and save a new board
 async function createAndSaveNewBoard(
