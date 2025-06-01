@@ -160,12 +160,17 @@ export default defineEventHandler(async (event) => {
           ),
         });
 
-        // Determine the appropriate role
-        let role = existingAccess?.role || BoardAccessRole.VIEWER;
-
-        // If user is owner but not marked as owner in access records, ensure OWNER role
-        if (isOwner && role !== BoardAccessRole.OWNER) {
+        // Determine the appropriate role securely
+        let role: string;
+        if (isOwner) {
+          // Owner always gets OWNER role
           role = BoardAccessRole.OWNER;
+        } else if (existingAccess?.role && existingAccess.role !== BoardAccessRole.OWNER) {
+          // Preserve existing role for non-owners (but never allow OWNER for non-owners)
+          role = existingAccess.role;
+        } else {
+          // Default for new non-owner access
+          role = BoardAccessRole.VIEWER;
         }
 
         // Attempt to insert/update the access record and set last_accessed
@@ -182,7 +187,8 @@ export default defineEventHandler(async (event) => {
             target: [BOARD_ACCESS.board_id, BOARD_ACCESS.profile_id],
             set: {
               last_accessed: now,
-              role: role, // Ensure role consistency
+              // Only allow role updates for owners, preserve existing role for others
+              ...(isOwner ? { role: BoardAccessRole.OWNER } : {}),
             },
           })
           .returning();
@@ -225,8 +231,7 @@ export default defineEventHandler(async (event) => {
       console.debug(
         `[Board GET] No profileId identified. Cannot fetch/update access record.`,
       );
-    }
-  } else {
+    }  } else {
     // --- Scenario: Board Does Not Exist (Create Request or Invalid ID) ---
 
     // Handle case where a specific ID was requested but not found
