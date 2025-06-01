@@ -53,12 +53,12 @@ export default defineEventHandler(async (event) => {
 
     console.debug(`[Board GET] Looking up board: ${boardId}`);
     const result = await db
-       .select()
-       .from(BOARDS)
-       .where(
-         sql`lower(${BOARDS.board_id}) = lower(${boardId})` // Keep case insensitive
-       )
-       .limit(1);
+      .select()
+      .from(BOARDS)
+      .where(
+        eq(sql`lower(${BOARDS.board_id})`, boardId.toLowerCase())
+      )
+      .limit(1);
      boardData = result[0] ?? null;
 
    }else {
