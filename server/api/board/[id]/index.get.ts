@@ -505,7 +505,10 @@ async function canEditBoard(
         where: and(
           eq(BOARD_ACCESS.board_id, board.board_id),
           eq(BOARD_ACCESS.profile_id, profileId),
-          sql`${BOARD_ACCESS.role} IN ('editor', 'owner')`,
+          or(
+            eq(BOARD_ACCESS.role, BoardAccessRole.EDITOR),
+            eq(BOARD_ACCESS.role, BoardAccessRole.OWNER)
+          )
         ),
       });
       return !!editorAccessRecord;
