@@ -131,6 +131,10 @@ const toggleTitleEdit = () => {
   }
 }
 
+const isMouseOver = ref(false);
+const showTitle = computed(() => {
+  return props.isSelected || isMouseOver.value || isTitleEditing.value
+})
 </script>
 
 <template>
@@ -154,6 +158,8 @@ const toggleTitleEdit = () => {
     @pointercancel.stop="stopInteraction"
     @pointerleave.stop="stopInteraction"
     @click.stop="$emit('select', props.itemId)"
+    @mouseover="isMouseOver = true"
+    @mouseleave="isMouseOver = false"
   >
 
     <div class="widget-header-minimal">
@@ -165,13 +171,17 @@ const toggleTitleEdit = () => {
         @pointerdown.stop.prevent="startMove"
         @mouseover="showMenu = true"
 
-      ></div>
-      <span v-if="!isTitleEditing" class="absolute left-0 -top-6 text-gray-400 inline-flex items-center" @dblclick="toggleTitleEdit" @touchend="toggleTitleEdit">{{ displayName }} <svg xmlns="http://www.w3.org/2000/svg" :class="!isSelected && 'hidden'" class="h-5 w-5 text-gray-300" viewBox="0 0 20 20"  style="fill: rgb(156,163,175);height: 1.1rem;">
-          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.379-8.379-2.828-2.828z"></path>
-        </svg></span>
-        <span v-else class="absolute left-0 -top-6 text-gray-400 inline-flex items-center">
-          <input ref="displayNameInput" v-model="displayName" @blur="toggleTitleEdit" @keyup.enter="toggleTitleEdit" class="flex-grow bg-transparent text-gray-400 border-b border-gray-300 focus:outline-none"/>
-        </span>
+      >
+      <div class="visible-handle"></div>
+    </div>
+      <template v-if="showTitle">
+          <span v-if="!isTitleEditing" class="absolute left-0 -top-6 text-gray-400 inline-flex items-center" @dblclick="toggleTitleEdit" @touchend="toggleTitleEdit">{{ displayName }} <svg xmlns="http://www.w3.org/2000/svg" :class="!isSelected && 'hidden'" class="h-5 w-5 text-gray-300" viewBox="0 0 20 20"  style="fill: rgb(156,163,175);height: 1.1rem;">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.379-8.379-2.828-2.828z"></path>
+            </svg></span>
+            <span v-else class="absolute left-0 -top-6 text-gray-400 inline-flex items-center">
+              <input ref="displayNameInput" v-model="displayName" @blur="toggleTitleEdit" @keyup.enter="toggleTitleEdit" class="flex-grow bg-transparent text-gray-400 border-b border-gray-300 focus:outline-none"/>
+            </span>
+      </template>
       <div
         class="flex justify-between w-full widget-controls"
         title="More Options"
@@ -309,21 +319,33 @@ const toggleTitleEdit = () => {
 .drag-handle-horizontal {
     position: absolute;
     left: 50%;
+    top:0;
     transform: translateX(-50%);
-    width: 32px;
-    height: 8px;
-    background: var(--handle-bg, rgba(0, 0, 0, 0.2));
+    width: 100%;
+    height: 20px;
     border-radius: 4px;
     cursor: grab;
     transition: var(--transition, all 0.25s ease);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
+.drag-handle-horizontal .visible-handle{
+    background: var(--handle-bg, rgba(0, 0, 0, 0.2));
+    width: 40px;
+    height: 8px;
+    border-radius: 4px;
+}
+
 .drag-handle-horizontal.drag-handle-contrast {
     background: rgba(255, 254, 254, 0.5);
 }
-.widget-moving .drag-handle-horizontal {
+.widget-moving .visible-handle {
     cursor: grabbing;
     background: var(--primary-color, #3498db);
 }
+
 
 .widget-content {
     flex: 1;
@@ -410,10 +432,6 @@ const toggleTitleEdit = () => {
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
-    .drag-handle-horizontal {
-        width: 80px;
-        height: 12px;
-    }
 
     .resize-handle {
         width: 24px;
