@@ -1,6 +1,8 @@
 // When a user first creates content (their first board)
+// TackPad/server/utils/tokenManagement.ts
 import { nanoid } from "nanoid";
 import { createHash } from "node:crypto";
+import type { H3Event } from "h3"; // Import H3Event type
 
 // Maximum cookie age (400 days in seconds)
 const MAX_COOKIE_AGE = 34560000; // 60 * 60 * 24 * 400
@@ -9,35 +11,43 @@ const MAX_COOKIE_AGE = 34560000; // 60 * 60 * 24 * 400
 const getCookieOptions = () => ({
   maxAge: MAX_COOKIE_AGE,
   path: "/",
-  httpOnly: true,
-  sameSite: "lax",
+  httpOnly: true, // Keep httpOnly for security
+  secure: process.env.NODE_ENV === "production", // Use Secure in production
+  sameSite: "lax", // Lax is generally good for OAuth redirects
 });
 
-export const setupUserToken = (event) => {
-  // Check if user already has a token
+// Renamed to indicate it returns the HASHED token for DB storage/lookup
+export const setupAndGetHashedUserToken = (event: H3Event): string | null => {
   let userToken = getCookie(event, "user-token");
+  let needsToSetCookie = false;
 
-  // If no token exists, create one
   if (!userToken) {
     userToken = nanoid();
-
-    // Set cookie with maximum reliable expiration (400 days)
-    setCookie(event, "user-token", userToken, getCookieOptions());
-  } else {
-    // Refresh the existing cookie's expiration without changing the value
-    // This creates a rolling 400-day window that resets on each visit
-    setCookie(event, "user-token", userToken, getCookieOptions());
+    needsToSetCookie = true;
   }
 
+  // Always refresh/set the cookie to extend its life on interaction
+  // Or set it for the first time
+  setCookie(event, "user-token", userToken, getCookieOptions());
+
+  // Return the HASHED version for DB operations
   return hashToken(userToken);
 };
 
-const hashToken = (token: string) => {
+// Function to simply get the raw token from the cookie
+export const getRawUserToken = (event: H3Event): string | undefined => {
+  return getCookie(event, "user-token");
+};
+
+// Export the hashing function separately for use in auth flow
+export const hashToken = (token: string): string => {
+  if (!token) return ""; // Handle empty token case
   return createHash("sha256").update(token).digest("hex");
 };
 
-export const verifyUserToken = (event, hash: string) => {
+// Verification remains the same
+export const verifyUserToken = (event: H3Event, hash: string): boolean => {
   const token = getCookie(event, "user-token");
-  if (!token) return false;
+  if (!token || !hash) return false;
   return hash === hashToken(token);
 };

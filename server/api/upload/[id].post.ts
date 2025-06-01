@@ -75,10 +75,21 @@ export default defineEventHandler(async (event) => {
   const body = await readFormData(event);
   const board_id = decodeURIComponent(event.context.params?.id || "");
   const profile_id = event.context.session.secure.profileId;
+  const db = useDrizzle();
+  // Check if profile has any OAuth authentications
+  const authCount = await db.query.PROFILE_AUTHENTICATIONS.findFirst({
+    where: eq(tables.PROFILE_AUTHENTICATIONS.profile_id, profile_id),
+  });
 
+  if (!authCount) {
+    throw createError({
+      statusCode: 403,
+      message: "Only authenticated users can upload files",
+    });
+  }
   // Removed strict filtering to match original behavior
   const files = [...body.entries()].filter(
-    ([_, entry]) => entry instanceof File
+    ([_, entry]) => entry instanceof File,
   ) as [string, File][];
 
   const fids = files.map(([_, file]) => {
@@ -89,7 +100,7 @@ export default defineEventHandler(async (event) => {
     const fileName = fids[index];
     return useStorage("tackpad").setItemRaw(
       fileName,
-      Buffer.from(await file.arrayBuffer())
+      Buffer.from(await file.arrayBuffer()),
     );
   });
 
@@ -117,11 +128,10 @@ export default defineEventHandler(async (event) => {
     { data: [], keys: {} } as {
       data: InsertUserUpload[];
       keys: Record<string, string | null>;
-    }
+    },
   );
 
   try {
-    const db = useDrizzle();
     if (response.data.length > 0) {
       const consumption = response.data.reduce((acc, file) => {
         return acc + (file?.file_size || 0);

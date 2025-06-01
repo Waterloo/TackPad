@@ -53,6 +53,7 @@ const {
 } = useErrorHandler();
 
 const boardRef = ref<HTMLElement | null>(null);
+const loading = ref(true);
 // Initialize board
 onMounted(async () => {
     await boardStore.initializeBoard(route.params.id as string);
@@ -72,6 +73,7 @@ onMounted(async () => {
 
     // Ensure the board element has focus to capture keyboard events
     boardRef.value?.focus();
+    loading.value = false;
 });
 
 let eventSource: EventSource;
@@ -471,6 +473,134 @@ function handleBoardClick(e) {
                         height: `${selectionBox.height}px`,
                     }"
                 ></div>
+            </div>
+        </div>
+        <div v-if="!loading">
+            <div
+                v-if="!boardStore.board?.data.items"
+                class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
+            >
+                <!-- Sticky Note -->
+                <div class="relative">
+                    <!-- Note Shadow -->
+                    <div
+                        class="absolute -bottom-3 -right-3 w-[380px] h-[380px] bg-yellow-600/20 rounded-sm rotate-2"
+                    ></div>
+
+                    <!-- Main Sticky Note -->
+                    <div
+                        class="w-[380px] h-[380px] bg-yellow-400 rounded-sm shadow-lg p-6 flex flex-col transform -rotate-1 transition-all hover:rotate-0 hover:scale-[1.01]"
+                    >
+                        <!-- Sticky Note Top Strip -->
+                        <div
+                            class="absolute -top-2 left-0 right-0 h-4 bg-yellow-500/50 mx-8 rounded-t"
+                        ></div>
+
+                        <!-- Content Container -->
+                        <div class="flex flex-col h-full">
+                            <!-- Logo Section -->
+                            <div class="flex items-center justify-center mb-6">
+                                <div
+                                    class="flex items-center gap-2 text-2xl font-bold text-indigo-800"
+                                >
+                                    <div
+                                        class="w-10 h-10 bg-indigo-700 rounded-lg flex items-center justify-center text-white shadow-inner"
+                                    >
+                                        T
+                                    </div>
+                                    <span class="tracking-tight">Tackpad</span>
+                                </div>
+                            </div>
+
+                            <!-- Message Section -->
+                            <div
+                                class="flex-grow flex flex-col items-center justify-center mb-6"
+                            >
+                                <div
+                                    v-if="boardStore.error"
+                                    class="font-medium text-white bg-red-600 rounded-lg text-xl text-center mb-4 px-4"
+                                >
+                                    {{ boardStore.error }}
+                                </div>
+                                <div
+                                    v-else
+                                    class="font-medium text-indigo-900 text-xl text-center mb-4 px-4"
+                                >
+                                    Welcome to your creative space!
+                                </div>
+                                <p
+                                    class="text-indigo-800/80 text-center text-sm px-8"
+                                >
+                                    Choose one of the options below to get
+                                    started with your whiteboard project.
+                                </p>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex gap-4 justify-center">
+                                <router-link
+                                    to="/home"
+                                    class="px-5 py-3 bg-white/70 hover:bg-white text-indigo-700 rounded-md shadow transition-all hover:shadow-md flex items-center gap-2 font-medium"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"
+                                        />
+                                    </svg>
+                                    Home
+                                </router-link>
+                                <router-link
+                                    to="/board/create"
+                                    class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow transition-all hover:shadow-md flex items-center gap-2 font-medium"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                            clip-rule="evenodd"
+                                        />
+                                    </svg>
+                                    New Board
+                                </router-link>
+                            </div>
+
+                            <!-- Pin -->
+                            <div
+                                class="absolute -top-3 left-1/2 transform -translate-x-1/2"
+                            >
+                                <div
+                                    class="w-6 h-6 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 shadow"
+                                ></div>
+                                <div
+                                    class="w-2 h-2 rounded-full bg-white/40 absolute top-1 left-1"
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decorative Elements -->
+                <div class="absolute -z-10 inset-0 pointer-events-none">
+                    <div
+                        class="absolute top-16 left-[15%] w-4 h-4 bg-indigo-200 rounded-full opacity-40"
+                    ></div>
+                    <div
+                        class="absolute bottom-24 right-[20%] w-6 h-6 bg-yellow-200 rounded-full opacity-50"
+                    ></div>
+                    <div
+                        class="absolute top-[40%] right-[15%] w-3 h-3 bg-green-200 rounded-full opacity-30"
+                    ></div>
+                </div>
             </div>
         </div>
 
