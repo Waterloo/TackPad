@@ -10,22 +10,12 @@ import type { BoardSettings } from "~/types/settings";
 import type { BoardAccessRole, BoardAccessLevel } from "~/types/access";
 import { decrypt, encrypt } from "~/utils/crypto";
 
-// Define a type for the access list items based on the API response
-export interface BoardAccessUser {
-  id: number;
-  profileId: string;
-  role: BoardAccessRole | "owner";
-  username: string | null;
-  firstName: string | null;
-  lastAccessed: string | null;
-}
-
 export const useBoardStore = defineStore("board", () => {
   // === Existing State ===
   const board = ref<Board | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
-  const selectedId = ref<string | null>(null);
+  const selectedId = ref<string[]>([]);
   const scale = ref(1);
   const isOldBoard = ref(false);
   const isOwner = ref(false);
@@ -37,6 +27,7 @@ export const useBoardStore = defineStore("board", () => {
   const showPasswordDialog = ref(false);
   const boards = useLocalStorage<Boards>("boards", {});
   const settings = useLocalStorage<BoardSettings>("settings", {});
+  const randomNoteColor = useLocalStorage<Boolean>("randomNoteColor", false);
 
   let itemsCounter: Record<string, number> = {};
 
@@ -162,10 +153,18 @@ export const useBoardStore = defineStore("board", () => {
 
     // Case: 'create' or specific board ID
     try {
+      // RESOLVED: Keep $fetch from HEAD but add oldSelectionBox logic from feat/align-and-arrange
       const response = await $fetch(`/api/board/${boardId}`);
       const boardData = response.data;
+
+      const oldSelectionBox = ref(null)
+      if(board.value?.data){
+        oldSelectionBox.value = board.value.data?.items.find((item)=>item.id == 'SELECTION-BOX')
+      }
       const settingsData = response.settings;
       isOldBoard.value = response.OldBoard ?? false;
+      isOwner.value = response.isOwner ?? false;
+      // settings.value = settingsData;
 
       if (boardData.data?.encrypted) {
         isEncrypted.value = true;
@@ -189,7 +188,13 @@ export const useBoardStore = defineStore("board", () => {
         }
       } else {
         isEncrypted.value = false;
+
         board.value = boardData;
+      }
+
+      // re add selection if exist on old board
+      if(oldSelectionBox.value!==null && oldSelectionBox.value!==undefined && board.value?.data){
+              board.value.data.items.push(oldSelectionBox.value)
       }
 
       if (!board.value) {
@@ -198,6 +203,7 @@ export const useBoardStore = defineStore("board", () => {
 
       const loadedBoardId = board.value.board_id;
 
+      // Save to local storage
       boards.value[loadedBoardId] = {
         board_id: loadedBoardId,
         title: board.value?.data.title || "New TackPad",
@@ -209,6 +215,11 @@ export const useBoardStore = defineStore("board", () => {
           [loadedBoardId]: settingsData,
         };
       }
+// spatialIndex setup
+if (board.value?.data.items) {
+      spatialIndex.bulkLoad(board.value.data.items);
+    }
+//
 
       await fetchAccessDetails(loadedBoardId);
 
@@ -352,10 +363,154 @@ export const useBoardStore = defineStore("board", () => {
     }
   };
 
-  const setSelectedId = (id: string | null) => {
-    selectedId.value = id;
+  const toggleRandomColor = (disable = true) => {
+    if (disable === true) {
+      if (randomNoteColor.value) {
+        randomNoteColor.value = !randomNoteColor.value;
+      } else {
+        randomNoteColor.value = true;
+      }
+    } else {
+      randomNoteColor.value = false;
+    }
   };
+  let multiSelectionMode = ref(false)
+  const setSelectedId = (id: string | null, multiple = false) => {
+    // Handle null id case (deselect all)
+    if (id === null) {
+      selectedId.value = [];
+      board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
+      multiSelectionMode.value = false;
+      return;
+    }
 
+    // Special handling when selection box is clicked
+    if (id === "SELECTION-BOX") {
+      // Keep the existing selection intact, just add the selection box to selectedIds if not already there
+      if (!selectedId.value.includes("SELECTION-BOX")) {
+        selectedId.value.push("SELECTION-BOX");
+      }
+      return;
+    }
+
+    if (multiple) {
+      // Toggle the selected item
+      if (selectedId.value.includes(id)) {
+        selectedId.value = selectedId.value.filter(item => item !== id);
+      } else {
+        selectedId.value.push(id);
+      }
+
+      // Update selection box based on number of items selected (excluding SELECTION-BOX itself)
+      const realSelectedItems = selectedId.value.filter(item => item !== "SELECTION-BOX");
+
+      if (realSelectedItems.length <= 1) {
+        // Remove selection box if 1 or fewer items selected
+        board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
+        // Also remove from selectedId if it's there
+        selectedId.value = selectedId.value.filter(item => item !== "SELECTION-BOX");
+        multiSelectionMode.value = false;
+      } else {
+        // Calculate the bounds for the selection box
+
+        const bounds = calculateSelectionBoxBounds(realSelectedItems, board.value!.data.items);
+
+        if (!bounds) return; // No items to select
+
+        const selectionBox = board.value?.data.items.find(item => item.id === "SELECTION-BOX");
+        if (selectionBox) {
+          // Update existing selection box content and dimensions
+          selectionBox.content = realSelectedItems;
+          selectionBox.x_position = bounds.x_position;
+          selectionBox.y_position = bounds.y_position;
+          selectionBox.width = bounds.width;
+          selectionBox.height = bounds.height;
+
+        } else {
+          // Add new selection box
+          board.value?.data.items.push({
+            "id": "SELECTION-BOX",
+            "kind": "selection",
+            "content": realSelectedItems,
+            "x_position": bounds.x_position,
+            "y_position": bounds.y_position,
+            "width": bounds.width,
+            "height": bounds.height,
+            "displayName":"selection"
+          });
+
+          if (!selectedId.value.includes("SELECTION-BOX")) {
+                 selectedId.value.push("SELECTION-BOX");
+               }
+          multiSelectionMode.value = true;
+        }
+      }
+    } else {
+      // Single selection mode
+      // If the same ID is clicked again, deselect it
+      if (selectedId.value.length === 1 && selectedId.value[0] === id) {
+        selectedId.value = [];
+      } else {
+        selectedId.value = [id];
+      }
+      // Remove selection box since only one or no items selected
+      board.value!.data.items = board.value!.data.items.filter(item => item.id !== "SELECTION-BOX");
+    }
+
+  };
+// HELPER FUNCTION TO CALCULATE SELECTION BOUNDS
+const calculateSelectionBoxBounds = (itemIds: string[], boardItems: any[], padding: number = 20) => {
+  // Filter out the items that are selected
+  const selectedItems = boardItems.filter(item => itemIds.includes(item.id));
+  if (selectedItems.length === 0) {
+    return null;
+  }
+
+  // Initialize min/max with the first item's bounds
+  let minX = selectedItems[0].x_position;
+  let minY = selectedItems[0].y_position;
+  let maxX = selectedItems[0].x_position + selectedItems[0].width;
+  let maxY = selectedItems[0].y_position + selectedItems[0].height;
+
+  // Find the min/max bounds across all selected items
+  selectedItems.forEach(item => {
+    minX = Math.min(minX, item.x_position);
+    minY = Math.min(minY, item.y_position);
+    maxX = Math.max(maxX, item.x_position + item.width);
+    maxY = Math.max(maxY, item.y_position + item.height);
+  });
+
+  // Apply padding to give some space around the items
+  minX -= padding;
+  minY -= padding;
+  maxX += padding;
+  maxY += padding;
+
+  return {
+    x_position: minX,
+    y_position: minY,
+    width: maxX - minX,
+    height: maxY - minY
+  };
+};
+
+
+const mouseSelectionItems = (selectionBox) => {
+  // Find everything in the drag-box
+  const items = spatialIndex.findItemsInBox(selectionBox)
+  if (items.length < 2) return
+
+  // 1) Clear any existing selection (and remove old SELECTION-BOX)
+  setSelectedId(null)
+
+  // 2) Now select each hit, ALWAYS in "multi" mode
+  items.forEach(item => {
+    setSelectedId(item.id, true)
+  })
+
+}
+
+// END SELECTION HELPER
   const setScale = (newScale: number) => {
     scale.value = newScale;
   };
@@ -373,30 +528,36 @@ export const useBoardStore = defineStore("board", () => {
   };
 
   const deleteSelected = () => {
-    if (!board.value || !selectedId.value) return;
+    if (!board.value || !selectedId.value || selectedId.value.length < 1) return;
 
-    let curItem: BoardItem | null = null;
+    const itemsToDelete = selectedId.value;
+    const deletedItems: BoardItem[] = [];
 
     board.value.data.items = board.value.data.items.filter((item) => {
-      if (item.id !== selectedId.value) return true;
-      curItem = item;
+      if (!itemsToDelete.includes(item.id)) return true;
+      deletedItems.push(item);
       return false;
     });
 
-    if (
-      curItem &&
-      (curItem.kind === "image" ||
-        curItem.kind === "audio" ||
-        curItem.kind === "file") &&
-      curItem.content?.url
-    ) {
-      $fetch(`/api/upload/delete`, {
-        method: "POST",
-        body: { file_url: curItem.content.url },
-      }).catch((err) => console.error("Failed to delete uploaded file:", err));
+    // Process each deleted item
+    for (const item of deletedItems) {
+      // Handle file deletion for uploaded content
+      if (
+        (item.kind === "image") ||
+        (item.kind === "audio") ||
+        (item.kind === "file")
+      ) {
+        $fetch(`/api/upload/delete`, {
+          method: "POST",
+          body: { file_url: item.content.url },
+        }).catch((err) => console.error("Failed to delete uploaded file:", err));
+      }
+
+      // Remove from spatial index
+      spatialIndex.removeItem(item.id);
     }
 
-    selectedId.value = null;
+    selectedId.value = [];
     debouncedSaveBoard();
   };
 
@@ -413,12 +574,19 @@ export const useBoardStore = defineStore("board", () => {
     if (!board.value) return;
     error.value = null;
 
+    // Destructure the original data
     let { data, board_id } = unref(board.value);
     let dataToSend: any = data;
 
+    // Create a deep copy of the data for saving
+    let dataToSave = JSON.parse(JSON.stringify(data));
+
+    // Filter out the SELECTION-BOX only from the copy
+    dataToSave.items = dataToSave.items.filter(item => item.id !== "SELECTION-BOX");
+
     if (password.value) {
       try {
-        dataToSend = await encrypt(data, password.value);
+        dataToSend = await encrypt(dataToSave, password.value);
         isEncrypted.value = true;
       } catch (encErr) {
         console.error("Encryption failed during save:", encErr);
@@ -426,6 +594,7 @@ export const useBoardStore = defineStore("board", () => {
         return;
       }
     } else {
+      dataToSend = dataToSave;
       isEncrypted.value = false;
     }
 
@@ -456,9 +625,7 @@ export const useBoardStore = defineStore("board", () => {
       delete settings.value[board.value.board_id];
 
       board.value = null;
-      selectedId.value = null;
-      password.value = null;
-      isEncrypted.value = false;
+      selectedId.value = [];
       accessList.value = [];
       boardAccessLevel.value = null;
       boardOwnerId.value = null;
@@ -470,6 +637,8 @@ export const useBoardStore = defineStore("board", () => {
           boards.value[remainingBoardIds[remainingBoardIds.length - 1]]
             .board_id;
         await navigateTo(`/board/${lastBoardId}`);
+      } else {
+        await navigateTo("/home");
       }
     } catch (err: any) {
       console.error("Failed to delete board:", err);
@@ -502,14 +671,47 @@ export const useBoardStore = defineStore("board", () => {
     }
   };
 
+  const customUpdateZoom = (
+    newScale: number,
+    centerX: number,
+    centerY: number,
+  ) => {
+    const { scale, translateX, translateY, updateZoom } = usePanZoom();
+    // In the original updateZoom, the first parameter is a multiplier
+    // But in applyOptimalZoom, it's expecting to pass the absolute scale value
+    // So we need to adapt the function to handle this difference
+
+    const zoomPoint = {
+      x: (centerX - translateX.value) / scale.value,
+      y: (centerY - translateY.value) / scale.value,
+    };
+
+    scale.value = newScale;
+    translateX.value = centerX - zoomPoint.x * newScale;
+    translateY.value = centerY - zoomPoint.y * newScale;
+  };
+
+  const setTranslate = (x: number, y: number) => {
+    translateX.value = x;
+    translateY.value = y;
+  };
   function addBoardItem(item: BoardItem) {
+
     if (!board.value) return;
     item.displayName =
       item.displayName ||
       getDisplayName(
         (item.kind === "tacklet" && item.content.tackletId) || item.kind
       );
+    spatialIndex.addItem(item)
     board.value.data.items.push(item);
+
+    applyOptimalZoom(
+      board.value.data.items,
+      customUpdateZoom,
+      setTranslate,
+      item.id,
+    );
     debouncedSaveBoard();
   }
 
@@ -598,6 +800,9 @@ export const useBoardStore = defineStore("board", () => {
     isVoiceRecorderVisible,
     boards: computed(() => boards.value),
     settings: computed(() => settings.value),
+    randomNoteColor,
+    toggleRandomColor,
+    multiSelectionMode,
 
     // Access Control State
     accessList,
@@ -622,6 +827,7 @@ export const useBoardStore = defineStore("board", () => {
     toggleEncryption,
     addBoardItem,
     backupBoards,
+    mouseSelectionItems,
 
     // Access Control Actions
     fetchAccessDetails,

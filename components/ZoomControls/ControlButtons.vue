@@ -40,7 +40,7 @@ const toggleZoomMode = () => {
     // In the original updateZoom, the first parameter is a multiplier
     // But in applyOptimalZoom, it's expecting to pass the absolute scale value
     // So we need to adapt the function to handle this difference
-    
+
     const zoomPoint = {
       x: (centerX - translateX.value) / scale.value,
       y: (centerY - translateY.value) / scale.value
@@ -50,16 +50,16 @@ const toggleZoomMode = () => {
     translateX.value = centerX - zoomPoint.x * newScale;
     translateY.value = centerY - zoomPoint.y * newScale;
   };
-  
+
   // Create a function to set the translation directly
   const setTranslate = (x: number, y: number) => {
     translateX.value = x;
     translateY.value = y;
   };
-  
+
   // Apply the appropriate zoom based on the current mode
   if (isOptimalZoom.value) {
-    applyOptimalZoom(boardStore.board.data.items, customUpdateZoom, setTranslate,boardStore.selectedId);
+    applyOptimalZoom(boardStore.board.data.items, customUpdateZoom, setTranslate,boardStore.selectedId[0]??null);
   } else {
     applyOverviewZoom(boardStore.board.data.items, customUpdateZoom, setTranslate);
   }
@@ -75,14 +75,14 @@ const zoomModeLabel = computed(() => {
   <div class="zoom-controls overflow-hidden">
     <div class="p-2 flex flex-col">
 
-        <button 
+        <button
         @click="zoomIn"
         class="w-8 h-8  bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
         aria-label="Zoom in"
       >
         +
       </button>
-      <button 
+      <button
         @click="toggleZoomMode"
         class="w-8 h-8 bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
         aria-label="Toggle zoom mode"
@@ -90,11 +90,11 @@ const zoomModeLabel = computed(() => {
       <svg v-if="!isOptimalZoom" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><!-- Icon from Remix Icon by Remix Design - https://github.com/Remix-Design/RemixIcon/blob/master/License --><path fill="currentColor" d="M18 7h4v2h-6V3h2zM8 9H2V7h4V3h2zm10 8v4h-2v-6h6v2zM8 15v6H6v-4H2v-2z"/></svg>
       <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><!-- Icon from Remix Icon by Remix Design - https://github.com/Remix-Design/RemixIcon/blob/master/License --><path fill="currentColor" d="M8 3v2H4v4H2V3zM2 21v-6h2v4h4v2zm20 0h-6v-2h4v-4h2zm0-12h-2V5h-4V3h6z"/></svg>
       </button>
-      <button 
+      <button
         @click="zoomOut"
         class="w-8 h-8  bg-white shadow-sm border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
         aria-label="Zoom out"
       >−</button>
-    </div>      
+    </div>
   </div>
 </template>

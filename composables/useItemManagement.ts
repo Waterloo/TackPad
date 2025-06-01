@@ -1,26 +1,39 @@
+
 import { useBoardStore } from '~/stores/board';
 import {useNoteStore} from '~/stores/noteStore'
 import {useTodoStore} from '~/stores/todoStore'
 import {useTimerStore} from '~/stores/timerStore'
 import {useTextWidgetStore} from '~/stores/textWidgetStore'
 import { useItemStore } from '~/stores/itemStore';
+import { useGroupStore } from '~/stores/groupStore';
 import { usePanZoom } from '~/composables/usePanZoom';
+
+
+
 
 export function useItemManagement() {
   const boardStore = useBoardStore();
     const noteStore = useNoteStore();
     const todoStore = useTodoStore();
     const timerStore = useTimerStore();
+    const groupStore = useGroupStore()
     const textWidgetStore=useTextWidgetStore()
     const itemStore = useItemStore()
     const { scale, translateX, translateY } = usePanZoom();
-    
+    const colors = [
+      '#FFE589', // Yellow
+      '#FFB7B7', // Pink
+      '#B7E1FF', // Blue
+      '#B7FFD8', // Green
+      '#E1B7FF', // Purple
+      '#FFD700', // Gold
+    ] as const;
   const addNote = () => {
     const position = calculateCenterPosition(200, 200, 'note');
     return noteStore.addNote('New note...', {
       x: position.x,
       y: position.y,
-      color: '#FFD700',
+      color: boardStore.randomNoteColor === true?  colors[Math.floor(Math.random() * colors.length)] : '#FFD700',
       width: 216,
       height: 216,
       lock: false,
@@ -44,7 +57,7 @@ export function useItemManagement() {
       x: position.x,
       y: position.y,
       width: 300,
-      height: 150,
+      height: 350,
       lock: false,
     });
   };
@@ -61,7 +74,7 @@ export function useItemManagement() {
   };
 
   const handleDelete = (e: KeyboardEvent) => {
-    if (document.activeElement instanceof HTMLInputElement || 
+    if (document.activeElement instanceof HTMLInputElement ||
         document.activeElement instanceof HTMLTextAreaElement) {
       return;
     }
@@ -78,7 +91,7 @@ export function useItemManagement() {
     if (updates.y !== undefined) itemUpdates.y_position = updates.y;
     if (updates.width !== undefined) itemUpdates.width = updates.width;
     if (updates.height !== undefined) itemUpdates.height = updates.height;
-    
+
     // Use the generic updateItem function to ensure all properties are updated correctly
     itemStore.updateItem(itemId, itemUpdates);
   };
@@ -90,29 +103,36 @@ export function useItemManagement() {
   const updateItemDisplayName = (itemId: string, displayName: string) => {
     itemStore.updateItem(itemId, { displayName: displayName });
   };
+  // Group management functions
+  const createGroup = () => {
+    return groupStore.createGroupFromSelected();
+  };
 
+  const ungroupItems = (groupId: string) => {
+    groupStore.ungroupItems(groupId);
+  };
   // Helper function to calculate center position
   const calculateCenterPosition = (width: number, height: number, itemType: string = '') => {
     // Get the current viewport center in board coordinates
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    
-    // Convert screen coordinates to board coordinates 
+
+    // Convert screen coordinates to board coordinates
     // (taking into account current pan and zoom)
     const screenCenterX = viewportWidth / 2;
     const screenCenterY = viewportHeight / 2;
-    
+
     // Calculate the board coordinates for the center of the screen
     const boardCenterX = (screenCenterX - translateX.value) / scale.value;
     const boardCenterY = (screenCenterY - translateY.value) / scale.value;
-    
+
     // Check for existing items of the same type to avoid stacking
     let offsetX = 0;
     let offsetY = 0;
-    
+
     if (boardStore.board?.data.items && itemType) {
       const sameTypeItems = boardStore.board.data.items.filter(item => item.kind === itemType);
-      
+
       // Apply a subtle offset if there are items of the same type
       if (sameTypeItems.length > 0) {
         // Calculate offset based on the number of existing items
@@ -121,7 +141,7 @@ export function useItemManagement() {
         offsetY = 25 * Math.floor(sameTypeItems.length / 4); // Divide to create rows
       }
     }
-    
+
     return {
       x: boardCenterX - width / 2 + offsetX,
       y: boardCenterY - height / 2 + offsetY,
@@ -137,6 +157,8 @@ export function useItemManagement() {
     updateItemPosition,
     toggleLock,
     calculateCenterPosition,
-    updateItemDisplayName
+    updateItemDisplayName,
+    createGroup,
+     ungroupItems
   };
 }

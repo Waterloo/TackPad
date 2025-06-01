@@ -109,8 +109,6 @@ definePageMeta({
     alias: "/",
 });
 
-const deleteItemConfirm = ref(false);
-
 const computedDotScale = computed(() => `${scale.value * 3}px`);
 
 const computedDotScaleWidth = computed(() => `${scale.value * 50}px`);
@@ -136,6 +134,82 @@ const updateDisplayName = (id: string, displayName: string) => {
     updateItemDisplayName(id, displayName);
     console.log(id, displayName);
 };
+function getIsSelected(itemId: string): boolean {
+    if (boardStore.selectedId.length > 0) {
+        return boardStore.selectedId.includes(itemId);
+    }
+    return false;
+}
+let isSelecting = ref(false);
+let selectionBox = ref({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+});
+
+let startPoint = ref({ x: 0, y: 0 });
+
+function handleSelectionStart(e) {
+    // Get the position relative to the board
+    const boardRect = boardRef.value.getBoundingClientRect();
+    const x = (e.clientX - boardRect.left - translateX.value) / scale.value;
+    const y = (e.clientY - boardRect.top - translateY.value) / scale.value;
+
+    startPoint.value = { x, y };
+    selectionBox.value = {
+        x: x,
+        y: y,
+        width: 0,
+        height: 0,
+    };
+    isSelecting.value = true;
+}
+
+function handleSelectionMove(e) {
+    if (!isSelecting.value) return;
+
+    const boardRect = boardRef.value.getBoundingClientRect();
+    const currentX =
+        (e.clientX - boardRect.left - translateX.value) / scale.value;
+    const currentY =
+        (e.clientY - boardRect.top - translateY.value) / scale.value;
+
+    // Calculate width and height
+    const width = currentX - startPoint.value.x;
+    const height = currentY - startPoint.value.y;
+
+    // Update selectionBox with proper coordinates regardless of drag direction
+    selectionBox.value = {
+        x: width > 0 ? startPoint.value.x : currentX,
+        y: height > 0 ? startPoint.value.y : currentY,
+        width: Math.abs(width),
+        height: Math.abs(height),
+    };
+}
+
+// Add these variables
+const lastMouseUpTime = ref(0);
+const CLICK_THRESHOLD = 200; // milliseconds
+
+// Modified handleSelectionEnd function
+function handleSelectionEnd(e) {
+    if (isSelecting.value) {
+        boardStore.mouseSelectionItems(selectionBox.value);
+        lastMouseUpTime.value = Date.now(); // Record when selection ended
+    }
+    isSelecting.value = false;
+}
+
+// Modified click handler
+function handleBoardClick(e) {
+    // Only deselect if this is a genuine click, not the end of a selection
+    const timeSinceMouseUp = Date.now() - lastMouseUpTime.value;
+    // If we just finished selecting or we're currently selecting, don't deselect
+    if (timeSinceMouseUp > CLICK_THRESHOLD && !isSelecting.value) {
+        handleDeselect();
+    }
+}
 </script>
 <template>
     <div
@@ -157,6 +231,9 @@ const updateDisplayName = (id: string, displayName: string) => {
         @pointermove.stop="pan"
         @pointerup.stop="endPan"
         @pointerleave.stop="endPan"
+        @mousedown.shift.prevent="handleSelectionStart"
+        @mousemove.shift.prevent="handleSelectionMove"
+        @mouseup.prevent="handleSelectionEnd"
         @wheel.ctrl.prevent="handleZoom"
         @touchstart.stop="
             (e) => {
@@ -169,7 +246,7 @@ const updateDisplayName = (id: string, displayName: string) => {
         @touchmove.stop.prevent="pan"
         @touchend.stop="endPan"
         @touchcancel.stop="endPan"
-        @click.stop="handleDeselect"
+        @click.stop="handleBoardClick"
         tabindex="0"
     >
         <div
@@ -194,6 +271,12 @@ const updateDisplayName = (id: string, displayName: string) => {
                         :key="item.id"
                         :item-id="item.id"
                         :display-name="item.displayName"
+
+                        :style="{
+                            pointerEvents:
+                                item.kind === 'selection' || item.kind === 'group' ? 'none' : 'auto',
+                        }"
+
                         :position="{
                             x: item.x_position,
                             y: item.y_position,
@@ -204,21 +287,40 @@ const updateDisplayName = (id: string, displayName: string) => {
                             item.kind === 'image' ? item.contrastColor : false
                         "
                         :kind="item.kind"
-                        :is-selected="boardStore.selectedId === item.id"
+                        :is-selected="getIsSelected(item.id)"
                         :is-locked="item.lock"
                         @select="boardStore.setSelectedId"
+                        @selectMultiple="
+                            (itemId) => {
+                                boardStore.setSelectedId(
+                                    itemId,
+                                    (multiple = true),
+                                );
+                            }
+                        "
                         @update:position="
                             (updates: Object) =>
                                 updateItemPosition(item.id, updates)
                         "
                         :shadow="item.kind !== 'text'"
-                        @delete="deleteItemConfirm = true"
+                        @delete="itemStore.deleteItemConfirm = true"
                         @lock="(locked: boolean) => toggleLock(item.id, locked)"
                         v-slot="{ startMove }"
                         @update:displayName="
                             (value) => updateDisplayName(item.id, value!)
                         "
                     >
+                        <SelectBox
+                            v-if="item.kind === 'selection'"
+                            mode="select"
+                            :itemId="item.id"
+                            :key="item.id"
+                        />
+                        <GroupBox
+                            v-else-if="item.kind === 'group'"
+                            :itemId="item.id"
+                            :key="item.id"
+                        />
                         <StickyNote
                             v-if="item.kind === 'note'"
                             :item-id="item.id"
@@ -341,6 +443,36 @@ const updateDisplayName = (id: string, displayName: string) => {
                         />
                     </WidgetWrapper>
                 </template>
+                <div class="alignment-overlay">
+                    <div
+                        v-for="(line, index) in itemStore.snapLines"
+                        :key="index"
+                        class="snap-line"
+                        :style="{
+                            left: `${line.startX}px`,
+                            top: `${line.startY}px`,
+                            width: line.isVertical ? '1px' : `${line.length}px`,
+                            height: line.isVertical
+                                ? `${line.length}px`
+                                : '1px',
+                        }"
+                    ></div>
+                </div>
+                <div
+                    v-if="isSelecting"
+                    style="
+                        position: absolute;
+                        border: 2px dashed #007bff;
+                        background-color: rgba(0, 123, 255, 0.1);
+                        pointer-events: none;
+                    "
+                    :style="{
+                        left: `${selectionBox.x}px`,
+                        top: `${selectionBox.y}px`,
+                        width: `${selectionBox.width}px`,
+                        height: `${selectionBox.height}px`,
+                    }"
+                ></div>
             </div>
         </div>
         <div v-if="!loading">
@@ -489,7 +621,10 @@ const updateDisplayName = (id: string, displayName: string) => {
         <BoardPasswordDialog />
         <OfflineIndicator />
         <BackupAlertBanner />
-        <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
+        <DeleteItemConfirm
+            v-model="itemStore.deleteItemConfirm"
+            @delete="handleDelete"
+        />
         <ZoomControls class="fixed right-2 bottom-16 z-10" />
         <ErrorModal
             v-model="isErrorModalVisible"
@@ -552,5 +687,20 @@ body {
 .board-container {
     touch-action: none; /* This is crucial for removing delay */
     -webkit-touch-callout: none;
+}
+
+.alignment-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.snap-line {
+    position: absolute;
+    background-color: rgb(59 130 24);
 }
 </style>

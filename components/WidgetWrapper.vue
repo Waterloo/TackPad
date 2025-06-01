@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { templateRef } from "@vueuse/core";
-import { is } from "drizzle-orm";
 import { useItemInteraction } from "~/composables/useItemInteraction";
+import { useBoardStore } from "~/stores/board";
 
 const props = withDefaults(defineProps<{
   position: {
@@ -20,6 +19,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
     (e: "select", id: string): void;
+    (e: "selectMultiple", id: string): void;
     (e: "update:position", updates: Partial<typeof props.position>): void;
     (e: "delete"): void;
     (e: "parent"): void;
@@ -55,6 +55,8 @@ const {
         minHeight: 120,
         grid: 1,
     },
+    props.kind,
+    props.itemId
 );
 
 const showMenu = ref(false);
@@ -84,7 +86,7 @@ const closeMenu = () => {
 const route = useRoute();
 const isPipAvailable = "documentPictureInPicture" in globalThis;
 const pip = async () => {
-    console.log({ ...props.position });
+
     const pipWindow = await documentPictureInPicture.requestWindow({
         width: props.position.width,
         height: props.position.height,
@@ -130,6 +132,7 @@ const toggleTitleEdit = () => {
     })
   }
 }
+const boardStore = useBoardStore()
 
 </script>
 
@@ -153,14 +156,21 @@ const toggleTitleEdit = () => {
     @pointerup.stop="stopInteraction"
     @pointercancel.stop="stopInteraction"
     @pointerleave.stop="stopInteraction"
-    @click.stop="$emit('select', props.itemId)"
+    @click.stop="(event) => {
+      if (event.ctrlKey) {
+        $emit('selectMultiple', itemId)
+      } else {
+        $emit('select', itemId)
+      }
+    }"
   >
 
-    <div class="widget-header-minimal">
+    <div class="widget-header-minimal pointer-events-auto">
       <div
         v-if="!props.isLocked"
         class="drag-handle-horizontal"
         :class="`${kind!=='image' ? '' : !contrastColor ? 'drag-handle-contrast' : ''}`"
+        :style="`${kind==='selection' || kind==='group' ?'width:80px;height:20px;':''}`"
         title="Drag to move"
         @pointerdown.stop.prevent="startMove"
         @mouseover="showMenu = true"
@@ -175,6 +185,7 @@ const toggleTitleEdit = () => {
       <div
         class="flex justify-between w-full widget-controls"
         title="More Options"
+        v-show="!boardStore.multiSelectionMode || kind === 'selection'"
       >
         <transition name="fade">
           <div v-show="isSelected && !isMoving" class="shadow-lg widget-menu rounded-xl">
@@ -189,6 +200,7 @@ const toggleTitleEdit = () => {
               />
             </button>
             <button
+            v-if="kind!=='selection'"
                             @click.stop="handleMenuAction('lock', $event)"
                             class="menu-item"
                         >
@@ -206,7 +218,7 @@ const toggleTitleEdit = () => {
                             />
                         </button>
                         <button
-                            v-if="isPipAvailable"
+                            v-if="isPipAvailable && kind!=='selection'"
                             @click.stop="pip"
                             class="menu-item"
                         >
@@ -221,14 +233,14 @@ const toggleTitleEdit = () => {
         </transition>
       </div>
     </div>
-    
+
     <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel="e => isSelected ? e.stopPropagation() : e.preventDefault()">
-      <slot :startMove="startMove"></slot>
+        <slot startMove="startMove"></slot>
     </div>
 
         <div
             v-if="!props.isLocked"
-            class="resize-handle"
+            class="resize-handle pointer-events-auto"
             title="Resize"
             @pointerdown.stop.prevent="startResize('se', $event)"
         ></div>
