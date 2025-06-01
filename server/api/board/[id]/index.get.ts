@@ -55,9 +55,7 @@ export default defineEventHandler(async (event) => {
     const result = await db
       .select()
       .from(BOARDS)
-      .where(
-        eq(sql`lower(${BOARDS.board_id})`, boardId.toLowerCase())
-      )
+      .where(eq(BOARDS.board_id, boardId))
       .limit(1);
      boardData = result[0] ?? null;
 
