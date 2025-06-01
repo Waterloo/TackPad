@@ -140,6 +140,14 @@ export default defineEventHandler(async (event) => {
     // Determine ownership (now includes claimed boards)
     isOwner = !!profileId && boardData.owner_id === profileId;
 
+    // --- NULL SAFETY CHECK ---
+    if (!boardData) {
+      throw createError({
+        statusCode: 500,
+        message: "Board data is unexpectedly null",
+      });
+    }
+
     // --- 3a. Access Control Check ---
     const hasAccess = await checkBoardAccess(db, boardData, profileId);
 
