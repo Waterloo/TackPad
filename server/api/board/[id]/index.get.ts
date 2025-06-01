@@ -82,12 +82,19 @@ export default defineEventHandler(async (event) => {
       console.log(`[Board GET] Found orphaned board (no owner_id): ${boardData.board_id}`);
     } else {
       // Check if owner profile exists
-      const ownerProfile = await db.query.PROFILE.findFirst({
-        where: eq(PROFILE.id, boardData.owner_id)
-      });
-      if (!ownerProfile) {
+      try {
+        const ownerProfile = await db.query.PROFILE.findFirst({
+          where: eq(PROFILE.id, boardData.owner_id)
+        });
+        if (!ownerProfile) {
+          isOrphanedBoard = true;
+          console.log(`[Board GET] Found orphaned board (invalid owner_id): ${boardData.board_id}`);
+        }
+      } catch (error: any) {
+        console.error(`[Board GET] Error checking owner profile for board ${boardData.board_id}:`, error.message);
+        // Treat as orphaned if we can't verify the owner
         isOrphanedBoard = true;
-        console.log(`[Board GET] Found orphaned board (invalid owner_id): ${boardData.board_id}`);
+        console.log(`[Board GET] Treating board as orphaned due to profile lookup error: ${boardData.board_id}`);
       }
     }
 
