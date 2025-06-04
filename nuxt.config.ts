@@ -1,15 +1,27 @@
+import TackpadPrimevue from './themes/primevue'
+
 export default defineNuxtConfig({
   devtools:{
     enabled: true
   },
   modules: [
     '@nuxtjs/tailwindcss',
+    '@primevue/nuxt-module',
     '@pinia/nuxt',
     '@nuxthub/core',
     '@nuxt/fonts',
     'nuxt-auth-utils'
   ],
-
+  primevue: {
+         options: {
+             theme: {
+                 preset: TackpadPrimevue,
+                 options:{
+                      darkModeSelector: false || 'none',
+                 }
+             },
+         }
+     },
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || '/api'
