@@ -29,8 +29,14 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // --- 1. Get Profile ID from Middleware Context ---
+  // --- INPUT VALIDATION ---
   const profileId = event.context.session?.secure?.profileId;
+  if (profileId !== undefined && (typeof profileId !== 'string' || !profileId.trim())) {
+    throw createError({
+      statusCode: 401,
+      message: "Invalid session data",
+    });
+  }
 
   const db = useDrizzle();
   let boardData: Board | null = null;
@@ -44,18 +50,22 @@ export default defineEventHandler(async (event) => {
   // --- 2. Fetch existing board OR handle creation intent ---
   if (requestedId !== "create") {
     boardId = makeUrlSafe(requestedId);
+    if (!boardId) {
+        throw createError({
+          statusCode: 400,
+          message: "Board ID is required and cannot be empty",
+        });
+    }
+
     console.debug(`[Board GET] Looking up board: ${boardId}`);
     const result = await db
       .select()
       .from(BOARDS)
-      .where(
-        boardId
-          ? sql`lower(${BOARDS.board_id}) = lower(${boardId})`
-          : undefined,
-      )
+      .where(eq(BOARDS.board_id, boardId))
       .limit(1);
-    boardData = result[0] ?? null;
-  } else {
+     boardData = result[0] ?? null;
+
+   }else {
     boardData = null; // Signal that we need to create
   }
 
@@ -72,12 +82,19 @@ export default defineEventHandler(async (event) => {
       console.log(`[Board GET] Found orphaned board (no owner_id): ${boardData.board_id}`);
     } else {
       // Check if owner profile exists
-      const ownerProfile = await db.query.PROFILE.findFirst({
-        where: eq(PROFILE.id, boardData.owner_id)
-      });
-      if (!ownerProfile) {
+      try {
+        const ownerProfile = await db.query.PROFILE.findFirst({
+          where: eq(PROFILE.id, boardData.owner_id)
+        });
+        if (!ownerProfile) {
+          isOrphanedBoard = true;
+          console.log(`[Board GET] Found orphaned board (invalid owner_id): ${boardData.board_id}`);
+        }
+      } catch (error: any) {
+        console.error(`[Board GET] Error checking owner profile for board ${boardData.board_id}:`, error.message);
+        // Treat as orphaned if we can't verify the owner
         isOrphanedBoard = true;
-        console.log(`[Board GET] Found orphaned board (invalid owner_id): ${boardData.board_id}`);
+        console.log(`[Board GET] Treating board as orphaned due to profile lookup error: ${boardData.board_id}`);
       }
     }
 
@@ -85,22 +102,51 @@ export default defineEventHandler(async (event) => {
     if (isOrphanedBoard && profileId) {
       console.log(`[Board GET] Claiming orphaned board ${boardData.board_id} for profile ${profileId}`);
 
-      // Update the board's owner_id
-      await db.update(BOARDS)
-        .set({ owner_id: profileId })
-        .where(eq(BOARDS.board_id, boardData.board_id));
+      try {
+        // Use conditional update - only claim if still orphaned
+        const claimResult = await db.update(BOARDS)
+          .set({ owner_id: profileId })
+          .where(and(
+            eq(BOARDS.board_id, boardData.board_id),
+            sql`owner_id IS NULL` // Only update if still null
+          ))
+          .returning();
 
-      // Refresh board data after claiming
-      const refreshedResult = await db
-        .select()
-        .from(BOARDS)
-        .where(eq(BOARDS.board_id, boardData.board_id))
-        .limit(1);
-      boardData = refreshedResult[0];
+        if (claimResult.length > 0) {
+          boardData = claimResult[0];
+          console.log(`[Board GET] Successfully claimed board ${boardData.board_id}`);
+        } else {
+          // Board was already claimed, re-fetch current state
+          console.log(`[Board GET] Board was already claimed by someone else`);
+          const refreshedResult = await db
+            .select()
+            .from(BOARDS)
+            .where(eq(BOARDS.board_id, boardData.board_id))
+            .limit(1);
+          boardData = refreshedResult[0];
+        }
+      } catch (claimError: any) {
+        console.error(`[Board GET] Error during board claiming:`, claimError.message);
+        // Re-fetch current state on error
+        const refreshedResult = await db
+          .select()
+          .from(BOARDS)
+          .where(eq(BOARDS.board_id, boardData.board_id))
+          .limit(1);
+        boardData = refreshedResult[0];
+      }
     }
 
     // Determine ownership (now includes claimed boards)
     isOwner = !!profileId && boardData.owner_id === profileId;
+
+    // --- NULL SAFETY CHECK ---
+    if (!boardData) {
+      throw createError({
+        statusCode: 500,
+        message: "Board data is unexpectedly null",
+      });
+    }
 
     // --- 3a. Access Control Check ---
     const hasAccess = await checkBoardAccess(db, boardData, profileId);
@@ -135,12 +181,17 @@ export default defineEventHandler(async (event) => {
           ),
         });
 
-        // Determine the appropriate role
-        let role = existingAccess?.role || BoardAccessRole.VIEWER;
-
-        // If user is owner but not marked as owner in access records, ensure OWNER role
-        if (isOwner && role !== BoardAccessRole.OWNER) {
+        // Determine the appropriate role securely
+        let role: string;
+        if (isOwner) {
+          // Owner always gets OWNER role
           role = BoardAccessRole.OWNER;
+        } else if (existingAccess?.role && existingAccess.role !== BoardAccessRole.OWNER) {
+          // Preserve existing role for non-owners (but never allow OWNER for non-owners)
+          role = existingAccess.role;
+        } else {
+          // Default for new non-owner access
+          role = BoardAccessRole.VIEWER;
         }
 
         // Attempt to insert/update the access record and set last_accessed
@@ -157,7 +208,8 @@ export default defineEventHandler(async (event) => {
             target: [BOARD_ACCESS.board_id, BOARD_ACCESS.profile_id],
             set: {
               last_accessed: now,
-              role: role, // Ensure role consistency
+              // Only allow role updates for owners, preserve existing role for others
+              ...(isOwner ? { role: BoardAccessRole.OWNER } : {}),
             },
           })
           .returning();
@@ -200,8 +252,7 @@ export default defineEventHandler(async (event) => {
       console.debug(
         `[Board GET] No profileId identified. Cannot fetch/update access record.`,
       );
-    }
-  } else {
+    }  } else {
     // --- Scenario: Board Does Not Exist (Create Request or Invalid ID) ---
 
     // Handle case where a specific ID was requested but not found
@@ -300,26 +351,13 @@ export default defineEventHandler(async (event) => {
 
 // Helper function to sanitize board IDs
 function makeUrlSafe(str: string): string {
-  // For new board IDs that start with "BOARD-", preserve case
-  if (str.toUpperCase().startsWith("BOARD-")) {
-    return str
-      .replace(/\s+/g, "-")
-      .replace(/[^\w\-]+/g, "")
-      .replace(/\-\-+/g, "-")
-      .replace(/^-+/, "")
-      .replace(/-+$/, "");
-  }
-
-  // For other IDs or when looking up existing boards, convert to lowercase for case-insensitive matching
   return str
-    .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "")
     .replace(/\-\-+/g, "-")
     .replace(/^-+/, "")
     .replace(/-+$/, "");
 }
-
 
 // Function to create and save a new board
 async function createAndSaveNewBoard(
@@ -467,7 +505,10 @@ async function canEditBoard(
         where: and(
           eq(BOARD_ACCESS.board_id, board.board_id),
           eq(BOARD_ACCESS.profile_id, profileId),
-          sql`${BOARD_ACCESS.role} IN ('editor', 'owner')`,
+          or(
+            eq(BOARD_ACCESS.role, BoardAccessRole.EDITOR),
+            eq(BOARD_ACCESS.role, BoardAccessRole.OWNER)
+          )
         ),
       });
       return !!editorAccessRecord;
