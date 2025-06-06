@@ -29,6 +29,7 @@
     "penpal": "^7.0.0",
     "pinia": "^2.1.7",
     "primevue": "^4.3.5",
+    "tailwindcss-primeui": "^0.6.1",
     "unstorage": "^1.15.0",
     "vue-draggable-next": "^2.2.1",
     "wavesurfer.js": "^7.9.4"
