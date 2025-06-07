@@ -113,7 +113,7 @@
                                     foundUserDetails.username ||
                                     "Anonymous"
                                 }}</strong>
-                                ({{`@${foundUserDetails.username}` || "No username provided" }}) ?
+                                ({{ foundUserDetails.username ? `@${foundUserDetails.username}` : "No username provided" }}) ?
                             </p>
                             <!-- Confirmation is implied by clicking the button again -->
                         </div>
