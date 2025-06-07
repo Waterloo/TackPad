@@ -5,7 +5,7 @@ import { useLinkStore } from "~/stores/linkStore";
 import { useBoardStore } from "~/stores/board";
 
 const { loggedIn } = useUserSession();
-const { error } = useToast();
+const toast = useToast();
 const boardStore = useBoardStore();
 const { uploadFiles } = useUpload();
 const { calculateCenterPosition } = useItemManagement();
@@ -64,6 +64,14 @@ const getFileExtension = (audioBlob: Blob) => {
 
     return extensions[mimeType] || "webm";
 };
+const handleError = (error:string) => {
+    toast.add({
+    summary:'Error',
+    detail:error,
+    life:3000,
+    severity:'error'
+    });
+};
 </script>
 <template>
     <div
@@ -99,7 +107,7 @@ const getFileExtension = (audioBlob: Blob) => {
                     loggedIn
                         ? (boardStore.isVoiceRecorderVisible =
                               !boardStore.isVoiceRecorderVisible)
-                        : error('Please login to add voice note')
+                        : handleError('Please login to add voice note')
                 "
                 title="Add Voice Note"
             >
@@ -149,7 +157,7 @@ const getFileExtension = (audioBlob: Blob) => {
                     loggedIn
                         ? (boardStore.isFilePickerVisible =
                               !boardStore.isFilePickerVisible)
-                        : error('Please login to add files')
+                        : handleError('Please login to add files')
                 "
                 title="Add Files"
             >

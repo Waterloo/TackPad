@@ -130,7 +130,6 @@ const computedBackgroundPosition = computed(
 
 const { isOpen } = useTackletDirectory();
 
-const { toasts, removeToast } = useToast();
 
 const updateDisplayName = (id: string, displayName: string) => {
     updateItemDisplayName(id, displayName);
@@ -499,14 +498,6 @@ const updateDisplayName = (id: string, displayName: string) => {
             @cancel="handleCancel"
         />
 
-        <UIToast
-            class="fixed top-4 right-4"
-            style="z-index: 9999"
-            v-for="toast in toasts"
-            :key="toast.id"
-            v-bind="toast"
-            @close="removeToast(toast.id)"
-        />
         <BoardCommandPalette />
     </div>
 </template>
