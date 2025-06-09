@@ -47,7 +47,7 @@ export const useBoardStore = defineStore("board", () => {
 
   let itemsCounter: Record<string, number> = {};
 
-  function initalizeCounter(items: Map<string, BoardItem>) {
+  function initializeCounter(items: Map<string, BoardItem>) {
     const localCount: Record<string, number> = {};
     items.forEach((item) => {
       if (!localCount[item.kind]) {
@@ -71,7 +71,7 @@ export const useBoardStore = defineStore("board", () => {
   };
 
   const assignDisplayNames = () => {
-    board.value?.data.items.forEach((item) => {
+    Object.values(board.value?.data.items || {}).forEach((item) => {
       if (!item.displayName) {
         item.displayName = getDisplayName(
           (item.kind === "tacklet" && item.content.tackletId) || item.kind,
@@ -240,7 +240,7 @@ export const useBoardStore = defineStore("board", () => {
       loading.value = false;
     }
 
-    initalizeCounter(board.value?.data.items || []);
+    initializeCounter(board.value?.data.items || new Map());
     assignDisplayNames();
   };
 
