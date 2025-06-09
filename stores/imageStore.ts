@@ -110,34 +110,45 @@ export const useImageStore = defineStore("images", () => {
     const data = await response.json();
     // return data
     Object.entries(data).forEach(([id, url]) => {
-      boardStore.board.data.items.forEach((item, index) => {
-        if (item.id === id && item.kind === "image") {
-          if (url) {
-            item.content.url = url as string;
-            formData.delete(id);
-          } else {
-            // TODO: remove failed images when selecting items from board
-            item.content.status = "failed";
-          }
+      const item = boardStore.board.data.items.get(id);
+      if (item && item.kind === "image") {
+        if (url) {
+          // Create updated item with new URL
+          const updatedItem = {
+            ...item,
+            content: { ...item.content, url: url as string }
+          };
+          boardStore.board.data.items.set(id, updatedItem);
+          formData.delete(id);
+        } else {
+          // Handle failed uploads
+          const updatedItem = {
+            ...item,
+            content: { ...item.content, status: "failed" }
+          };
+          boardStore.board.data.items.set(id, updatedItem);
         }
-      });
+      }
     });
 
     boardStore.debouncedSaveBoard();
   };
+
   const updateImageTitle = (imageId: string, title: string) => {
     if (!boardStore.board) return;
 
-    const imageItem = boardStore.board.data.items.find(
-      (item) => item.id === imageId && item.kind === "image"
-    ) as ImageItem | undefined;
+    // Use Map.get() for O(1) lookup
+    const imageItem = boardStore.board.data.items.get(imageId);
 
-    if (imageItem) {
-      imageItem.title = title;
-      console.log(imageItem, title);
+    if (imageItem && imageItem.kind === "image") {
+      // Create updated item with new title
+      const updatedItem = { ...imageItem, title };
+      boardStore.board.data.items.set(imageId, updatedItem);
+      console.log(updatedItem, title);
       boardStore.debouncedSaveBoard();
     }
   };
+
   return {
     addImage,
     updateImageTitle,

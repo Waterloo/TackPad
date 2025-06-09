@@ -9,6 +9,8 @@ import type { Board, BoardItem, Boards, Task } from "~/types/board";
 import type { BoardSettings } from "~/types/settings";
 import type { BoardAccessRole, BoardAccessLevel } from "~/types/access";
 import { decrypt, encrypt } from "~/utils/crypto";
+import { deserializeBoard, serializeBoard, itemsMapToArray } from "~/utils/mapMigration";
+
 
 // Define a type for the access list items based on the API response
 export interface BoardAccessUser {
@@ -40,7 +42,7 @@ export const useBoardStore = defineStore("board", () => {
 
   let itemsCounter: Record<string, number> = {};
 
-  function initalizeCounter(items: BoardItem[]) {
+  function initalizeCounter(items: Map<string, BoardItem>) {
     const localCount: Record<string, number> = {};
     items.forEach((item) => {
       if (!localCount[item.kind]) {
@@ -53,10 +55,8 @@ export const useBoardStore = defineStore("board", () => {
           num > localCount[item.kind] ? num : localCount[item.kind];
       }
     });
-
     itemsCounter = localCount;
   }
-
   const getCounter = (kind: string) => {
     if (!itemsCounter[kind]) {
       itemsCounter[kind] = 0;
@@ -64,6 +64,7 @@ export const useBoardStore = defineStore("board", () => {
     itemsCounter[kind]++;
     return itemsCounter[kind];
   };
+
 
   const assignDisplayNames = () => {
     board.value?.data.items.forEach((item) => {
@@ -74,6 +75,7 @@ export const useBoardStore = defineStore("board", () => {
       }
     });
   };
+
 
   function getDisplayName(kind: string) {
     let prefix = `${(kind === "tacklet" && item?.content?.tackletId) || kind}`;
@@ -174,12 +176,15 @@ export const useBoardStore = defineStore("board", () => {
           loading.value = false;
           return;
         }
+
         try {
-          board.value = {
+          const decryptedData = await decrypt(boardData.data, password.value!);
+          // Convert from serialized format to Map format
+          board.value = deserializeBoard({
             board_id: boardData.board_id,
-            data: await decrypt(boardData.data, password.value!),
-          };
-        } catch (e) {
+            data: decryptedData,
+          });
+        }catch (e) {
           console.error("Decryption failed:", e);
           error.value = "Decryption failed. Please check the password.";
           password.value = null;
@@ -189,7 +194,7 @@ export const useBoardStore = defineStore("board", () => {
         }
       } else {
         isEncrypted.value = false;
-        board.value = boardData;
+        board.value = deserializeBoard(boardData);
       }
 
       if (!board.value) {
@@ -375,29 +380,27 @@ export const useBoardStore = defineStore("board", () => {
   const deleteSelected = () => {
     if (!board.value || !selectedId.value) return;
 
-    let curItem: BoardItem | null = null;
+    const curItem = board.value.data.items.get(selectedId.value);
 
-    board.value.data.items = board.value.data.items.filter((item) => {
-      if (item.id !== selectedId.value) return true;
-      curItem = item;
-      return false;
-    });
+    if (curItem) {
+      board.value.data.items.delete(selectedId.value);
 
-    if (
-      curItem &&
-      (curItem.kind === "image" ||
-        curItem.kind === "audio" ||
-        curItem.kind === "file") &&
-      curItem.content?.url
-    ) {
-      $fetch(`/api/upload/delete`, {
-        method: "POST",
-        body: { file_url: curItem.content.url },
-      }).catch((err) => console.error("Failed to delete uploaded file:", err));
+      if (
+        curItem &&
+        (curItem.kind === "image" ||
+          curItem.kind === "audio" ||
+          curItem.kind === "file") &&
+        curItem.content?.url
+      ) {
+        $fetch(`/api/upload/delete`, {
+          method: "POST",
+          body: { file_url: curItem.content.url },
+        }).catch((err) => console.error("Failed to delete uploaded file:", err));
+      }
+
+      selectedId.value = null;
+      debouncedSaveBoard();
     }
-
-    selectedId.value = null;
-    debouncedSaveBoard();
   };
 
   const setBoardTitle = (title: string) => {
@@ -413,7 +416,9 @@ export const useBoardStore = defineStore("board", () => {
     if (!board.value) return;
     error.value = null;
 
-    let { data, board_id } = unref(board.value);
+    // Convert from Map format to serialized format for API
+    const serializedBoard = serializeBoard(board.value);
+    let { data, board_id } = serializedBoard;
     let dataToSend: any = data;
 
     if (password.value) {
@@ -509,7 +514,7 @@ export const useBoardStore = defineStore("board", () => {
       getDisplayName(
         (item.kind === "tacklet" && item.content.tackletId) || item.kind
       );
-    board.value.data.items.push(item);
+    board.value.data.items.set(item.id, item);
     debouncedSaveBoard();
   }
 
@@ -574,6 +579,11 @@ export const useBoardStore = defineStore("board", () => {
     return !!userAccess;
   });
 
+  // Add a computed property for components that need arrays
+  const boardItemsArray = computed(() => {
+    if (!board.value?.data.items) return [];
+    return itemsMapToArray(board.value.data.items);
+  });
   return {
     // State
     board,
@@ -629,7 +639,7 @@ export const useBoardStore = defineStore("board", () => {
     removeUserAccess,
     updateBoardAccessLevel,
     inviteUser,
-
+ boardItemsArray,
     // Computed Permissions
     canEdit,
     canView,

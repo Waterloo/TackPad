@@ -9,7 +9,7 @@ const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
 export const useTodoStore = defineStore('todos', () => {
   // Get reference to the board store
   const boardStore = useBoardStore()
-  
+
   // Add a todo list
   const addTodoList = (position: Position) => {
     if (!boardStore.board) return null
@@ -34,29 +34,36 @@ export const useTodoStore = defineStore('todos', () => {
 
 
 
+
   // Update todo list title
   const updateTodoTitle = (listId: string, title: string) => {
     if (!boardStore.board) return
 
-    const list = boardStore.board.data.items.find(
-      item => item.id === listId && item.kind === 'todo'
-    ) as TodoList | undefined
-    
-    if (list) {
-      list.content.title = title
-      boardStore.debouncedSaveBoard()
+    // Use Map.get() for O(1) lookup
+    const list = boardStore.board.data.items.get(listId);
+
+    if (list && list.kind === 'todo') {
+      // Create updated list with new title
+      const updatedList = {
+        ...list,
+        content: {
+          ...list.content,
+          title
+        }
+      };
+      boardStore.board.data.items.set(listId, updatedList);
+      boardStore.debouncedSaveBoard();
     }
   }
-  
+
   // Add a task to a todo list
   const addTask = (listId: string, content: string | {text: string, completed?: boolean}) => {
     if (!boardStore.board) return null
-    
-    const list = boardStore.board.data.items.find(
-      item => item.id === listId && item.kind === 'todo'
-    ) as TodoList | undefined
-    
-    if (!list) return null
+
+    // Use Map.get() for O(1) lookup
+    const list = boardStore.board.data.items.get(listId);
+
+    if (!list || list.kind !== 'todo') return null
 
     let newTask: Task;
     if (typeof content === 'string') {
@@ -75,106 +82,168 @@ export const useTodoStore = defineStore('todos', () => {
       return null;
     }
 
-    list.content.tasks.push(newTask)
-    boardStore.debouncedSaveBoard()
-    return newTask
+    // Create updated list with new task
+    const updatedList = {
+      ...list,
+      content: {
+        ...list.content,
+        tasks: [...list.content.tasks, newTask]
+      }
+    };
+
+    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.debouncedSaveBoard();
+    return newTask;
   }
-  
+
   // Update a task
   const updateTask = (listId: string, taskId: string, content: string) => {
     if (!boardStore.board) return
 
-    const list = boardStore.board.data.items.find(
-      item => item.id === listId && item.kind === 'todo'
-    ) as TodoList | undefined
-    
-    if (!list) return
+    // Use Map.get() for O(1) lookup
+    const list = boardStore.board.data.items.get(listId);
 
-    const task = list.content.tasks.find(task => task.task_id === taskId)
-    if (task) {
-      task.content = content
-      boardStore.debouncedSaveBoard()
-    }
+    if (!list || list.kind !== 'todo') return
+
+    const updatedTasks = list.content.tasks.map(task =>
+      task.task_id === taskId ? { ...task, content } : task
+    );
+
+    // Create updated list with modified task
+    const updatedList = {
+      ...list,
+      content: {
+        ...list.content,
+        tasks: updatedTasks
+      }
+    };
+
+    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.debouncedSaveBoard();
   }
-  
+
   // Toggle task completion
   const toggleTaskCompletion = (listId: string, taskId: string) => {
     if (!boardStore.board) return
 
-    const list = boardStore.board.data.items.find(
-      item => item.id === listId && item.kind === 'todo'
-    ) as TodoList | undefined
-    
-    if (!list) return
+    // Use Map.get() for O(1) lookup
+    const list = boardStore.board.data.items.get(listId);
 
-    const task = list.content.tasks.find(task => task.task_id === taskId)
-    if (task) {
-      task.completed = !task.completed
-      boardStore.debouncedSaveBoard()
-    }
+    if (!list || list.kind !== 'todo') return
+
+    const updatedTasks = list.content.tasks.map(task =>
+      task.task_id === taskId ? { ...task, completed: !task.completed } : task
+    );
+
+    // Create updated list with toggled task
+    const updatedList = {
+      ...list,
+      content: {
+        ...list.content,
+        tasks: updatedTasks
+      }
+    };
+
+    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.debouncedSaveBoard();
   }
-  
+
+
   // Delete a task
   const deleteTask = (listId: string, taskId: string) => {
     if (!boardStore.board) return
 
-    const list = boardStore.board.data.items.find(
-      item => item.id === listId && item.kind === 'todo'
-    ) as TodoList | undefined
-    
-    if (!list) return
+    // Use Map.get() for O(1) lookup
+    const list = boardStore.board.data.items.get(listId);
 
-    list.content.tasks = list.content.tasks.filter(task => task.task_id !== taskId)
-    boardStore.debouncedSaveBoard()
+    if (!list || list.kind !== 'todo') return
+
+    // Create updated list without the deleted task
+    const updatedList = {
+      ...list,
+      content: {
+        ...list.content,
+        tasks: list.content.tasks.filter(task => task.task_id !== taskId)
+      }
+    };
+
+    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.debouncedSaveBoard();
   }
-  
+
+
+
   // Reorder tasks after drag and drop
   const reorderTasks = (listId: string, newTasksOrder: Task[]) => {
     if (!boardStore.board) return
 
-    const list = boardStore.board.data.items.find(
-      item => item.id === listId && item.kind === 'todo'
-    ) as TodoList | undefined
-    
-    if (!list) return
+    // Use Map.get() for O(1) lookup
+    const list = boardStore.board.data.items.get(listId);
 
-    // Update the tasks array with the new order
-    list.content.tasks = [...newTasksOrder]
-    boardStore.debouncedSaveBoard()
+    if (!list || list.kind !== 'todo') return
+
+    // Create updated list with new task order
+    const updatedList = {
+      ...list,
+      content: {
+        ...list.content,
+        tasks: [...newTasksOrder]
+      }
+    };
+
+    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.debouncedSaveBoard();
   }
-  
+
+
+
   // Move a task from one list to another
   const moveTaskBetweenLists = (sourceListId: string, taskId: string, targetListId: string, targetIndex: number) => {
     if (!boardStore.board) return
-    
-    // Find the source and target lists
-    const sourceList = boardStore.board.data.items.find(
-      item => item.id === sourceListId && item.kind === 'todo'
-    ) as TodoList | undefined
-    
-    const targetList = boardStore.board.data.items.find(
-      item => item.id === targetListId && item.kind === 'todo'
-    ) as TodoList | undefined
-    
-    if (!sourceList || !targetList) return
-    
+
+    // Use Map.get() for O(1) lookup
+    const sourceList = boardStore.board.data.items.get(sourceListId);
+    const targetList = boardStore.board.data.items.get(targetListId);
+
+    if (!sourceList || !targetList || sourceList.kind !== 'todo' || targetList.kind !== 'todo') return
+
     // Find the task to move
-    const taskIndex = sourceList.content.tasks.findIndex(task => task.task_id === taskId)
+    const taskIndex = sourceList.content.tasks.findIndex(task => task.task_id === taskId);
     if (taskIndex === -1) return
-    
+
     // Get a copy of the task
-    const taskToMove = { ...sourceList.content.tasks[taskIndex] }
-    
-    // Remove the task from the source list
-    sourceList.content.tasks = sourceList.content.tasks.filter(task => task.task_id !== taskId)
-    
-    // Add the task to the target list at the specified index
-    targetList.content.tasks.splice(targetIndex, 0, taskToMove)
-    
+    const taskToMove = { ...sourceList.content.tasks[taskIndex] };
+
+    // Create updated source list without the task
+    const updatedSourceList = {
+      ...sourceList,
+      content: {
+        ...sourceList.content,
+        tasks: sourceList.content.tasks.filter(task => task.task_id !== taskId)
+      }
+    };
+
+    // Create updated target list with the task inserted
+    const updatedTargetTasks = [...targetList.content.tasks];
+    updatedTargetTasks.splice(targetIndex, 0, taskToMove);
+
+    const updatedTargetList = {
+      ...targetList,
+      content: {
+        ...targetList.content,
+        tasks: updatedTargetTasks
+      }
+    };
+
+    // Update both lists in the Map
+    boardStore.board.data.items.set(sourceListId, updatedSourceList);
+    boardStore.board.data.items.set(targetListId, updatedTargetList);
+
     // Save the board
-    boardStore.debouncedSaveBoard()
+    boardStore.debouncedSaveBoard();
   }
-  
+
+
   return {
     addTodoList,
     updateTodoTitle,

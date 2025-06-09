@@ -14,19 +14,20 @@ export function useMiniMap() {
   const { scale, translateX, translateY } = usePanZoom()
 
   // Get the board items
-  const items = computed(() => boardStore.board?.data.items || [])
+  const items = computed(() => Array.from(boardStore.board?.data.items?.values() || []))
+
 
   // Calculate bounds of all items
   const bounds = computed(() => {
     if (!items.value.length) return { minX: 0, minY: 0, maxX: 1000, maxY: 1000, width: 1000, height: 1000 }
-    
+
     const initialBounds = {
       minX: Number.MAX_SAFE_INTEGER,
       minY: Number.MAX_SAFE_INTEGER,
       maxX: Number.MIN_SAFE_INTEGER,
       maxY: Number.MIN_SAFE_INTEGER
     }
-    
+
     const calculatedBounds = items.value.reduce((acc, item) => {
       acc.minX = Math.min(acc.minX, item.x_position)
       acc.minY = Math.min(acc.minY, item.y_position)
@@ -34,13 +35,13 @@ export function useMiniMap() {
       acc.maxY = Math.max(acc.maxY, item.y_position + item.height)
       return acc
     }, initialBounds)
-    
+
     // Add some padding
     calculatedBounds.minX -= MINIMAP_PADDING * 2
     calculatedBounds.minY -= MINIMAP_PADDING * 2
     calculatedBounds.maxX += MINIMAP_PADDING * 2
     calculatedBounds.maxY += MINIMAP_PADDING * 2
-    
+
     return {
       ...calculatedBounds,
       width: calculatedBounds.maxX - calculatedBounds.minX,
@@ -61,7 +62,7 @@ export function useMiniMap() {
     const y = (item.y_position - bounds.value.minY) * scaleRatio.value
     const width = Math.max(item.width * scaleRatio.value, MIN_ITEM_SIZE)
     const height = Math.max(item.height * scaleRatio.value, MIN_ITEM_SIZE)
-    
+
     return { x, y, width, height }
   }
 
@@ -108,7 +109,7 @@ export function useMiniMap() {
     const zoomLevel = boardStore.ZOOM_LEVEL;
     const MAX_ADJUSTMENT = 1.5;  // Maximum scaling factor for the viewport indicator
     const MIN_ADJUSTMENT = 0.7;  // Minimum scaling factor for the viewport indicator
-    
+
     // Adjust based on zoom level (0-3)
     // Level 0 (zoomed out) = larger viewport indicator
     // Level 3 (zoomed in) = smaller viewport indicator
@@ -124,34 +125,34 @@ export function useMiniMap() {
   // Update viewport size based on window, scale, and translate position
   const updateViewport = () => {
     if (!viewportRef.value || !minimapRef.value) return
-    
+
     // Get visible board area dimensions
     const visibleWidth = window.innerWidth / scale.value
     const visibleHeight = window.innerHeight / scale.value
-    
+
     // Calculate visible area in board coordinates, accounting for translation
     // The board structure consists of:
     // 1. A container with width/height 20000px, left/top -10000px
     // 2. An inner div with transform: translate(50%, 50%)
-    
+
     // First, calculate the position accounting for the translations
     let boardX = -translateX.value / scale.value
     let boardY = -translateY.value / scale.value
-    
+
     // The 50% transform effectively shifts the coordinate system
     // by half the board's dimensions (10000px in each direction)
     // We need to adjust our viewport calculation to account for this
     // boardX += 10000
     // boardY += 10000
-    
+
     // Map board coordinates to minimap coordinates
     const viewX = (boardX - bounds.value.minX) * scaleRatio.value
     const viewY = (boardY - bounds.value.minY) * scaleRatio.value
-    
+
     // Apply the zoom level adjustment to viewport size
     const viewWidth = visibleWidth * scaleRatio.value * viewportSizeAdjustment.value
     const viewHeight = visibleHeight * scaleRatio.value * viewportSizeAdjustment.value
-    
+
     viewport.value = {
       x: viewX,
       y: viewY,
@@ -164,7 +165,7 @@ export function useMiniMap() {
   const setupMiniMap = () => {
     updateViewport()
     window.addEventListener('resize', updateViewport)
-    
+
     // Watch for changes and update viewport
     const stopWatchers = [
       watch(scale, updateViewport, { immediate: true }),
@@ -174,7 +175,7 @@ export function useMiniMap() {
       watch(bounds, updateViewport, { deep: true }),
       watch(() => boardStore.ZOOM_LEVEL, updateViewport)
     ]
-    
+
     return () => {
       window.removeEventListener('resize', updateViewport)
       stopWatchers.forEach(stop => stop())
