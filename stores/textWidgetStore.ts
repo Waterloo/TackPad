@@ -9,17 +9,16 @@ const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
 export const useTextWidgetStore = defineStore('textWidgets', () => {
   // Get reference to the board store
   const boardStore = useBoardStore()
-  
-  // Add a text widget
+
   const addTextWidget = (position: Position) => {
     return new Promise<TextWidget>((resolve, reject) => {
       if (!boardStore.board) {
         reject(new Error('Board not found'));
         return;
       }
-  
+
       const textWidget: TextWidget = {
-        id: nanoid(),
+        id: `TEXT-${nanoid(10)}`, // Use proper prefix for consistency
         kind: 'text',
         x_position: position.x,
         y_position: position.y,
@@ -30,28 +29,39 @@ export const useTextWidgetStore = defineStore('textWidgets', () => {
           text: 'Double click to edit text',
         },
       };
-  
+
       boardStore.addBoardItem(textWidget);
       boardStore.debouncedSaveBoard();
-  
+
       resolve(textWidget);  // Resolve the promise with the created textWidget
     });
   };
-  
+
+
   // Update text widget content
+
   const updateTextWidgetContent = (widgetId: string, text: string) => {
     if (!boardStore.board) return
 
-    const widget = boardStore.board.data.items.find(
-      item => item.id === widgetId && item.kind === 'text'
-    ) as TextWidget | undefined
-    
-    if (widget) {
-      widget.content.text = text
-      boardStore.debouncedSaveBoard()
+    // Use Map.get() for O(1) lookup
+    const widget = boardStore.board.data.items.get(widgetId);
+
+    if (widget && widget.kind === 'text') {
+      // Create updated widget with new text
+      const updatedWidget = {
+        ...widget,
+        content: {
+          ...widget.content,
+          text
+        }
+      };
+
+      boardStore.board.data.items.set(widgetId, updatedWidget);
+      boardStore.debouncedSaveBoard();
     }
   }
-  
+
+
   return {
     addTextWidget,
     updateTextWidgetContent

@@ -86,16 +86,19 @@ export const useFileStore = defineStore("file", () => {
   const updateFileTitle = (fileId: string, title: string) => {
     if (!boardStore.board) return;
 
-    const fileItem = boardStore.board.data.items.find(
-      (item) => item.id === fileId && item.kind === "file"
-    ) as FileItem | undefined;
+    // Use Map.get() for O(1) lookup
+    const fileItem = boardStore.board.data.items.get(fileId);
 
-    if (fileItem) {
-      fileItem.title = title;
-      console.log(fileItem, title);
+    if (fileItem && fileItem.kind === "file") {
+      // Create updated item with new title
+      const updatedItem = { ...fileItem, title };
+      boardStore.board.data.items.set(fileId, updatedItem);
+      console.log(updatedItem, title);
       boardStore.debouncedSaveBoard();
     }
   };
+
+
 
   return {
     addFile,

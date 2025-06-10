@@ -9,6 +9,13 @@ import type { Board, BoardItem, Boards, Task } from "~/types/board";
 import type { BoardSettings } from "~/types/settings";
 import type { BoardAccessRole, BoardAccessLevel } from "~/types/access";
 import { decrypt, encrypt } from "~/utils/crypto";
+import {
+  deserializeBoard,
+  serializeBoard,
+  itemsMapToArray,
+  mapToObject,
+  deserializeBoardUniversal,
+} from "~/utils/mapMigration";
 
 // Define a type for the access list items based on the API response
 export interface BoardAccessUser {
@@ -40,7 +47,7 @@ export const useBoardStore = defineStore("board", () => {
 
   let itemsCounter: Record<string, number> = {};
 
-  function initalizeCounter(items: BoardItem[]) {
+  function initializeCounter(items: Map<string, BoardItem>) {
     const localCount: Record<string, number> = {};
     items.forEach((item) => {
       if (!localCount[item.kind]) {
@@ -53,10 +60,8 @@ export const useBoardStore = defineStore("board", () => {
           num > localCount[item.kind] ? num : localCount[item.kind];
       }
     });
-
     itemsCounter = localCount;
   }
-
   const getCounter = (kind: string) => {
     if (!itemsCounter[kind]) {
       itemsCounter[kind] = 0;
@@ -66,10 +71,10 @@ export const useBoardStore = defineStore("board", () => {
   };
 
   const assignDisplayNames = () => {
-    board.value?.data.items.forEach((item) => {
+    Object.values(board.value?.data.items || {}).forEach((item) => {
       if (!item.displayName) {
         item.displayName = getDisplayName(
-          (item.kind === "tacklet" && item.content.tackletId) || item.kind
+          (item.kind === "tacklet" && item.content.tackletId) || item.kind,
         );
       }
     });
@@ -174,11 +179,14 @@ export const useBoardStore = defineStore("board", () => {
           loading.value = false;
           return;
         }
+
         try {
-          board.value = {
+          const decryptedData = await decrypt(boardData.data, password.value!);
+          // Convert from serialized format to Map format
+          board.value = deserializeBoardUniversal({
             board_id: boardData.board_id,
-            data: await decrypt(boardData.data, password.value!),
-          };
+            data: decryptedData,
+          });
         } catch (e) {
           console.error("Decryption failed:", e);
           error.value = "Decryption failed. Please check the password.";
@@ -189,7 +197,7 @@ export const useBoardStore = defineStore("board", () => {
         }
       } else {
         isEncrypted.value = false;
-        board.value = boardData;
+        board.value = deserializeBoardUniversal(boardData);
       }
 
       if (!board.value) {
@@ -232,7 +240,7 @@ export const useBoardStore = defineStore("board", () => {
       loading.value = false;
     }
 
-    initalizeCounter(board.value?.data.items || []);
+    initializeCounter(board.value?.data.items || new Map());
     assignDisplayNames();
   };
 
@@ -272,7 +280,7 @@ export const useBoardStore = defineStore("board", () => {
 
   const updateUserRole = async (
     targetProfileId: string,
-    role: BoardAccessRole
+    role: BoardAccessRole,
   ) => {
     if (!board.value?.board_id) return;
     loadingAccess.value = true;
@@ -311,7 +319,7 @@ export const useBoardStore = defineStore("board", () => {
 
   const updateBoardAccessLevel = async (
     accessLevel: BoardAccessLevel,
-    removeUserAccess: boolean
+    removeUserAccess: boolean,
   ) => {
     if (!board.value?.board_id) return;
     loadingAccess.value = true;
@@ -375,29 +383,29 @@ export const useBoardStore = defineStore("board", () => {
   const deleteSelected = () => {
     if (!board.value || !selectedId.value) return;
 
-    let curItem: BoardItem | null = null;
+    const curItem = board.value.data.items.get(selectedId.value);
 
-    board.value.data.items = board.value.data.items.filter((item) => {
-      if (item.id !== selectedId.value) return true;
-      curItem = item;
-      return false;
-    });
+    if (curItem) {
+      board.value.data.items.delete(selectedId.value);
 
-    if (
-      curItem &&
-      (curItem.kind === "image" ||
-        curItem.kind === "audio" ||
-        curItem.kind === "file") &&
-      curItem.content?.url
-    ) {
-      $fetch(`/api/upload/delete`, {
-        method: "POST",
-        body: { file_url: curItem.content.url },
-      }).catch((err) => console.error("Failed to delete uploaded file:", err));
+      if (
+        curItem &&
+        (curItem.kind === "image" ||
+          curItem.kind === "audio" ||
+          curItem.kind === "file") &&
+        curItem.content?.url
+      ) {
+        $fetch(`/api/upload/delete`, {
+          method: "POST",
+          body: { file_url: curItem.content.url },
+        }).catch((err) =>
+          console.error("Failed to delete uploaded file:", err),
+        );
+      }
+
+      selectedId.value = null;
+      debouncedSaveBoard();
     }
-
-    selectedId.value = null;
-    debouncedSaveBoard();
   };
 
   const setBoardTitle = (title: string) => {
@@ -413,8 +421,12 @@ export const useBoardStore = defineStore("board", () => {
     if (!board.value) return;
     error.value = null;
 
-    let { data, board_id } = unref(board.value);
-    let dataToSend: any = data;
+    const dataToStore = {
+      ...board.value.data,
+      items: mapToObject(board.value.data.items),
+    };
+    const { board_id } = board.value;
+    let dataToSend: any = dataToStore;
 
     if (password.value) {
       try {
@@ -507,9 +519,9 @@ export const useBoardStore = defineStore("board", () => {
     item.displayName =
       item.displayName ||
       getDisplayName(
-        (item.kind === "tacklet" && item.content.tackletId) || item.kind
+        (item.kind === "tacklet" && item.content.tackletId) || item.kind,
       );
-    board.value.data.items.push(item);
+    board.value.data.items.set(item.id, item);
     debouncedSaveBoard();
   }
 
@@ -551,7 +563,7 @@ export const useBoardStore = defineStore("board", () => {
     if (isOwner.value) return true;
 
     const userAccess = accessList.value.find(
-      (u) => u.profileId === currentUserProfileId.value
+      (u) => u.profileId === currentUserProfileId.value,
     );
     return userAccess?.role === "editor";
   });
@@ -569,11 +581,16 @@ export const useBoardStore = defineStore("board", () => {
 
     if (!currentUserProfileId.value) return false;
     const userAccess = accessList.value.find(
-      (u) => u.profileId === currentUserProfileId.value
+      (u) => u.profileId === currentUserProfileId.value,
     );
     return !!userAccess;
   });
 
+  // Add a computed property for components that need arrays
+  const boardItemsArray = computed(() => {
+    if (!board.value?.data.items) return [];
+    return itemsMapToArray(board.value.data.items);
+  });
   return {
     // State
     board,
@@ -629,7 +646,7 @@ export const useBoardStore = defineStore("board", () => {
     removeUserAccess,
     updateBoardAccessLevel,
     inviteUser,
-
+    boardItemsArray,
     // Computed Permissions
     canEdit,
     canView,

@@ -9,7 +9,7 @@ const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
 export const useNoteStore = defineStore('notes', () => {
   // Get reference to the board store
   const boardStore = useBoardStore()
-  
+
   // Add a sticky note
   const addNote = (
     content: string,
@@ -34,26 +34,35 @@ export const useNoteStore = defineStore('notes', () => {
     boardStore.debouncedSaveBoard()
     return newNote
   }
-  
+
   // Update note content
+
   const updateNoteContent = (
-    noteId: string, 
+    noteId: string,
     updates: { text?: string; color?: string }
   ) => {
     if (!boardStore.board) return
 
-    const note = boardStore.board.data.items.find(
-      item => item.id === noteId && item.kind === 'note'
-    ) as StickyNote | undefined
-    
-    if (note) {
-      if (updates.text !== undefined) note.content.text = updates.text
-      if (updates.color !== undefined) note.content.color = updates.color
-      
-      boardStore.debouncedSaveBoard()
+    // Use Map.get() for O(1) lookup
+    const note = boardStore.board.data.items.get(noteId);
+
+    if (note && note.kind === 'note') {
+      // Create updated note with new content
+      const updatedNote = {
+        ...note,
+        content: {
+          ...note.content,
+          ...(updates.text !== undefined && { text: updates.text }),
+          ...(updates.color !== undefined && { color: updates.color })
+        }
+      };
+
+      boardStore.board.data.items.set(noteId, updatedNote);
+      boardStore.debouncedSaveBoard();
     }
   }
-  
+
+
   return {
     addNote,
     updateNoteContent
