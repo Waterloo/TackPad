@@ -26,9 +26,8 @@ const isLoading = ref(true);
 const item = ref<BoardItem>();
 onMounted(async () => {
     await boardStore.initializeBoard(route.params.id as string);
-    item.value = boardStore?.board?.data.items.find(
-        (item) => item.id === route.params.itemId,
-    );
+    item.value = boardStore?.board?.data.items?.get(route.params.itemId as string);
+    console.log(item.value)
     isLoading.value = false;
 });
 </script>
@@ -41,73 +40,75 @@ onMounted(async () => {
             class="inline-block w-6 h-6 border-2 border-gray-300 rounded-full border-t-blue-500 animate-spin"
         ></span>
     </div>
+       <div
+           v-else-if="!item"
+           class="absolute inset-0 z-10 flex items-center justify-center bg-gray-100"
+       >
+           <div class="text-center">
+               <h2 class="text-lg font-semibold text-gray-800">Item Not Found</h2>
+               <p class="text-gray-600">The requested item could not be found.</p>
+           </div>
+       </div>
     <template v-else>
-        <StickyNote
-            v-if="item.kind === 'note'"
-            :item-id="item.id"
-            :initial-text="item.content.text"
-            :initial-color="item.content.color"
-            :is-selected="boardStore.selectedId === item.id"
-            @update:text="
-                (text: string) => noteStore.updateNoteContent(item.id, { text })
-            "
-            @update:color="
-                (color: string) =>
-                    noteStore.updateNoteContent(item.id, { color })
-            "
-        />
-        <TodoList
-            v-else-if="item.kind === 'todo'"
-            :list="item"
-            :is-selected="boardStore.selectedId === item.id"
-            @update:title="
-                (title: string) => todoStore.updateTodoTitle(item.id, title)
-            "
-            @add:task="(content: string) => todoStore.addTask(item.id, content)"
-            @update:task="
-                (taskId: string, content: string) =>
-                    todoStore.updateTask(item.id, taskId, content)
-            "
-            @toggle:task="
-                (taskId: string) =>
-                    todoStore.toggleTaskCompletion(item.id, taskId)
-            "
-            @delete:task="
-                (taskId: string) => todoStore.deleteTask(item.id, taskId)
-            "
-        />
-        <Timer
-            v-else-if="item.kind === 'timer'"
-            :is-selected="boardStore.selectedId === item.id"
-            @update:settings="
-                (settings) => timerStore.updateTimerSettings(item.id, settings)
-            "
-        />
-        <ImageWidget
-            v-else-if="item.kind === 'image'"
-            :item-id="item.id"
-            :src="item.content.url"
-            :title="item.title"
-            :is-selected="boardStore.selectedId === item.id"
-        />
-        <Timer
-            v-else-if="item.kind === 'timer'"
-            :is-selected="boardStore.selectedId === item.id"
-            @update:settings="
-                (settings) => timerStore.updateTimerSettings(item.id, settings)
-            "
-        />
-        <Tacklet
-            v-else-if="item.kind === 'tacklet'"
-            :item-id="item.id"
-            :is-selected="boardStore.selectedId === item.id"
-            :content="item.content"
-            @update:content="
-                (content) => tackletStore.updateTackletContent(item.id, content)
-            "
-            @widgetInteraction="boardStore.setSelectedId(item.id)"
-        />
-    </template>
+          <StickyNote
+              v-if="item?.kind === 'note'"
+              :item-id="item.id"
+              :initial-text="item.content.text"
+              :initial-color="item.content.color"
+              :is-selected="boardStore.selectedId === item.id"
+              @update:text="
+                  (text: string) => noteStore.updateNoteContent(item.id, { text })
+              "
+              @update:color="
+                  (color: string) =>
+                      noteStore.updateNoteContent(item.id, { color })
+              "
+          />
+          <TodoList
+              v-else-if="item?.kind === 'todo'"
+              :list="item"
+              :is-selected="boardStore.selectedId === item.id"
+              @update:title="
+                  (title: string) => todoStore.updateTodoTitle(item.id, title)
+              "
+              @add:task="(content: string) => todoStore.addTask(item.id, content)"
+              @update:task="
+                  (taskId: string, content: string) =>
+                      todoStore.updateTask(item.id, taskId, content)
+              "
+              @toggle:task="
+                  (taskId: string) =>
+                      todoStore.toggleTaskCompletion(item.id, taskId)
+              "
+              @delete:task="
+                  (taskId: string) => todoStore.deleteTask(item.id, taskId)
+              "
+          />
+          <Timer
+              v-else-if="item?.kind === 'timer'"
+              :is-selected="boardStore.selectedId === item.id"
+              @update:settings="
+                  (settings) => timerStore.updateTimerSettings(item.id, settings)
+              "
+          />
+          <ImageWidget
+              v-else-if="item?.kind === 'image'"
+              :item-id="item.id"
+              :src="item.content.url"
+              :title="item.title"
+              :is-selected="boardStore.selectedId === item.id"
+          />
+          <Tacklet
+              v-else-if="item?.kind === 'tacklet'"
+              :item-id="item.id"
+              :is-selected="boardStore.selectedId === item.id"
+              :content="item.content"
+              @update:content="
+                  (content) => tackletStore.updateTackletContent(item.id, content)
+              "
+              @widgetInteraction="boardStore.setSelectedId(item.id)"
+          />
+      </template>
 </template>
 <style>
 html,

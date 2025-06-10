@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event) as {link: string};
-  
+
   if (!body.link || !isValidUrl(body.link)) {
     throw createError({
       statusCode: 400,
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
   // Fetch existing board data
   const db = useDrizzle();
   const existingBoard = await db.select().from(BOARDS).where(eq(BOARDS.board_id, boardId));
-  
+
   if (!existingBoard || existingBoard.length === 0) {
     throw createError({
       statusCode: 404,
@@ -50,9 +50,9 @@ export default defineEventHandler(async (event) => {
 
   try {
     // Get existing board data or initialize new
-    const boardData: Board['data'] = existingBoard[0].data ? 
-      (existingBoard[0].data as Board['data']) : 
-      { items: [] };
+    const boardData: Board['data'] = existingBoard[0].data ?
+      (existingBoard[0].data as Board['data']) :
+      { items: {} };
 
     // Define item dimensions
     const dimensions = {
@@ -76,9 +76,10 @@ export default defineEventHandler(async (event) => {
       width: dimensions.width,
       height: dimensions.height
     };
-    
+
     // Add new link item to board
-    boardData.items = [...(boardData.items || []), linkItem];
+    boardData.items = boardData.items || {};
+    boardData.items[linkItem.id] = linkItem;
 
     // Update the board
     await db.update(BOARDS)

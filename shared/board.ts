@@ -66,10 +66,11 @@ function snapToGrid(value: number): number {
 
 /**
  * Calculates the bounding box for all items on the board
- * @param items Array of board items with position and dimensions
+ *  @param boardData Board data containing items as a Map/Object
  * @returns Bounds object containing the min/max coordinates and dimensions
  */
-export function calculateBoardBounds(items: BoardItem[]): Bounds {
+ export function calculateBoardBounds(boardData: Board["data"]): Bounds {
+   const items = boardData.items ? Object.values(boardData.items) : [];
   if (!items.length) {
     return {
       minX: 0,
@@ -159,7 +160,7 @@ export function findAvailablePosition(
   dimensions: ItemDimensions
 ): Position {
   // If board is empty, start from initial offset
-  if (!boardData.items || boardData.items.length === 0) {
+  if (!boardData.items || Object.keys(boardData.items).length === 0) {
     return {
       x: snapToGrid(INITIAL_OFFSET),
       y: snapToGrid(INITIAL_OFFSET),
@@ -167,7 +168,7 @@ export function findAvailablePosition(
   }
 
   // Find the bounds of existing items
-  const existingItems = boardData.items;
+  const existingItems = Object.values(boardData.items);
   let maxY = Math.max(
     ...existingItems.map((item) => item.y_position + item.height)
   );
