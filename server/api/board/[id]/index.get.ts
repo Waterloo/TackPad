@@ -1,5 +1,6 @@
 import { customAlphabet } from "nanoid";
 import { getRandomBoardName } from "~/server/utils/boardNames";
+import { mapToObject } from "~/utils/mapMigration";
 import {
   BOARDS,
   BOARD_ACCESS,
@@ -365,20 +366,13 @@ async function createAndSaveNewBoard(
   owner_id: string,
 ): Promise<Board> {
   const db = useDrizzle();
-  const newBoardData: NewBoard = {
-    board_id: board_id,
-    owner_id: owner_id,
-    data: {
-      /* ... default content ... */
-    },
-  };
 
-  // Create default items
+  // Create default items directly as Map entries
   const stickyNoteId = `STICKY-${nanoid(10)}`;
   const todoItemId = `TODO-${nanoid(10)}`;
 
-  const defaultItems = [
-    {
+  const defaultItemsMap = new Map([
+    [stickyNoteId, {
       id: stickyNoteId,
       kind: "note",
       content: {
@@ -396,8 +390,8 @@ async function createAndSaveNewBoard(
       y_position: 48,
       width: 300,
       height: 300,
-    },
-    {
+    }],
+    [todoItemId, {
       id: todoItemId,
       kind: "todo",
       content: {
@@ -416,19 +410,17 @@ async function createAndSaveNewBoard(
       y_position: 48,
       width: 300,
       height: 400,
+    }]
+  ]);
+
+  const newBoardData: NewBoard = {
+    board_id: board_id,
+    owner_id: owner_id,
+    data: {
+      title: getRandomBoardName(),
+      // Convert Map to Object for database storage
+      items: mapToObject(defaultItemsMap),
     },
-  ];
-
-  // Convert array to Map with id as key
-  const itemsMap = new Map();
-  defaultItems.forEach(item => {
-    itemsMap.set(item.id, item);
-  });
-
-  // Default content definition
-  newBoardData.data = {
-    title: getRandomBoardName(),
-    items: itemsMap,
   };
 
   await db.insert(BOARDS).values(newBoardData).onConflictDoNothing();
@@ -442,6 +434,7 @@ async function createAndSaveNewBoard(
   }
   return result[0];
 }
+
 
 /**
  * Checks if a user has access to view a board based on access level and permissions
