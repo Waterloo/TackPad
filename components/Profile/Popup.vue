@@ -32,10 +32,14 @@ const activeTab = computed(() => profileStore.activeTab);
     </button>
 
     <!-- Use Modal component instead of custom implementation -->
-    <Modal
-        v-model="profileStore.isProfileOpen"
-        :close-on-backdrop-click="true"
-        :close-on-esc="true"
+
+    <Dialog
+        v-model:visible="profileStore.isProfileOpen"
+        :modal="true"
+        :closable="true"
+        :closeOnEscape="true"
+        :style="{ width: '50rem' }"
+        :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
     >
         <template #header>
             <div class="flex items-center justify-between w-full">
@@ -83,5 +87,6 @@ const activeTab = computed(() => profileStore.activeTab);
             <!-- Settings tab -->
             <SettingsTab v-else-if="activeTab === 'settings'" />
         </div>
-    </Modal>
+    </Dialog>
+
 </template>
