@@ -40,6 +40,7 @@ const activeTabValue = computed({
         v-model:visible="profileStore.isProfileOpen"
         position="right"
         class="!w-full md:!w-[24rem] lg:!w-[24rem]"
+        @wheel.stop
     >
         <template #header>
             <div class="flex items-center justify-between w-full">
