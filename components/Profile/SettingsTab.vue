@@ -4,7 +4,6 @@ import { useBoardStore } from "~/stores/board";
 import Backup from "./Backup.vue";
 import BoardSharePopup from "./BoardSharePopup.vue";
 import type { BoardAccessLevel } from "@/types/access"; // Make sure this type is defined correctly
-import Modal from "@/components/UI/Modal.vue";
 const boardStore = useBoardStore();
 
 const isOldBoard = computed(() => boardStore.isOldBoard);
@@ -112,24 +111,20 @@ const pendingAccessLevel = ref<BoardAccessLevel | null>(null);
 const removeExistingAccess = ref(false); // Checkbox state
 
 // --- MODIFIED: Handler to show confirmation modal ---
-function handleAccessLevelChange(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    const newLevel = target.value as BoardAccessLevel;
+
+function handleAccessLevelChange(newLevel: BoardAccessLevel) {
 
     if (
         newLevel &&
         newLevel !== currentAccessLevel.value &&
         !loadingAccess.value
     ) {
-        pendingAccessLevel.value = newLevel;
+        pendingAccessLevel.value = newLevel.value;
         removeExistingAccess.value = false; // Reset checkbox
         showAccessConfirmationModal.value = true;
-
-        // IMPORTANT: Reset the select back to the current value visually
-        // until the change is confirmed.
-        target.value = currentAccessLevel.value ?? "";
     }
 }
+
 
 // --- NEW: Function to confirm and apply the access level change ---
 async function confirmAccessLevelChange() {
@@ -379,24 +374,18 @@ const confirmationDetails = computed(() => {
                     >
                         Board Access Level
                     </label>
-                    <select
-                        id="boardAccessLevelSelect"
-                        :value="currentAccessLevel"
-                        @change="handleAccessLevelChange"
+
+                    <Select
+                        v-model="currentAccessLevel"
+                        :options="accessLevels"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Loading..."
                         :disabled="loadingAccess || !currentAccessLevel"
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md disabled:opacity-50"
-                    >
-                        <option v-if="!currentAccessLevel" value="" disabled>
-                            Loading...
-                        </option>
-                        <option
-                            v-for="level in accessLevels"
-                            :key="level.value"
-                            :value="level.value"
-                        >
-                            {{ level.label }}
-                        </option>
-                    </select>
+                        @change="handleAccessLevelChange"
+                        class="w-full"
+                    />
+
                     <!-- Display Description -->
                     <p
                         v-if="currentAccessLevel"
@@ -430,21 +419,26 @@ const confirmationDetails = computed(() => {
                 <h3 class="text-lg font-medium text-gray-800 mb-4">
                     Delete Board
                 </h3>
-                <button @click="deleteOpen = true" class="delete-button">
-                    Delete Board
-                </button>
+
+                <Button
+                    label="Delete Board"
+                    severity="danger"
+                    @click="deleteOpen = true"
+                />
+
                 <DeleteBoardModal
                     v-model="deleteOpen"
                     @delete-board="handleDeleteBoard"
                 />
             </div>
-
-            <Modal
-                v-model="showAccessConfirmationModal"
-                title="Confirm Access Level Change"
-                :close-on-backdrop-click="!loadingAccess"
-                :close-on-esc="!loadingAccess"
-                :show-close-button="!loadingAccess"
+            <Dialog
+                v-model:visible="showAccessConfirmationModal"
+                header="Confirm Access Level Change"
+                :modal="true"
+                :closable="!loadingAccess"
+                :close-on-escape="!loadingAccess"
+                :style="{ width: '28rem' }"
+                :breakpoints="{ '641px': '90vw' }"
             >
                 <div v-if="confirmationDetails" class="space-y-4">
                     <p class="text-sm text-gray-700">
@@ -455,31 +449,27 @@ const confirmationDetails = computed(() => {
                         to
                         <strong class="font-medium">{{
                             confirmationDetails.to
-                        }}</strong
-                        >.
+                        }}</strong>.
                     </p>
                     <p class="text-sm text-gray-500">
                         <strong>Description:</strong>
                         {{ confirmationDetails.description }}
                     </p>
 
-                    <div class="relative flex items-start mt-4">
-                        <div class="flex items-center h-5">
-                            <input
-                                id="removeAccessCheckbox"
-                                v-model="removeExistingAccess"
-                                :disabled="loadingAccess"
-                                type="checkbox"
-                                class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                            />
-                        </div>
-                        <div class="ml-3 text-sm">
+                    <div class="flex items-start gap-3 mt-4">
+                        <Checkbox
+                            inputId="removeAccessCheckbox"
+                            v-model="removeExistingAccess"
+                            :disabled="loadingAccess"
+                        />
+                        <div class="text-sm">
                             <label
                                 for="removeAccessCheckbox"
-                                class="font-medium text-gray-700"
-                                >Remove existing user access?</label
+                                class="font-medium text-gray-700 cursor-pointer"
                             >
-                            <p class="text-gray-500">
+                                Remove existing user access?
+                            </label>
+                            <p class="text-gray-500 mt-1">
                                 Check this to remove all currently invited
                                 collaborators (except the owner). Leave
                                 unchecked to keep existing collaborators.
@@ -487,40 +477,41 @@ const confirmationDetails = computed(() => {
                         </div>
                     </div>
 
-                    <!-- Optional: Display error specific to the modal action -->
-                    <p
+                    <Message
                         v-if="errorAccess && showAccessConfirmationModal"
-                        class="mt-2 text-sm text-red-600"
+                        severity="error"
+                        :closable="false"
+                        class="mt-2"
                     >
                         Failed to update: {{ errorAccess }}
-                    </p>
+                    </Message>
 
-                    <p
+                    <div
                         v-if="loadingAccess && showAccessConfirmationModal"
-                        class="mt-2 text-sm text-gray-500 animate-pulse"
+                        class="flex items-center gap-2 mt-2 text-sm text-gray-500"
                     >
-                        Updating...
-                    </p>
+                        <i class="pi pi-spinner pi-spin"></i>
+                        <span>Updating...</span>
+                    </div>
                 </div>
+
                 <template #footer>
-                    <button
-                        type="button"
-                        @click="cancelAccessLevelChange"
-                        :disabled="loadingAccess"
-                        class="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        @click="confirmAccessLevelChange"
-                        :disabled="loadingAccess"
-                        class="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                    >
-                        {{ loadingAccess ? "Updating..." : "Confirm Change" }}
-                    </button>
+                    <div class="flex justify-end gap-2">
+                        <Button
+                            label="Cancel"
+                            severity="secondary"
+                            @click="cancelAccessLevelChange"
+                            :disabled="loadingAccess"
+                        />
+                        <Button
+                            :label="loadingAccess ? 'Updating...' : 'Confirm Change'"
+                            @click="confirmAccessLevelChange"
+                            :disabled="loadingAccess"
+                            :loading="loadingAccess"
+                        />
+                    </div>
                 </template>
-            </Modal>
+            </Dialog>
         </div>
     </div>
 </template>

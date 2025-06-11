@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useMagicKeys } from "@vueuse/core";
 import { whenever } from "@vueuse/core";
-import Modal from "@/components/UI/Modal.vue";
 
 const {
     addNote,
@@ -220,8 +219,16 @@ watch(isOpen, async (newValue) => {
 });
 </script>
 <template>
-    <div v-if="isOpen">
-        <Modal v-model="isOpen">
+    <Dialog
+        v-model:visible="isOpen"
+        class="w-full"
+        :modal="true"
+        :dismissableMask="true"
+        :closeOnEscape="true"
+        pt:root:class="!border-0 !bg-transparent !p-0"
+        pt:mask:class="backdrop-blur-sm"
+    >
+        <template #container="{ closeCallback }">
             <div
                 class="fixed flex flex-col w-full max-w-2xl overflow-hidden transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl min-h-80 max-h-80 top-1/2 left-1/2"
                 @pointerdown.stop
@@ -352,7 +359,7 @@ watch(isOpen, async (newValue) => {
                     </div>
                 </div>
             </div>
-        </Modal>
-    </div>
+        </template>
+    </Dialog>
 </template>
 <style></style>
