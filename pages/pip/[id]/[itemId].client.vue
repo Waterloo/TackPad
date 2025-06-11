@@ -23,10 +23,15 @@ const textWidgetStore = useTextWidgetStore();
 const tackletStore = useTackletStore();
 const route = useRoute();
 const isLoading = ref(true);
-const item = ref<BoardItem>();
+
+const item = computed(() => {
+    if (!boardStore.board?.data.items) return null;
+    return boardStore.board.data.items.get(route.params.itemId as string);
+});
+
 onMounted(async () => {
     await boardStore.initializeBoard(route.params.id as string);
-    item.value = boardStore?.board?.data.items?.get(route.params.itemId as string);
+    // item.value = boardStore?.board?.data.items?.get(route.params.itemId as string);
     console.log(item.value)
     isLoading.value = false;
 });
