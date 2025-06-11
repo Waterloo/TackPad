@@ -2,7 +2,7 @@
 import { useBoardStore } from "@/stores/board";
 import Modal from "../UI/Modal.vue";
 import { ref, computed, watch } from "vue";
-const { error, success, warning, toasts, removeToast } = useToast();
+const toast = useToast();
 const boardStore = useBoardStore();
 const showModal = ref(false);
 const activeTab = ref("export"); // Default to export tab
@@ -43,10 +43,15 @@ const removeFromExportList = (boardId: string) => {
 
 const BACKUP_LOCALSTORAGE_KEY = "isBackedUp";
 const handleExport = async () => {
-    if (selectedBoardIdsForExport.value.size === 0) {
-        warning("Please select at least one board to export.");
-        return;
-    }
+  if (selectedBoardIdsForExport.value.size === 0) {
+         toast.add({
+              severity: 'warn',
+              summary: 'Selection Required',
+              detail: 'Please select at least one board to export.',
+              life: 3000
+          });
+          return;
+      }
 
     const boardsToExport = Array.from(selectedBoardIdsForExport.value)
         .map((boardId) => {
@@ -73,19 +78,39 @@ const handleExport = async () => {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             localStorage.setItem(BACKUP_LOCALSTORAGE_KEY, "true");
-            success(`${boardsToExport.length} board(s) exported successfully!`);
+            toast.add({
+                       severity: 'success',
+                         summary: 'Export Successful',
+                         detail: `${boardsToExport.length} board(s) exported successfully!`,
+                         life: 3000
+                     });
         } catch (err) {
             console.error("Export failed:", err);
-            error("An error occurred during export.");
+                         toast.add({
+                             severity: 'error',
+                             summary: 'Export Failed',
+                             detail: 'An error occurred during export.',
+                             life: 3000
+                         });
         }
     } else {
-        warning("No valid boards selected for export.");
+               toast.add({
+                   severity: 'warn',
+                   summary: 'Invalid Selection',
+                   detail: 'No valid boards selected for export.',
+                   life: 3000
+               });
     }
 };
 
 // ----- Import Logic -----
 const handleImportClick = () => {
-    warning("Import functionality will be implemented later.");
+       toast.add({
+           severity: 'info',
+           summary: 'Coming Soon',
+           detail: 'Import functionality will be implemented later.',
+           life: 3000
+       });
 };
 
 // Helper to generate board URL
@@ -258,13 +283,6 @@ const switchTab = (tab: string) => {
                     </button>
                 </div>
             </div>
-            <UIToast
-                class="fixed top-4 right-4"
-                v-for="toast in toasts"
-                :key="toast.id"
-                v-bind="toast"
-                @close="removeToast(toast.id)"
-            />
             <template #footer>
                 <button @click="showModal = false" class="btn bg-gray-500">
                     Close

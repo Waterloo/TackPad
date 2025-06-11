@@ -12,7 +12,7 @@ async function redirectToLogin() {
 export function useUpload() {
   const { loggedIn } = useUserSession();
   const { triggerError } = useErrorHandler();
-  const { success } = useToast();
+  const toast = useToast();
 
   const fileStore = useFileStore();
   const imageStore = useImageStore();
@@ -49,15 +49,30 @@ export function useUpload() {
         switch (fileType) {
           case "image":
             await imageStore.addImage(file);
-            success("Image uploaded successfully");
+                       toast.add({
+                         severity: 'success',
+                         summary: 'Upload Successful',
+                         detail: 'Image uploaded successfully',
+                         life: 3000
+                       });
             break;
           case "audio":
             await audioStore.addAudio(file, title ?? null);
-            success("Audio uploaded successfully");
+                       toast.add({
+                         severity: 'success',
+                         summary: 'Upload Successful',
+                         detail: 'Audio uploaded successfully',
+                         life: 3000
+                       });
             break;
           default:
             await fileStore.addFile(file);
-            success("File uploaded successfully");
+                       toast.add({
+                         severity: 'success',
+                         summary: 'Upload Successful',
+                         detail: 'File uploaded successfully',
+                         life: 3000
+                       });
             break;
         }
       }

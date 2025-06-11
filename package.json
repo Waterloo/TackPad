@@ -2,6 +2,7 @@
   "name": "nuxt-app",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@9.15.2",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -27,11 +28,16 @@
     "nuxt-auth-utils": "^0.5.16",
     "penpal": "^7.0.0",
     "pinia": "^2.1.7",
+    "primevue": "^4.3.5",
+    "tailwindcss-primeui": "^0.6.1",
     "unstorage": "^1.15.0",
     "vue-draggable-next": "^2.2.1",
     "wavesurfer.js": "^7.9.4"
   },
   "devDependencies": {
+    "@primeuix/themes": "^1.1.1",
+    "@primevue/forms": "^4.3.5",
+    "@primevue/nuxt-module": "^4.3.5",
     "@tailwindcss/typography": "^0.5.16",
     "@types/lodash": "^4.17.13",
     "@types/uuid": "^9.0.8",
