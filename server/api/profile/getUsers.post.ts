@@ -43,7 +43,6 @@ export default defineEventHandler(async (event) => {
         // Select the fields needed by the client
         username: PROFILE.username,
         firstName: PROFILE.firstName,
-        email: PROFILE.email,
         // You could add other public fields like 'id' if needed
         // id: PROFILE.id
       })

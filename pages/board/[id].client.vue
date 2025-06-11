@@ -59,7 +59,8 @@ onMounted(async () => {
     await boardStore.initializeBoard(route.params.id as string);
 
     // Apply optimal zoom after board is loaded
-    if (boardStore.board?.data.items) {
+
+    if (boardStore.boardItemsArray.length > 0) {
         // Create a function to set the translation directly
         const setTranslate = (x: number, y: number) => {
             translateX.value = x;
@@ -67,7 +68,7 @@ onMounted(async () => {
         };
 
         // Pass the setTranslate function to applyOptimalZoom
-        applyOptimalZoom(boardStore.board.data.items, updateZoom, setTranslate);
+        applyOptimalZoom(boardStore.boardItemsArray, updateZoom, setTranslate);
         console.log("Mounted");
     }
 
@@ -189,7 +190,7 @@ const updateDisplayName = (id: string, displayName: string) => {
             >
                 <template v-if="boardStore.board?.data.items">
                     <WidgetWrapper
-                        v-for="item in boardStore.board.data.items"
+                        v-for="item in boardStore.boardItemsArray"
                         :key="item.id"
                         :item-id="item.id"
                         :display-name="item.displayName"

@@ -9,7 +9,7 @@ const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
 export const useTimerStore = defineStore('timers', () => {
   // Get reference to the board store
   const boardStore = useBoardStore()
-  
+
   // Add a timer
   const addTimer = (position: Position) => {
     if (!boardStore.board) return null
@@ -31,26 +31,32 @@ export const useTimerStore = defineStore('timers', () => {
     boardStore.debouncedSaveBoard()
     return newTimer
   }
-  
+
   // Update timer settings
   const updateTimerSettings = (
-    timerId: string, 
+    timerId: string,
     settings: { timerType?: 'Focus' | 'Short Break' | 'Long Break'; duration?: number }
   ) => {
     if (!boardStore.board) return
 
-    const timer = boardStore.board.data.items.find(
-      item => item.id === timerId && item.kind === 'timer'
-    ) as TimerItem | undefined
-    
-    if (timer) {
-      if (settings.timerType !== undefined) timer.content.timerType = settings.timerType
-      if (settings.duration !== undefined) timer.content.duration = settings.duration
-      
-      boardStore.debouncedSaveBoard()
+    // Use Map.get() for O(1) lookup
+    const timer = boardStore.board.data.items.get(timerId);
+
+    if (timer && timer.kind === 'timer') {
+      // Create updated timer with new settings
+      const updatedTimer = {
+        ...timer,
+        content: {
+          ...timer.content,
+          ...(settings.timerType !== undefined && { timerType: settings.timerType }),
+          ...(settings.duration !== undefined && { duration: settings.duration })
+        }
+      };
+
+      boardStore.board.data.items.set(timerId, updatedTimer);
+      boardStore.debouncedSaveBoard();
     }
   }
-  
   return {
     addTimer,
     updateTimerSettings

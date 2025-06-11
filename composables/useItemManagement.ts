@@ -14,7 +14,7 @@ export function useItemManagement() {
     const textWidgetStore=useTextWidgetStore()
     const itemStore = useItemStore()
     const { scale, translateX, translateY } = usePanZoom();
-    
+
   const addNote = () => {
     const position = calculateCenterPosition(200, 200, 'note');
     return noteStore.addNote('New note...', {
@@ -61,7 +61,7 @@ export function useItemManagement() {
   };
 
   const handleDelete = (e: KeyboardEvent) => {
-    if (document.activeElement instanceof HTMLInputElement || 
+    if (document.activeElement instanceof HTMLInputElement ||
         document.activeElement instanceof HTMLTextAreaElement) {
       return;
     }
@@ -78,7 +78,7 @@ export function useItemManagement() {
     if (updates.y !== undefined) itemUpdates.y_position = updates.y;
     if (updates.width !== undefined) itemUpdates.width = updates.width;
     if (updates.height !== undefined) itemUpdates.height = updates.height;
-    
+
     // Use the generic updateItem function to ensure all properties are updated correctly
     itemStore.updateItem(itemId, itemUpdates);
   };
@@ -96,23 +96,26 @@ export function useItemManagement() {
     // Get the current viewport center in board coordinates
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    
-    // Convert screen coordinates to board coordinates 
+
+    // Convert screen coordinates to board coordinates
     // (taking into account current pan and zoom)
     const screenCenterX = viewportWidth / 2;
     const screenCenterY = viewportHeight / 2;
-    
+
     // Calculate the board coordinates for the center of the screen
     const boardCenterX = (screenCenterX - translateX.value) / scale.value;
     const boardCenterY = (screenCenterY - translateY.value) / scale.value;
-    
+
     // Check for existing items of the same type to avoid stacking
     let offsetX = 0;
     let offsetY = 0;
-    
+
+
     if (boardStore.board?.data.items && itemType) {
-      const sameTypeItems = boardStore.board.data.items.filter(item => item.kind === itemType);
-      
+      const sameTypeItems = Array.from(boardStore.board.data.items.values()).filter(item => item.kind === itemType);
+
+
+
       // Apply a subtle offset if there are items of the same type
       if (sameTypeItems.length > 0) {
         // Calculate offset based on the number of existing items
@@ -121,7 +124,7 @@ export function useItemManagement() {
         offsetY = 25 * Math.floor(sameTypeItems.length / 4); // Divide to create rows
       }
     }
-    
+
     return {
       x: boardCenterX - width / 2 + offsetX,
       y: boardCenterY - height / 2 + offsetY,

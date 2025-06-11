@@ -110,12 +110,10 @@
                                 Invite
                                 <strong>{{
                                     foundUserDetails.firstName ||
-                                    foundUserDetails.username
+                                    foundUserDetails.username ||
+                                    "Anonymous"
                                 }}</strong>
-                                ({{
-                                    foundUserDetails.email ||
-                                    "No email provided"
-                                }})?
+                                ({{ foundUserDetails.username ? `@${foundUserDetails.username}` : "No username provided" }}) ?
                             </p>
                             <!-- Confirmation is implied by clicking the button again -->
                         </div>

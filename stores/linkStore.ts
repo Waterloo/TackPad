@@ -9,7 +9,7 @@ const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
 export const useLinkStore = defineStore('links', () => {
   // Get reference to the board store
   const boardStore = useBoardStore()
-  
+
   // Add a link item
   const addLinkItem = async (link: string, position: Position): Promise<LinkItem | null> => {
     if (!boardStore.board) return null;
@@ -34,24 +34,24 @@ export const useLinkStore = defineStore('links', () => {
     // Add to board immediately
     boardStore.addBoardItem(initialLinkItem);
     boardStore.debouncedSaveBoard();
-  
+
     try {
       const response = await fetch(
         `/api/metadata?url=${encodeURIComponent(link)}`
       );
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch link data: ${response.statusText}`);
       }
 
       const data = await response.json();
-      
+
       // Determine if we received oEmbed or regular metadata
       const isOEmbed = data.source === 'oembed';
       const metadata = data.data;
-      
+
       // Update the existing link item with metadata
-      const updatedContent = isOEmbed 
+      const updatedContent = isOEmbed
         ? {
             url: link,
             thumbnail_url: metadata.thumbnail_url || '',
@@ -67,7 +67,7 @@ export const useLinkStore = defineStore('links', () => {
             description: metadata.description || `A link to ${hostname}`
           };
 
-      const updatedDimensions = isOEmbed 
+      const updatedDimensions = isOEmbed
         ? {
             width: metadata.width || metadata.thumbnail_width || position.width,
             height: metadata.height || metadata.thumbnail_height || position.height
@@ -76,43 +76,43 @@ export const useLinkStore = defineStore('links', () => {
             width: position.width || 400,
             height: position.height || 200
           };
-  
+
       // Find and update the link item
-      const itemIndex = boardStore.board.data.items.findIndex(item => item.id === initialLinkItem.id);
-      if (itemIndex !== -1) {
+      const existingItem = boardStore.board.data.items.get(initialLinkItem.id);
+      if (existingItem) {
         const updatedItem: LinkItem = {
-          ...initialLinkItem,
+          ...existingItem,
           content: updatedContent,
           width: updatedDimensions.width || 400,
           height: updatedDimensions.height || 200
         };
-        boardStore.board.data.items[itemIndex] = updatedItem;
+        boardStore.board.data.items.set(initialLinkItem.id, updatedItem);
         boardStore.debouncedSaveBoard();
         return updatedItem;
       }
       return initialLinkItem;
-  
+
     } catch (error) {
       console.error('Error adding link item:', error);
 
       // Update the initial link item with final fallback content
-      const itemIndex = boardStore.board.data.items.findIndex(item => item.id === initialLinkItem.id);
-      if (itemIndex !== -1) {
+      const existingItem = boardStore.board.data.items.get(initialLinkItem.id);
+      if (existingItem) {
         const fallbackItem: LinkItem = {
-          ...initialLinkItem,
+          ...existingItem,
           content: {
-            ...initialLinkItem.content,
+            ...existingItem.content,
             description: `A link to ${hostname}`
           }
         };
-        boardStore.board.data.items[itemIndex] = fallbackItem;
+        boardStore.board.data.items.set(initialLinkItem.id, fallbackItem);
         boardStore.debouncedSaveBoard();
         return fallbackItem;
       }
       return initialLinkItem;
     }
   }
-  
+
   return {
     addLinkItem
   }

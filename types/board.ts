@@ -122,13 +122,25 @@ export type BoardItem =
   | ImageItem
   | Tacklet;
 
-export interface Board {
-  board_id: string;
-  data: {
-    title?: string;
-    items: BoardItem[];
-  };
-}
+
+  // Update Board interface to use Map instead of array
+  export interface Board {
+    board_id: string;
+    data: {
+      title?: string;
+      items: Map<string, BoardItem>; // Changed from BoardItem[]
+    };
+  }
+
+  // Helper type for serialization/deserialization
+  export interface SerializedBoard {
+    board_id: string;
+    data: {
+      title?: string;
+      items: BoardItem[]; // For API communication
+    };
+  }
+
 
 // Position type used in multiple places
 export interface Position {

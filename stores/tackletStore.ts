@@ -45,20 +45,34 @@ export const useTackletStore = defineStore('tacklets', () => {
   const boardStore = useBoardStore()
 
   const updateTackletContent = (itemId: string, content: any) => {
-    const item = boardStore.board?.data.items.find((item) => item.id === itemId)
+    if (!boardStore.board) return;
+
+
+    const item = boardStore.board.data.items.get(itemId);
+
     if (item && item.kind === 'tacklet') {
-      item.content.data = content
-      boardStore.debouncedSaveBoard()
+      // Create updated tacklet with new content
+      const updatedItem = {
+        ...item,
+        content: {
+          ...item.content,
+          data: content
+        }
+      };
+
+      boardStore.board.data.items.set(itemId, updatedItem);
+      boardStore.debouncedSaveBoard();
     }
   }
 
+
+
   const addTacklet = (tacklet: Tacklet) => {
+    if (!boardStore.board) return;
 
     // find a x,y position in view port
-    
-
     const item: BoardItem = {
-      id: nanoid(),
+      id: `TACKLET-${nanoid(10)}`, // Use proper prefix for consistency
       kind: 'tacklet',
       content: {
         url: tacklet.url,
@@ -72,10 +86,12 @@ export const useTackletStore = defineStore('tacklets', () => {
       width: tacklet.dimensions.defaultWidth || 300,
       height: tacklet.dimensions.defaultHeight || 300,
       lock: false
-    }
-    boardStore.board?.data.items.push(item)
-    boardStore.debouncedSaveBoard()
+    };
+
+    // Use boardStore.addBoardItem() which handles Map.set() internally
+    boardStore.addBoardItem(item);
   }
+
 
   return {
     updateTackletContent,

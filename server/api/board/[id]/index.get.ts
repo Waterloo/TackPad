@@ -1,5 +1,6 @@
 import { customAlphabet } from "nanoid";
 import { getRandomBoardName } from "~/server/utils/boardNames";
+import { mapToObject } from "~/utils/mapMigration";
 import {
   BOARDS,
   BOARD_ACCESS,
@@ -365,58 +366,61 @@ async function createAndSaveNewBoard(
   owner_id: string,
 ): Promise<Board> {
   const db = useDrizzle();
+
+  // Create default items directly as Map entries
+  const stickyNoteId = `STICKY-${nanoid(10)}`;
+  const todoItemId = `TODO-${nanoid(10)}`;
+
+  const defaultItemsMap = new Map([
+    [stickyNoteId, {
+      id: stickyNoteId,
+      kind: "note",
+      content: {
+        text: ` <h1>Welcome to your board!</h1>
+    <p>Try adding more notes and todo lists.</p>
+    <h2>Quick Tips:</h2>
+    <ul>
+      <li>
+        <p>Double-click to edit notes</p>
+      </li>
+      </ul>`,
+        color: "#FFD700",
+      },
+      x_position: 100,
+      y_position: 48,
+      width: 300,
+      height: 300,
+    }],
+    [todoItemId, {
+      id: todoItemId,
+      kind: "todo",
+      content: {
+        title: "Getting Started",
+        tasks: [
+          { task_id: "1", content: "Add a new note", completed: false },
+          { task_id: "2", content: "Create a todo list", completed: false },
+          {
+            task_id: "3",
+            content: "Try panning and zooming",
+            completed: false,
+          },
+        ],
+      },
+      x_position: 420,
+      y_position: 48,
+      width: 300,
+      height: 400,
+    }]
+  ]);
+
   const newBoardData: NewBoard = {
     board_id: board_id,
     owner_id: owner_id,
     data: {
-      /* ... default content ... */
+      title: getRandomBoardName(),
+      // Convert Map to Object for database storage
+      items: mapToObject(defaultItemsMap),
     },
-  };
-
-  // Default content definition
-  newBoardData.data = {
-    title: getRandomBoardName(),
-    items: [
-      {
-        id: `STICKY-${nanoid(10)}`,
-        kind: "note",
-        content: {
-          text: ` <h1>Welcome to your board!</h1>
-      <p>Try adding more notes and todo lists.</p>
-      <h2>Quick Tips:</h2>
-      <ul>
-        <li>
-          <p>Double-click to edit notes</p>
-        </li>
-        </ul>`,
-          color: "#FFD700",
-        },
-        x_position: 100,
-        y_position: 48,
-        width: 300,
-        height: 300,
-      },
-      {
-        id: `TODO-${nanoid(10)}`,
-        kind: "todo",
-        content: {
-          title: "Getting Started",
-          tasks: [
-            { task_id: "1", content: "Add a new note", completed: false },
-            { task_id: "2", content: "Create a todo list", completed: false },
-            {
-              task_id: "3",
-              content: "Try panning and zooming",
-              completed: false,
-            },
-          ],
-        },
-        x_position: 420,
-        y_position: 48,
-        width: 300,
-        height: 400,
-      },
-    ],
   };
 
   await db.insert(BOARDS).values(newBoardData).onConflictDoNothing();
@@ -430,6 +434,7 @@ async function createAndSaveNewBoard(
   }
   return result[0];
 }
+
 
 /**
  * Checks if a user has access to view a board based on access level and permissions
