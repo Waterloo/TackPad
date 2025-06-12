@@ -56,8 +56,7 @@ export const useBoardStore = defineStore("board", () => {
       const match = item.displayName?.match(/(\d+)$/);
       if (match) {
         const num = parseInt(match[1], 10);
-        localCount[item.kind] =
-          num > localCount[item.kind] ? num : localCount[item.kind];
+        localCount[item.kind] = Math.max(num, localCount[item.kind]);
       }
     });
     itemsCounter = localCount;
@@ -69,9 +68,8 @@ export const useBoardStore = defineStore("board", () => {
     itemsCounter[kind]++;
     return itemsCounter[kind];
   };
-
   const assignDisplayNames = () => {
-    Object.values(board.value?.data.items || {}).forEach((item) => {
+    board.value?.data.items?.forEach((item) => {
       if (!item.displayName) {
         item.displayName = getDisplayName(
           (item.kind === "tacklet" && item.content.tackletId) || item.kind,
@@ -79,10 +77,8 @@ export const useBoardStore = defineStore("board", () => {
       }
     });
   };
-
   function getDisplayName(kind: string) {
-    let prefix = `${(kind === "tacklet" && item?.content?.tackletId) || kind}`;
-    prefix = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    const prefix = kind.charAt(0).toUpperCase() + kind.slice(1);
     return `${prefix} ${getCounter(kind)}`;
   }
 
