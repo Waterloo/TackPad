@@ -39,8 +39,8 @@
                           class="mr-2 w-12"
                         />
                         <Popover ref="sizePopover">
-                          <div class="flex flex-col gap-2 w-32">
-                            <div class="font-medium mb-2">Font Size</div>
+                          <div class="flex gap-2 items-center">
+                            <div class="font-medium">Font Size</div>
                             <Button
                               v-for="size in sizeOptions"
                               :key="size.value"
