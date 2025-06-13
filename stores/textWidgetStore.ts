@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { customAlphabet } from 'nanoid'
 import { useBoardStore } from './board'
-import type { TextWidget, Position } from '~/types/board'
+import type { TextWidget, Position, TextWidgetFormatting } from '~/types/board'
 
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10)
 
@@ -18,7 +18,7 @@ export const useTextWidgetStore = defineStore('textWidgets', () => {
       }
 
       const textWidget: TextWidget = {
-        id: `TEXT-${nanoid(10)}`, // Use proper prefix for consistency
+        id: `TEXT-${nanoid(10)}`,
         kind: 'text',
         x_position: position.x,
         y_position: position.y,
@@ -27,32 +27,45 @@ export const useTextWidgetStore = defineStore('textWidgets', () => {
         lock: false,
         content: {
           text: 'Double click to edit text',
+          formatting: {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: 16,
+            textColor: '#000000',
+            bold: false,
+            italic: false,
+            underline: false,
+            textAlign: 'left'
+          }
         },
       };
 
       boardStore.addBoardItem(textWidget);
       boardStore.debouncedSaveBoard();
 
-      resolve(textWidget);  // Resolve the promise with the created textWidget
+      resolve(textWidget);
     });
   };
 
-
   // Update text widget content
-
-  const updateTextWidgetContent = (widgetId: string, text: string) => {
+  const updateTextWidgetContent = (widgetId: string, updates: { text?: string, formatting?: TextWidgetFormatting }) => {
     if (!boardStore.board) return
 
     // Use Map.get() for O(1) lookup
     const widget = boardStore.board.data.items.get(widgetId);
 
     if (widget && widget.kind === 'text') {
-      // Create updated widget with new text
+      // Create updated widget with new content
       const updatedWidget = {
         ...widget,
         content: {
           ...widget.content,
-          text
+          ...(updates.text !== undefined && { text: updates.text }),
+          ...(updates.formatting && {
+            formatting: {
+              ...widget.content.formatting,
+              ...updates.formatting
+            }
+          })
         }
       };
 
@@ -60,7 +73,6 @@ export const useTextWidgetStore = defineStore('textWidgets', () => {
       boardStore.debouncedSaveBoard();
     }
   }
-
 
   return {
     addTextWidget,

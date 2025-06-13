@@ -11,6 +11,7 @@ export default defineNuxtConfig({
     "@nuxthub/core",
     "@nuxt/fonts",
     "nuxt-auth-utils",
+    "@nuxt/icon",
   ],
   tailwindcss: {
     cssPath: "~/assets/css/primevue.css",

@@ -76,8 +76,8 @@ export function useClipboard() {
             height: 100,
           })
           .then((textWidget) => {
-            // You can modify the content here or do other tasks
-            textWidget.content.text = text;
+            // Update the text content using the new store method
+            textWidgetStore.updateTextWidgetContent(textWidget.id, { text });
           })
           .catch((error) => {
             console.error("Error adding text widget:", error);
@@ -89,14 +89,17 @@ export function useClipboard() {
 
     const items = clipboardData.items;
 
-    const fileGroups = [...items].reduce((acc, item) => {
-      if (item.type.indexOf("image") !== -1) {
-        acc.image = acc.image
-          ? [...acc.image, item.getAsFile()]
-          : [item.getAsFile()];
-      }
-      return acc;
-    }, {} as Record<string, any>);
+    const fileGroups = [...items].reduce(
+      (acc, item) => {
+        if (item.type.indexOf("image") !== -1) {
+          acc.image = acc.image
+            ? [...acc.image, item.getAsFile()]
+            : [item.getAsFile()];
+        }
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
 
     console.log(fileGroups);
     if (fileGroups.image) {

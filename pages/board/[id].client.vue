@@ -290,15 +290,8 @@ const updateDisplayName = (id: string, displayName: string) => {
                             v-else-if="item.kind === 'text'"
                             :item-id="item.id"
                             :initial-text="item.content.text"
+                            :initial-formatting="item.content?.formatting"
                             :is-selected="boardStore.selectedId === item.id"
-                            @update:text="
-                                (text: string) =>
-                                    textWidgetStore.updateTextWidgetContent(
-                                        item.id,
-                                        text,
-                                    )
-                            "
-                            @pointerdown.stop.prevent="startMove"
                         />
                         <ImageWidget
                             v-else-if="item.kind === 'image'"

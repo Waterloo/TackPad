@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@nuxt/fonts": "^0.10.2",
+    "@nuxt/icon": "1.13.0",
     "@nuxthub/core": "^0.8.7",
     "@nuxtjs/tailwindcss": "^6.11.4",
     "@pinia/nuxt": "^0.5.1",

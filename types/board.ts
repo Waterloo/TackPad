@@ -68,10 +68,21 @@ export interface TimerItem extends BaseBoardItem {
 }
 
 // Text widget types
+export interface TextWidgetFormatting {
+  fontFamily?: string;
+  fontSize?: number;
+  textColor?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  textAlign?: string;
+}
+
 export interface TextWidget extends BaseBoardItem {
   kind: "text";
   content: {
     text: string;
+    formatting?: TextWidgetFormatting;
   };
 }
 
