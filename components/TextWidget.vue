@@ -158,6 +158,7 @@
       :style="getTextStyle()"
       @dblclick.stop.prevent="handleDoubleClick"
       @pointerdown.stop.prevent="handlePointerDown"
+      @pointerup.stop.prevent="handlePointerUp"
     >
       <div v-if="content" v-html="getFormattedContent()"></div>
       <div v-else class="text-gray-400 italic">Double click to edit text</div>
@@ -296,6 +297,14 @@ function handlePointerDown(event: PointerEvent) {
     }
     moveTimer.value = null
   }, 200) // 200ms delay - adjust if needed
+}
+
+function handlePointerUp(event: PointerEvent) {
+  // Clear any existing timer
+  if (moveTimer.value) {
+    clearTimeout(moveTimer.value)
+    moveTimer.value = null
+  }
 }
 
 function handleDoubleClick() {
