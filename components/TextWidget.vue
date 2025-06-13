@@ -2,7 +2,7 @@
   <div class="text-widget">
     <WidgetOptions :itemId="props.itemId" @wheel.stop>
       <!-- Font Selection -->
-      <div class="flex gap-3">
+      <div class="flex gap-3 p-2">
           <Button
                   type="button"
                   :label="selectedFont"
@@ -60,7 +60,6 @@
                   ref="colorButton"
                   size="small"
                   severity="secondary"
-                  class="mr-2 w-8 h-8 p-1"
                 >
                   <div class="w-4 h-4 rounded border" :style="{ backgroundColor: textColor }"></div>
                 </Button>
