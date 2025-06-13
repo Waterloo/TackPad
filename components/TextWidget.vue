@@ -156,7 +156,8 @@
       v-else
       class="display-container h-full p-4 cursor-text min-h-24"
       :style="getTextStyle()"
-      @dblclick.stop="startEditing"
+      @dblclick.stop.prevent="handleDoubleClick"
+      @pointerdown.stop.prevent="handlePointerDown"
     >
       <div v-if="content" v-html="getFormattedContent()"></div>
       <div v-else class="text-gray-400 italic">Double click to edit text</div>
@@ -173,6 +174,7 @@ const props = defineProps<{
   isSelected: boolean
   initialText?: string
   initialFormatting?: TextWidgetFormatting
+  startMove?: (event: PointerEvent) => void
 }>()
 
 const textWidgetStore = useTextWidgetStore()
@@ -198,6 +200,9 @@ const colorPopover = ref()
 const fontButton = ref()
 const colorButton = ref()
 const sizePopover = ref()
+// Timer for delayed move
+const moveTimer = ref<NodeJS.Timeout | null>(null)
+
 
 // Font options
 const fonts = [
@@ -275,6 +280,33 @@ function initializeFormatting() {
 
 // Initialize on mount
 initializeFormatting()
+
+function handlePointerDown(event: PointerEvent) {
+  // Clear any existing timer
+  if (moveTimer.value) {
+    clearTimeout(moveTimer.value)
+    moveTimer.value = null
+  }
+
+  // Start move after a short delay to allow double-click detection
+  moveTimer.value = setTimeout(() => {
+    // This will only execute if not cancelled by double-click
+    if (props.startMove) {
+      props.startMove(event)
+    }
+    moveTimer.value = null
+  }, 200) // 200ms delay - adjust if needed
+}
+
+function handleDoubleClick() {
+  // Cancel the pending move operation
+  if (moveTimer.value) {
+    clearTimeout(moveTimer.value)
+    moveTimer.value = null
+  }
+  // Start editing instead
+  startEditing()
+}
 
 function startEditing() {
   isEditing.value = true
@@ -431,11 +463,16 @@ watch(() => props.isSelected, (newSelected) => {
     closeAllPopovers()
   }
 })
+// Clean up timer on unmount
+onUnmounted(() => {
+  if (moveTimer.value) {
+    clearTimeout(moveTimer.value)
+  }
+})
 </script>
 
 <style scoped>
 .text-widget {
-  border-radius: 4px;
   padding: 0;
   position: relative;
   height: 100%;
@@ -445,17 +482,35 @@ watch(() => props.isSelected, (newSelected) => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
+  z-index: 10;
 }
 
 .display-container {
   word-break: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
+  position: relative;
+  z-index: 10;
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .display-container:hover {
   background-color: rgba(0, 0, 0, 0.02);
   border-radius: 4px;
+}
+
+/* Allow text selection and show text cursor in edit mode */
+.editing-container textarea {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }
 
 /* Custom scrollbar for textarea */

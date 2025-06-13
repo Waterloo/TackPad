@@ -131,7 +131,6 @@ const computedBackgroundPosition = computed(
 
 const { isOpen } = useTackletDirectory();
 
-
 const updateDisplayName = (id: string, displayName: string) => {
     updateItemDisplayName(id, displayName);
     console.log(id, displayName);
@@ -292,6 +291,7 @@ const updateDisplayName = (id: string, displayName: string) => {
                             :initial-text="item.content.text"
                             :initial-formatting="item.content?.formatting"
                             :is-selected="boardStore.selectedId === item.id"
+                            :start-move="startMove"
                         />
                         <ImageWidget
                             v-else-if="item.kind === 'image'"

@@ -163,15 +163,14 @@ const showTitle = computed(() => {
   >
 
     <div class="widget-header-minimal">
-      <div
-        v-if="!props.isLocked"
-        class="drag-handle-horizontal"
-        :class="`${kind!=='image' ? '' : !contrastColor ? 'drag-handle-contrast' : ''}`"
-        title="Drag to move"
-        @pointerdown.stop.prevent="startMove"
-        @mouseover="showMenu = true"
-
-      >
+        <div
+                      v-if="!props.isLocked && props.kind !== 'text'"
+                      class="drag-handle-horizontal"
+                      :class="`${kind !== 'image' ? '' : !contrastColor ? 'drag-handle-contrast' : ''}`"
+                      title="Drag to move"
+                      @pointerdown.stop.prevent="startMove"
+                      @mouseover="showMenu = true"
+                  >
       <div class="visible-handle"></div>
     </div>
       <template v-if="showTitle">
