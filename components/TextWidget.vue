@@ -191,7 +191,7 @@
         </div>
         <Button
             variant="text"
-            v-if="isEditing && isMobileOrTablet"
+            v-if="isEditing && $device.isMobileOrTablet"
             @click="isEditing = false"
             size="sm"
             class="fixed bottom-2 right-2 z-20"
@@ -199,7 +199,7 @@
             <Icon name="lucide:check" class="w-4 h-4" />
         </Button>
         <Button
-            v-if="!isEditing && isMobileOrTablet"
+            v-if="!isEditing && $device.isMobileOrTablet"
             @click.stop="startEditing"
             class="absolute top-2 right-2 z-20"
             title="Edit text"
@@ -213,7 +213,6 @@
 <script setup lang="ts">
 import { useTextWidgetStore } from "~/stores/textWidgetStore";
 import type { TextWidgetFormatting } from "~/types/board";
-const { isMobileOrTablet } = useDevice();
 const props = defineProps<{
     itemId: string;
     isSelected: boolean;
