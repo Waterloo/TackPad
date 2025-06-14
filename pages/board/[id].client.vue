@@ -292,6 +292,7 @@ const updateDisplayName = (id: string, displayName: string) => {
                             :initial-formatting="item.content?.formatting"
                             :is-selected="boardStore.selectedId === item.id"
                             :start-move="startMove"
+                            @select="boardStore.setSelectedId(item.id)"
                         />
                         <ImageWidget
                             v-else-if="item.kind === 'image'"

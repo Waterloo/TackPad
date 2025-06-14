@@ -192,7 +192,7 @@
         </div>
         <Button
             variant="text"
-            v-if="isEditing && isTouchDevice"
+            v-if="isEditing"
             @click="isEditing = false"
             size="sm"
             class="fixed bottom-2 right-2 z-20"
@@ -329,9 +329,10 @@ function initializeFormatting() {
 
 // Initialize on mount
 initializeFormatting();
-
+const emits = defineEmits(['select']);
 function handlePointerDown(event: PointerEvent) {
     const currentTime = Date.now();
+    emits('select');
     const currentPosition = { x: event.clientX, y: event.clientY };
 
     // Calculate distance from last tap
