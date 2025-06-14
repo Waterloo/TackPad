@@ -183,6 +183,7 @@
             @dblclick.stop.prevent="handleDoubleClick"
             @pointerdown.stop.prevent="handlePointerDown"
             @pointerup.stop.prevent="handlePointerUp"
+            @touchstart.stop.prevent="isTouchDevice = true"
         >
             <div v-if="content" v-html="getFormattedContent()"></div>
             <div v-else class="text-gray-400 italic">
@@ -191,14 +192,14 @@
         </div>
         <Button
             variant="text"
-            v-if="isEditing && $device.isMobileOrTablet"
+            v-if="isEditing && isTouchDevice"
             @click="isEditing = false"
             size="sm"
             class="fixed bottom-2 right-2 z-20"
         >
             <Icon name="lucide:check" class="w-4 h-4" />
         </Button>
-        <Button
+        <!-- <Button
             v-if="!isEditing && $device.isMobileOrTablet"
             @click.stop="startEditing"
             class="absolute top-2 right-2 z-20"
@@ -206,7 +207,7 @@
             variant="text"
         >
             <Icon name="lucide:pencil" class="w-4 h-4" />
-        </Button>
+        </Button> -->
     </div>
 </template>
 
@@ -246,7 +247,11 @@ const colorButton = ref();
 const sizePopover = ref();
 // Timer for delayed move
 const moveTimer = ref<NodeJS.Timeout | null>(null);
-
+const lastTapTime = ref(0);
+const lastTapPosition = ref({ x: 0, y: 0 });
+const DOUBLE_TAP_DELAY = 300; // Maximum time between taps for double tap (ms)
+const DOUBLE_TAP_DISTANCE = 30; // Maximum distance between taps (pixels)
+const isTouchDevice = ref(false);
 // Font options
 const fonts = [
     { label: "Arial", value: "Arial, sans-serif" },
@@ -326,15 +331,47 @@ function initializeFormatting() {
 initializeFormatting();
 
 function handlePointerDown(event: PointerEvent) {
+    const currentTime = Date.now();
+    const currentPosition = { x: event.clientX, y: event.clientY };
+
+    // Calculate distance from last tap
+    const distance = Math.sqrt(
+        Math.pow(currentPosition.x - lastTapPosition.value.x, 2) +
+        Math.pow(currentPosition.y - lastTapPosition.value.y, 2)
+    );
+
+    // Check if this is a double tap
+    const timeSinceLastTap = currentTime - lastTapTime.value;
+    const isDoubleTap = timeSinceLastTap < DOUBLE_TAP_DELAY &&
+                       distance < DOUBLE_TAP_DISTANCE &&
+                       lastTapTime.value > 0;
+
+    if (isDoubleTap) {
+        // Handle double tap - cancel any pending move and start editing
+        if (moveTimer.value) {
+            clearTimeout(moveTimer.value);
+            moveTimer.value = null;
+        }
+        startEditing();
+        // Reset tap tracking
+        lastTapTime.value = 0;
+        lastTapPosition.value = { x: 0, y: 0 };
+        return;
+    }
+
+    // Update tap tracking for potential future double tap
+    lastTapTime.value = currentTime;
+    lastTapPosition.value = currentPosition;
+
     // Clear any existing timer
     if (moveTimer.value) {
         clearTimeout(moveTimer.value);
         moveTimer.value = null;
     }
 
-    // Start move after a short delay to allow double-click detection
+    // Start move after a short delay to allow double-tap detection
     moveTimer.value = setTimeout(() => {
-        // This will only execute if not cancelled by double-click
+        // This will only execute if not cancelled by double-tap
         if (props.startMove) {
             props.startMove(event);
         }
@@ -356,6 +393,9 @@ function handleDoubleClick() {
         clearTimeout(moveTimer.value);
         moveTimer.value = null;
     }
+    // Reset tap tracking to avoid conflicts
+    lastTapTime.value = 0;
+    lastTapPosition.value = { x: 0, y: 0 };
     // Start editing instead
     startEditing();
 }
