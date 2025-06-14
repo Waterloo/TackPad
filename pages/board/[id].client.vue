@@ -140,7 +140,7 @@ const updateDisplayName = (id: string, displayName: string) => {
 <template>
     <div
         ref="boardRef"
-        :class="`board fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden transition-none ease-in-out`"
+        :class="`board fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden transition-none ease-in-out max-w-screen max-h-screen`"
         :style="{
             '--dot-scale': computedDotScale,
             '--dot-scale-width': computedDotScaleWidth,
