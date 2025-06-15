@@ -32,7 +32,10 @@ export function useItemInteraction(
   const resizeHandle = ref<string | null>(null)
   const elementRef = ref<HTMLElement | null>(null)
   const activePointerId = ref<number | null>(null)
-  const didAutoscroll = ref(false)
+  const autoScrollInterval = ref<number | null>(null)
+  const autoScrollSpeed = 10
+  const autoScrollThreshold = 50
+  const dragOffset = ref<Point>({ x: 0, y: 0 })
   // Watch for external position changes
   watch(() => position, (newPos) => {
     if (!isMoving.value && !isResizing.value) {
@@ -65,7 +68,6 @@ export function useItemInteraction(
 
     e.preventDefault()
     isMoving.value = true
-    didAutoscroll.value = false
     initialPos.value = { ...currentPos.value }
     startPos.value = getEventCoordinates(e)
     activePointerId.value = e.pointerId
@@ -101,50 +103,29 @@ export function useItemInteraction(
     const scale = boardStore.scale
 
     if (isMoving.value) {
-      const leftThreshold = currentPos.value.width / 2
-      const rightThreshold = currentPos.value.width / 2
-      const topThreshold = currentPos.value.height * 0.1
-      const bottomThreshold = currentPos.value.height
+      // Check for autoscroll conditions
+      checkAutoScroll(coords.x, coords.y)
 
-      const scrollSpeed = 10 // Pixels to scroll per frame
+      // Calculate new position using drag offset and current scroll position
+      const boardContainer = document.querySelector('.board') // Adjust selector as needed
+      if (boardContainer) {
+        const containerRect = boardContainer.getBoundingClientRect()
 
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
+        // Calculate position relative to board coordinates
+        const newX = ((coords.x - containerRect.left - boardStore.translateX) / scale) - dragOffset.value.x
+        const newY = ((coords.y - containerRect.top - boardStore.translateY) / scale) - dragOffset.value.y
 
-      // Check if pointer is near edges and scroll accordingly, accounting for item size
-         if (coords.x < leftThreshold) {
-           // Near left edge - scroll left
-           boardStore.setTranslateX(boardStore.translateX + scrollSpeed)
-           didAutoscroll.value = true
-         } else if (coords.x > viewportWidth - rightThreshold) {
-           // Near right edge - scroll right
-           boardStore.setTranslateX(boardStore.translateX - scrollSpeed)
-           didAutoscroll.value = true
-         }
+        const gridX = Math.round(newX / options.grid) * options.grid
+        const gridY = Math.round(newY / options.grid) * options.grid
 
-         if (coords.y < topThreshold) {
-           // Near top edge - scroll up
-           boardStore.setTranslateY(boardStore.translateY + scrollSpeed)
-           didAutoscroll.value = true
-         } else if (coords.y > viewportHeight - bottomThreshold) {
-           // Near bottom edge - scroll down
-           boardStore.setTranslateY(boardStore.translateY - scrollSpeed)
-           didAutoscroll.value = true
-         }
+        currentPos.value = {
+          ...currentPos.value,
+          x: gridX,
+          y: gridY
+        }
 
-      const dx = (coords.x - startPos.value.x)
-      const dy = (coords.y - startPos.value.y)
-
-      const newX = Math.round((initialPos.value.x + dx / scale) / options.grid) * options.grid
-      const newY = Math.round((initialPos.value.y + dy / scale) / options.grid) * options.grid
-
-      currentPos.value = {
-        ...currentPos.value,
-        x: newX,
-        y: newY
+        onUpdate({ x: gridX, y: gridY })
       }
-
-      onUpdate({ x: newX, y: newY })
     }
 
     if (isResizing.value && resizeHandle.value) {
@@ -184,27 +165,8 @@ export function useItemInteraction(
     if ((isMoving.value || isResizing.value) &&
         (activePointerId.value === null || e.pointerId === activePointerId.value)) {
 
-      // Only recalculate position if autoscrolling occurred during drag
-      if (isMoving.value && didAutoscroll.value) {
-        const finalCoords = getEventCoordinates(e)
-        const scale = boardStore.scale
-
-        // Convert cursor position to board coordinates
-        const boardX = (finalCoords.x - boardStore.translateX) / scale
-        const boardY = (finalCoords.y - boardStore.translateY) / scale
-
-        // Position item relative to cursor (cursor at top-left of item)
-        const finalX = Math.round(boardX / options.grid) * options.grid
-        const finalY = Math.round(boardY / options.grid) * options.grid
-
-        currentPos.value = {
-          ...currentPos.value,
-          x: finalX,
-          y: finalY
-        }
-
-        onUpdate({ x: finalX, y: finalY })
-      }
+      // Stop autoscroll
+      stopAutoScroll()
 
       // Release pointer capture
       if (elementRef.value && activePointerId.value !== null) {
@@ -221,7 +183,57 @@ export function useItemInteraction(
       activePointerId.value = null
     }
   }
+  function checkAutoScroll(clientX: number, clientY: number) {
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
 
+    let scrollX = 0
+    let scrollY = 0
+
+    // Check horizontal scrolling
+    if (clientX < autoScrollThreshold) {
+      scrollX = -autoScrollSpeed
+    } else if (clientX > viewportWidth - autoScrollThreshold) {
+      scrollX = autoScrollSpeed
+    }
+
+    // Check vertical scrolling
+    if (clientY < autoScrollThreshold) {
+      scrollY = -autoScrollSpeed
+    } else if (clientY > viewportHeight - autoScrollThreshold) {
+      scrollY = autoScrollSpeed
+    }
+
+    if (scrollX !== 0 || scrollY !== 0) {
+      startAutoScroll(scrollX, scrollY)
+    } else {
+      stopAutoScroll()
+    }
+  }
+
+  function startAutoScroll(scrollX: number, scrollY: number) {
+    if (autoScrollInterval.value) {
+      clearInterval(autoScrollInterval.value)
+    }
+
+    autoScrollInterval.value = setInterval(() => {
+      if (isMoving.value) {
+        // Apply scroll to board transform - INVERT directions for board transform
+        boardStore.setTranslateX(boardStore.translateX - scrollX) // Note the minus
+        boardStore.setTranslateY(boardStore.translateY - scrollY) // Note the minus
+      } else {
+        stopAutoScroll()
+      }
+    }, 16) // ~60fps
+  }
+
+
+  function stopAutoScroll() {
+    if (autoScrollInterval.value) {
+      clearInterval(autoScrollInterval.value)
+      autoScrollInterval.value = null
+    }
+  }
   return {
     style,
     isMoving,
