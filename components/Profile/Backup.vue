@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { useBoardStore } from "@/stores/board";
-import Modal from "../UI/Modal.vue";
 import { ref, computed, watch } from "vue";
 const toast = useToast();
 const boardStore = useBoardStore();
 const showModal = ref(false);
-const activeTab = ref("export"); // Default to export tab
 const displayedBoardsForExport = ref({});
 const selectedBoardIdsForExport = ref(new Set<string>());
-
+const activeTabIndex = ref(0); // For TabView component
+const selectAllChecked = ref(false);
 // Get the raw boards data from the store
 const allBoardsFromStore = computed(() => boardStore.boards);
 
@@ -23,19 +22,26 @@ watch(showModal, (newValue) => {
         Object.keys(displayedBoardsForExport.value).forEach((boardId) => {
             selectedBoardIdsForExport.value.add(boardId);
         });
+        updateSelectAllState();
     }
 });
 
 // ----- Export Logic -----
-const handleCheckboxChange = (boardId: string, event: Event) => {
-    const isChecked = (event.target as HTMLInputElement).checked;
-    if (isChecked) {
+const handleCheckboxChange = (boardId: string, checked: boolean) => {
+    if (checked) {
         selectedBoardIdsForExport.value.add(boardId);
     } else {
         selectedBoardIdsForExport.value.delete(boardId);
     }
+    updateSelectAllState();
 };
 
+const updateSelectAllState = () => {
+    const displayedIds = Object.keys(displayedBoardsForExport.value);
+    selectAllChecked.value =
+        displayedIds.length > 0 &&
+        displayedIds.every((id) => selectedBoardIdsForExport.value.has(id));
+};
 const removeFromExportList = (boardId: string) => {
     delete displayedBoardsForExport.value[boardId];
     selectedBoardIdsForExport.value.delete(boardId);
@@ -43,15 +49,15 @@ const removeFromExportList = (boardId: string) => {
 
 const BACKUP_LOCALSTORAGE_KEY = "isBackedUp";
 const handleExport = async () => {
-  if (selectedBoardIdsForExport.value.size === 0) {
-         toast.add({
-              severity: 'warn',
-              summary: 'Selection Required',
-              detail: 'Please select at least one board to export.',
-              life: 3000
-          });
-          return;
-      }
+    if (selectedBoardIdsForExport.value.size === 0) {
+        toast.add({
+            severity: "warn",
+            summary: "Selection Required",
+            detail: "Please select at least one board to export.",
+            life: 3000,
+        });
+        return;
+    }
 
     const boardsToExport = Array.from(selectedBoardIdsForExport.value)
         .map((boardId) => {
@@ -79,38 +85,38 @@ const handleExport = async () => {
             URL.revokeObjectURL(url);
             localStorage.setItem(BACKUP_LOCALSTORAGE_KEY, "true");
             toast.add({
-                       severity: 'success',
-                         summary: 'Export Successful',
-                         detail: `${boardsToExport.length} board(s) exported successfully!`,
-                         life: 3000
-                     });
+                severity: "success",
+                summary: "Export Successful",
+                detail: `${boardsToExport.length} board(s) exported successfully!`,
+                life: 3000,
+            });
         } catch (err) {
             console.error("Export failed:", err);
-                         toast.add({
-                             severity: 'error',
-                             summary: 'Export Failed',
-                             detail: 'An error occurred during export.',
-                             life: 3000
-                         });
+            toast.add({
+                severity: "error",
+                summary: "Export Failed",
+                detail: "An error occurred during export.",
+                life: 3000,
+            });
         }
     } else {
-               toast.add({
-                   severity: 'warn',
-                   summary: 'Invalid Selection',
-                   detail: 'No valid boards selected for export.',
-                   life: 3000
-               });
+        toast.add({
+            severity: "warn",
+            summary: "Invalid Selection",
+            detail: "No valid boards selected for export.",
+            life: 3000,
+        });
     }
 };
 
 // ----- Import Logic -----
 const handleImportClick = () => {
-       toast.add({
-           severity: 'info',
-           summary: 'Coming Soon',
-           detail: 'Import functionality will be implemented later.',
-           life: 3000
-       });
+    toast.add({
+        severity: "info",
+        summary: "Coming Soon",
+        detail: "Import functionality will be implemented later.",
+        life: 3000,
+    });
 };
 
 // Helper to generate board URL
@@ -118,372 +124,161 @@ const getBoardUrl = (boardId: string) => {
     return `/board/${boardId}`;
 };
 
-const areAllDisplayedBoardsSelected = computed(() => {
-    const displayedIds = Object.keys(displayedBoardsForExport.value);
-    if (displayedIds.length === 0) {
-        return false;
-    }
-    return displayedIds.every((id) => selectedBoardIdsForExport.value.has(id));
-});
-
-const toggleSelectAll = (event: Event) => {
-    const shouldSelectAll = (event.target as HTMLInputElement).checked;
+const toggleSelectAll = () => {
     const displayedIds = Object.keys(displayedBoardsForExport.value);
 
-    if (shouldSelectAll) {
+    if (selectAllChecked.value) {
         displayedIds.forEach((id) => selectedBoardIdsForExport.value.add(id));
     } else {
         selectedBoardIdsForExport.value.clear();
     }
 };
 
-const switchTab = (tab: string) => {
-    activeTab.value = tab;
-};
 </script>
 
 <template>
     <div>
-        <button @click="showModal = true" class="btn bg-blue-500">
-            Import or Export Boards
-        </button>
+        <Button label="Import or Export Boards" @click="showModal = true" />
 
-        <Modal
-            v-model="showModal"
-            title="Import / Export Boards"
-            :show-close-button="true"
+        <Dialog
+            v-model:visible="showModal"
+            header="Import / Export Boards"
+            :modal="true"
+            :closable="true"
+            :style="{ width: '40rem' }"
+            :breakpoints="{ '960px': '75vw', '641px': '90vw' }"
         >
-            <div class="tabs">
-                <button
-                    @click="switchTab('export')"
-                    :class="[
-                        'tab-button',
-                        activeTab === 'export' ? 'active' : '',
-                    ]"
-                >
-                    Export
-                </button>
-                <button
-                    @click="switchTab('import')"
-                    :class="[
-                        'tab-button',
-                        activeTab === 'import' ? 'active' : '',
-                    ]"
-                >
-                    Import
-                </button>
-            </div>
+            <TabView v-model:activeIndex="activeTabIndex">
+                <TabPanel header="Export">
+                    <div class="space-y-4">
+                        <p class="text-gray-600 text-sm mb-4">
+                            Select the boards you want to include in the backup
+                            file.
+                        </p>
 
-            <div class="tab-content">
-                <!-- Export Tab -->
-                <div v-if="activeTab === 'export'" class="backup-section">
-                    <p class="section-description">
-                        Select the boards you want to include in the backup
-                        file.
-                    </p>
-
-                    <div
-                        v-if="Object.keys(displayedBoardsForExport).length > 0"
-                        class="select-all-container"
-                    >
-                        <input
-                            type="checkbox"
-                            id="select-all-export"
-                            :checked="areAllDisplayedBoardsSelected"
-                            @change="toggleSelectAll"
-                            class="select-all-checkbox"
-                        />
-                        <label for="select-all-export" class="select-all-label">
-                            Select All / Deselect All
-                        </label>
-                    </div>
-
-                    <ul
-                        v-if="Object.keys(displayedBoardsForExport).length > 0"
-                        class="board-list h-40 md:h-full"
-                    >
-                        <li
-                            v-for="(
-                                boardData, boardId
-                            ) in displayedBoardsForExport"
-                            :key="boardId"
-                            class="board-item"
+                        <div
+                            v-if="
+                                Object.keys(displayedBoardsForExport).length > 0
+                            "
+                            class="flex items-center gap-2 p-3 bg-gray-50 rounded-md border"
                         >
-                            <input
-                                type="checkbox"
-                                :id="'export-' + boardId"
-                                :value="boardId"
-                                :checked="
-                                    selectedBoardIdsForExport.has(boardId)
-                                "
-                                @change="handleCheckboxChange(boardId, $event)"
-                                class="board-checkbox"
-                                :aria-labelledby="'label-' + boardId"
+                            <Checkbox
+                                inputId="select-all-export"
+                                v-model="selectAllChecked"
+                                @change="toggleSelectAll"
                             />
                             <label
-                                :id="'label-' + boardId"
-                                :for="'export-' + boardId"
-                                class="board-title"
+                                for="select-all-export"
+                                class="text-sm font-medium text-gray-700 cursor-pointer"
                             >
-                                {{ boardData.title }}
+                                Select All / Deselect All
                             </label>
-                            <div class="board-actions">
-                                <a
-                                    :href="getBoardUrl(boardId)"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="action-button view-button"
-                                    title="View Board"
+                        </div>
+
+                        <div
+                            v-if="
+                                Object.keys(displayedBoardsForExport).length > 0
+                            "
+                            class="border border-gray-200 rounded-md max-h-72 overflow-y-auto"
+                        >
+                            <div
+                                v-for="(
+                                    boardData, boardId
+                                ) in displayedBoardsForExport"
+                                :key="boardId"
+                                class="flex items-center justify-between p-3 border-b border-gray-100 last:border-b-0"
+                            >
+                                <div
+                                    class="flex items-center gap-3 flex-1 min-w-0"
                                 >
-                                    👁️
-                                    <span class="sr-only"
-                                        >View {{ boardData.title }}</span
+                                    <Checkbox
+                                        :inputId="'export-' + boardId"
+                                        :modelValue="
+                                            selectedBoardIdsForExport.has(
+                                                boardId,
+                                            )
+                                        "
+                                        @update:modelValue="
+                                            (checked) =>
+                                                handleCheckboxChange(
+                                                    boardId,
+                                                    checked,
+                                                )
+                                        "
+                                    />
+                                    <label
+                                        :for="'export-' + boardId"
+                                        class="text-sm text-gray-900 cursor-pointer truncate"
                                     >
-                                </a>
-                                <button
-                                    @click="removeFromExportList(boardId)"
-                                    class="action-button remove-button"
-                                    title="Remove from Export List"
-                                >
-                                    🗑️
-                                    <span class="sr-only"
-                                        >Remove {{ boardData.title }} from
-                                        export list</span
-                                    >
-                                </button>
+                                        {{ boardData.title }}
+                                    </label>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <Button
+                                        icon="pi pi-eye"
+                                        severity="secondary"
+                                        variant="text"
+                                        size="small"
+                                        @click="
+                                            window.open(
+                                                getBoardUrl(boardId),
+                                                '_blank',
+                                            )
+                                        "
+                                        :aria-label="`View ${boardData.title}`"
+                                    />
+                                    <Button
+                                        icon="pi pi-trash"
+                                        severity="danger"
+                                        variant="text"
+                                        size="small"
+                                        @click="removeFromExportList(boardId)"
+                                        :aria-label="`Remove ${boardData.title} from export list`"
+                                    />
+                                </div>
                             </div>
-                        </li>
-                    </ul>
+                        </div>
 
-                    <p v-else class="no-boards-message">
-                        No boards available to export.
-                    </p>
+                        <div
+                            v-else
+                            class="text-center py-8 text-gray-500 italic"
+                        >
+                            No boards available to export.
+                        </div>
 
-                    <button
-                        @click="handleExport"
-                        :disabled="selectedBoardIdsForExport.size === 0"
-                        class="export-button btn bg-blue-500"
-                    >
-                        Export {{ selectedBoardIdsForExport.size }} Selected
-                        Board(s)
-                    </button>
-                </div>
+                        <Button
+                            :label="`Export ${selectedBoardIdsForExport.size} Selected Board(s)`"
+                            :disabled="selectedBoardIdsForExport.size === 0"
+                            @click="handleExport"
+                            class="mt-4"
+                        />
+                    </div>
+                </TabPanel>
 
-                <!-- Import Tab -->
-                <div v-if="activeTab === 'import'" class="backup-section">
-                    <p class="section-description">
-                        Import boards from a previously exported backup file
-                        (.json).
-                    </p>
-                    <button
-                        @click="handleImportClick"
-                        class="import-button btn bg-blue-500"
-                    >
-                        Import from File...
-                    </button>
-                </div>
-            </div>
+                <TabPanel header="Import">
+                    <div class="space-y-4">
+                        <p class="text-gray-600 text-sm mb-4">
+                            Import boards from a previously exported backup file
+                            (.json).
+                        </p>
+                        <Button
+                            label="Import from File..."
+                            @click="handleImportClick"
+                        />
+                    </div>
+                </TabPanel>
+            </TabView>
+
             <template #footer>
-                <button @click="showModal = false" class="btn bg-gray-500">
-                    Close
-                </button>
+                <div class="flex justify-end">
+                    <Button
+                        label="Close"
+                        severity="secondary"
+                        @click="showModal = false"
+                    />
+                </div>
             </template>
-        </Modal>
+        </Dialog>
     </div>
 </template>
-
-<style scoped>
-.btn {
-    padding: 8px 20px;
-    border-radius: 6px;
-    font-weight: 500;
-    color: white;
-    border: none;
-    transition: all 0.2s;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.btn.bg-blue-500 {
-    background-color: #3b82f6;
-}
-
-.btn.bg-blue-500:hover {
-    background-color: #2563eb;
-}
-
-.btn.bg-gray-500 {
-    background-color: #6b7280;
-}
-
-.btn.bg-gray-500:hover {
-    background-color: #4b5563;
-}
-
-.tabs {
-    display: flex;
-    border-bottom: 1px solid #e0e0e0;
-    margin-bottom: 16px;
-}
-
-.tab-button {
-    padding: 10px 20px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 500;
-    color: #666;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-}
-
-.tab-button.active {
-    color: #3b82f6;
-    border-bottom: 2px solid #3b82f6;
-}
-
-.tab-button:hover:not(.active) {
-    color: #4b5563;
-    background-color: #f9fafb;
-}
-
-.tab-content {
-    padding: 10px 0;
-}
-
-.backup-section {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.section-description {
-    margin: 0 0 8px 0;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.select-all-container {
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    background-color: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-bottom: none;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-}
-
-.select-all-checkbox {
-    margin-right: 8px;
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-.select-all-label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #555;
-    cursor: pointer;
-}
-
-.board-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-}
-
-.board-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 12px;
-    border-bottom: 1px solid #f0f0f0;
-    gap: 10px;
-}
-
-.board-item:last-child {
-    border-bottom: none;
-}
-
-.board-checkbox {
-    margin-right: 8px;
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-.board-title {
-    flex-grow: 1;
-    font-size: 0.95rem;
-    color: #444;
-    cursor: pointer;
-}
-
-.board-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.action-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    font-size: 1rem;
-    line-height: 1;
-    color: #777;
-    transition:
-        background-color 0.2s,
-        color 0.2s;
-    text-decoration: none;
-}
-
-.action-button:hover {
-    background-color: #f0f0f0;
-    color: #333;
-}
-
-.action-button.remove-button:hover {
-    color: #d9534f;
-}
-
-.export-button,
-.import-button {
-    align-self: flex-start;
-    margin-top: 8px;
-}
-
-.export-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.no-boards-message {
-    color: #888;
-    font-style: italic;
-    padding: 15px;
-    text-align: center;
-}
-
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-}
-</style>

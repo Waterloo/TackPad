@@ -426,7 +426,7 @@ export const useBoardStore = defineStore("board", () => {
 
     if (password.value) {
       try {
-        dataToSend = await encrypt(data, password.value);
+        dataToSend = await encrypt(dataToStore, password.value);
         isEncrypted.value = true;
       } catch (encErr) {
         console.error("Encryption failed during save:", encErr);

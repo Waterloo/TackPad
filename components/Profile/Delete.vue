@@ -1,45 +1,49 @@
+
 <template>
-  <Modal
-    v-model="isOpen"
-    title="Delete Board"
-    :showCloseButton="true"
-    :closeOnBackdropClick="true"
-    :closeOnEsc="true"
+  <Dialog
+    v-model:visible="isOpen"
+    header="Delete Board"
+    :modal="true"
+    :closable="true"
+    :close-on-escape="true"
+    :style="{ width: '28rem' }"
+    :breakpoints="{ '641px': '90vw' }"
   >
-    <div class="delete-confirmation-content">
-      <h2 class="confirmation-title">
-        Delete "<span class="board-title">{{ boardTitle }}</span>"
+    <div class="space-y-4">
+      <h2 class="text-xl font-semibold text-gray-800">
+        Delete "<span class="text-indigo-600 font-medium">{{ boardTitle }}</span>"
       </h2>
-      <p class="confirmation-message">
+      <p class="text-gray-600">
         Are you sure you want to delete this board?
       </p>
-      <p class="delete-warning">
+      <Message severity="warn" :closable="false" class="text-sm">
         This action cannot be undone. All content associated with this board will be permanently removed.
-      </p>
+      </Message>
     </div>
 
     <template #footer>
-      <div class="delete-confirmation-actions">
-        <button
+      <div class="flex justify-end gap-3 w-full">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          variant="outlined"
           @click="closeModal"
-          class="cancel-button"
-        >
-          Cancel
-        </button>
-        <button
-          class="delete-button"
+        />
+        <Button
+          label="Delete Board"
+          severity="danger"
           @click="$emit('delete-board')"
-        >
-          Delete Board
-        </button>
+        />
       </div>
     </template>
-  </Modal>
+  </Dialog>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import Modal from '../UI/Modal.vue';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import Message from 'primevue/message';
 import { useBoardStore } from '~/stores/board';
 
 const props = defineProps({
@@ -69,74 +73,3 @@ const closeModal = () => {
   isOpen.value = false;
 };
 </script>
-
-<style scoped>
-.delete-confirmation-content {
-  display: flex;
-  flex-direction: column;
-  padding: 12px 24px 20px;
-}
-
-.confirmation-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: #333333;
-}
-
-.confirmation-message {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #4B5563;
-}
-
-.board-title {
-  color: #4F46E5; /* Indigo color from the home page */
-}
-
-.delete-warning {
-  color: #6B7280;
-  margin-bottom: 0;
-  font-size: 14px;
-  max-width: 26rem;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.delete-confirmation-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  width: 100%;
-}
-
-.cancel-button {
-  padding: 8px 20px;
-  border-radius: 6px;
-  font-weight: 500;
-  background-color: #ffffff;
-  color: #555555;
-  border: 1px solid #E5E7EB;
-  transition: all 0.2s;
-  font-size: 14px;
-}
-
-.cancel-button:hover {
-  background-color: #f5f5f5;
-}
-
-.delete-button {
-  padding: 8px 20px;
-  border-radius: 6px;
-  font-weight: 500;
-  background-color: #EF4444;
-  color: white;
-  border: none;
-  transition: all 0.2s;
-  font-size: 14px;
-}
-
-.delete-button:hover {
-  background-color: #DC2626;
-}
-</style>
