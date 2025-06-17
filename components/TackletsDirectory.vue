@@ -36,7 +36,7 @@
       </div>
     <div v-else-if="error" class="text-red-500 mb-2">{{ error }}</div>
     <!-- Tacklet cards -->
-    <div v-else class="grid grid-cols-1 gap-3 max-h-64 overflow-auto">
+    <div v-else class="grid grid-cols-1 gap-3 max-h-64 overflow-auto" @touchmove.stop>
       <div
         v-for="tacklet in filteredTacklets"
         :key="`tacklet-${tacklet.id}`"
@@ -49,8 +49,8 @@
               'w-10 h-10 rounded-lg mr-3 flex items-center justify-center text-white font-bold flex-shrink-0',
             ]"
           />
-          
-          
+
+
           <div class="flex-grow">
             <h3 class="text-sm font-medium mb-1 text-gray-800">
               {{ tacklet.name }}
@@ -145,7 +145,7 @@ onMounted(async () => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    tacklets.value = data.tacklets || data; 
+    tacklets.value = data.tacklets || data;
     isLoading.value = false;
   } catch (error) {
     isLoading.value = false;
@@ -174,7 +174,7 @@ const filteredTacklets = computed(() => {
 const addTacklet = (tacklet: Tacklet) => {
   tackletStore.addTacklet(tacklet);
   closeTackletDirectory()
-  
+
 };
 
 const toggleDropdown = () => {
