@@ -200,6 +200,7 @@ const updateDisplayName = (id: string, displayName: string) => {
                             width: item.width,
                             height: item.height,
                         }"
+                        :scale="scale"
                         :contrast-color="
                             item.kind === 'image' ? item.contrastColor : false
                         "

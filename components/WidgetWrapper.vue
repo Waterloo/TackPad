@@ -16,6 +16,7 @@ const props = withDefaults(defineProps<{
   isSelected: boolean;
   shadow?: boolean;
   isLocked?: boolean;
+  scale?: number;
 }>(), {shadow: true});
 
 const emit = defineEmits<{
@@ -187,7 +188,13 @@ const showTitle = computed(() => {
         title="More Options"
       >
         <transition name="fade">
-          <div v-show="isSelected && !isMoving" class="shadow-lg widget-menu rounded-xl">
+          <div v-show="isSelected && !isMoving" class="shadow-lg widget-menu rounded-xl"
+          :style="{
+          transform: `translateX(-50%) scale(${1 / scale})`,
+          transformOrigin: 'center bottom',
+          transition: 'transform 0.2s ease-in-out'
+          }"
+          >
             <button
               @click.stop="handleMenuAction('delete', $event)"
               class="menu-item"
@@ -231,7 +238,6 @@ const showTitle = computed(() => {
         </transition>
       </div>
     </div>
-    
     <div class="widget-content" @widgetInteraction="$emit('select', props.itemId)" @wheel="e => isSelected ? e.stopPropagation() : e.preventDefault()">
       <slot :startMove="startMove"></slot>
     </div>
