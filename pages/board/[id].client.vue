@@ -73,11 +73,6 @@ useGlobalShortcuts({
 function handleDeselect() {
     boardStore.setSelectedId(null);
 }
-const backupShow = ref(false);
-const showBackupAlert = ref(true);
-function handleBackupToggle() {
-    backupShow.value = true;
-}
 definePageMeta({
     alias: "/",
 });
@@ -226,15 +221,7 @@ definePageMeta({
 
         <BoardHeader />
         <BoardToolbar />
-        <BackupAlertBanner
-            v-if="showBackupAlert"
-            @backupToggle="handleBackupToggle"
-        />
-        <ProfilePopup @backupOpen="backupShow = true" />
-        <ExportModal
-            v-if="backupShow"
-            @backupSuccess="showBackupAlert = false"
-        />
+        <ProfilePopup  />
         <BoardPasswordDialog />
         <OfflineIndicator />
     </div>

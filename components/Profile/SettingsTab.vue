@@ -41,7 +41,6 @@ const applyColorScheme = (scheme) => {
         root.classList.toggle("dark", scheme === "dark");
     }
 };
-const emit = defineEmits(["openBackup"]);
 </script>
 
 <template>
@@ -223,14 +222,6 @@ const emit = defineEmits(["openBackup"]);
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="text-white">
-            <div>Import Export</div>
-            <div>
-                <button @click="$emit('openBackup')" class="btn bg-blue-500">
-                    Export import boards
-                </button>
             </div>
         </div>
     </div>

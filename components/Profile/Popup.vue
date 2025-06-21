@@ -49,7 +49,6 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener("resize", updateSize);
 });
-const emit = defineEmits(["backupOpen"]);
 </script>
 
 <template>
@@ -152,7 +151,6 @@ const emit = defineEmits(["backupOpen"]);
                         <!-- Settings tab -->
                         <SettingsTab
                             v-else-if="activeTab === 'settings'"
-                            @openBackup="$emit('backupOpen')"
                         />
                     </div>
                 </div>
