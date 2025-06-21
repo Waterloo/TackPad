@@ -16,7 +16,6 @@ import { useGlobalShortcuts } from "~/composables/useGlobalShortcuts";
 import { useClipboard } from "~/composables/useClipboard";
 import { applyOptimalZoom } from "~/utils/boardUtils";
 import { getSSEServer } from "~/shared/board";
-import BackupAlertBanner from "~/components/BackupAlertBanner.vue";
 
 // Initialize stores
 const boardStore = useBoardStore();
@@ -489,7 +488,6 @@ const updateDisplayName = (id: string, displayName: string) => {
 
         <BoardPasswordDialog />
         <OfflineIndicator />
-        <BackupAlertBanner />
         <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
         <ZoomControls class="fixed right-2 bottom-16 z-10" />
         <ErrorModal
