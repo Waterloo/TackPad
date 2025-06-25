@@ -100,6 +100,12 @@ onUnmounted(() => {
 // Initialize global shortcuts
 useGlobalShortcuts({
     handleDelete,
+    handleDelete: () => {
+        // Show confirmation dialog when Delete key is pressed
+        if (boardStore.selectedId) {
+            deleteItemConfirm.value = true;
+        }
+    },
     handlePaste,
 });
 
