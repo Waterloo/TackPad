@@ -98,14 +98,14 @@ onUnmounted(() => {
 });
 
 // Initialize global shortcuts
+const showDeleteConfirmation = () => {
+    if (boardStore.selectedId) {
+        deleteItemConfirm.value = true;
+    }
+};
+
 useGlobalShortcuts({
-    handleDelete,
-    handleDelete: () => {
-        // Show confirmation dialog when Delete key is pressed
-        if (boardStore.selectedId) {
-            deleteItemConfirm.value = true;
-        }
-    },
+    handleDelete: showDeleteConfirmation,
     handlePaste,
 });
 
@@ -219,7 +219,7 @@ const updateDisplayName = (id: string, displayName: string) => {
                                 updateItemPosition(item.id, updates)
                         "
                         :shadow="item.kind !== 'text'"
-                        @delete="deleteItemConfirm = true"
+                        @delete="showDeleteConfirmation"
                         @lock="(locked: boolean) => toggleLock(item.id, locked)"
                         v-slot="{ startMove }"
                         @update:displayName="
