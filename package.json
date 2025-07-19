@@ -45,5 +45,6 @@
     "sass": "^1.85.1",
     "sass-embedded": "^1.85.1",
     "wrangler": "^3.91.0"
-  }
+  },
+  "packageManager": "pnpm@10.0.0"
 }
