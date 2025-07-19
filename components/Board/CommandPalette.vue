@@ -21,7 +21,8 @@ const commandListRef = ref(null);
 const keys = useMagicKeys({
     passive: false,
     onEventFired(e) {
-        if (e.ctrlKey && e.key === "k" && e.type === "keydown")
+        // Prevent default for both Ctrl+K (PC) and Cmd+K (Mac)
+        if ((e.ctrlKey || e.metaKey) && e.key === "k" && e.type === "keydown")
             e.preventDefault();
     },
 });
