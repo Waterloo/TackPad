@@ -69,7 +69,10 @@ export function usePanZoom() {
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.code === 'Space' && !spacePressed.value && !e.repeat && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement) && !(e.target?.classList.contains('tiptap'))) {
+    if (e.code === 'Space' && !spacePressed.value && !e.repeat && 
+        !(e.target instanceof HTMLInputElement) && 
+        !(e.target instanceof HTMLTextAreaElement) && 
+        !(e.target instanceof HTMLElement && e.target.classList.contains('tiptap'))) {
       spacePressed.value = true;
       e.preventDefault();
     }
@@ -83,7 +86,8 @@ export function usePanZoom() {
   };
 
   const handleZoom = (e: WheelEvent) => {
-    if (!e.ctrlKey && e.deltaY % 1 === 0) return;
+    // Support both Ctrl (PC) and Cmd (Mac) for zoom
+    if (!(e.ctrlKey || e.metaKey) && e.deltaY % 1 === 0) return;
     e.preventDefault();
     
     const zoomSpeedFactor = 0.018; // Adjust this value to control zoom speed
@@ -123,7 +127,8 @@ export function usePanZoom() {
   };
   const handleWheel = (e: WheelEvent) => {
     // Only handle wheel events for panning (not zooming)
-    if (!e.ctrlKey && e.deltaY % 1 === 0) {
+    // Support both Ctrl (PC) and Cmd (Mac) for distinguishing zoom from pan
+    if (!(e.ctrlKey || e.metaKey) && e.deltaY % 1 === 0) {
       const speedFactor = 0.1; // Adjust this value to make the panning slower
       translateX.value = translateX.value - e.deltaX * speedFactor;
       translateY.value = translateY.value - e.deltaY * speedFactor;

@@ -103,6 +103,14 @@ const showDeleteConfirmation = () => {
     }
 };
 
+// Handle wheel events with cross-platform modifier key support
+const handleWheelEvent = (e: WheelEvent) => {
+    // Support both Ctrl (PC) and Cmd (Mac) for zoom
+    if (e.ctrlKey || e.metaKey) {
+        handleZoom(e);
+    }
+};
+
 useGlobalShortcuts({
     handleDelete: showDeleteConfirmation,
     handlePaste,
@@ -162,7 +170,7 @@ const updateDisplayName = (id: string, displayName: string) => {
         @pointermove.stop="pan"
         @pointerup.stop="endPan"
         @pointerleave.stop="endPan"
-        @wheel.ctrl.prevent="handleZoom"
+        @wheel="handleWheelEvent"
         @touchstart.stop="
             (e) => {
                 startPan(e);
