@@ -147,6 +147,38 @@ const boardId = route.params.id as string;
 
 const { activeUsers } = useYjsUser(boardId)
 const { connectionStatus } = useYjsConnection(boardId)
+const { cursors, updateCursorPosition, clearCursor } = useYjsCursors(boardId)
+
+// Mouse tracking for cursor position
+let cursorUpdateTimer: ReturnType<typeof setTimeout> | null = null
+
+function handleMouseMove(event: MouseEvent) {
+    if (!boardRef.value || isPanning.value) return
+
+    const rect = boardRef.value.getBoundingClientRect()
+
+    // Calculate cursor position relative to the board container
+    // Account for pan and zoom transformations
+    const x = (event.clientX - rect.left - translateX.value) / scale.value
+    const y = (event.clientY - rect.top - translateY.value) / scale.value
+
+    // Throttle cursor updates to avoid spam
+    if (cursorUpdateTimer) {
+        clearTimeout(cursorUpdateTimer)
+    }
+
+    cursorUpdateTimer = setTimeout(() => {
+        updateCursorPosition(x, y)
+    }, 16) // ~60fps
+}
+
+function handleMouseLeave() {
+    clearCursor()
+    if (cursorUpdateTimer) {
+        clearTimeout(cursorUpdateTimer)
+        cursorUpdateTimer = null
+    }
+}
 </script>
 <template>
 <div class="fixed bottom-5 right-5 z-50">
@@ -228,6 +260,8 @@ const { connectionStatus } = useYjsConnection(boardId)
         @touchend.stop="endPan"
         @touchcancel.stop="endPan"
         @click.stop="handleDeselect"
+        @mousemove="handleMouseMove"
+        @mouseleave="handleMouseLeave"
         tabindex="0"
     >
         <div
@@ -402,6 +436,16 @@ const { connectionStatus } = useYjsConnection(boardId)
                 </template>
             </div>
         </div>
+        <UserCursor
+                 v-for="cursor in cursors"
+                 :key="`${cursor.clientId}-${cursor.user.id}`"
+                 :user="cursor.user"
+                 :cursor="{
+                     x: cursor.cursor.x * scale + translateX,
+                     y: cursor.cursor.y * scale + translateY,
+                     timestamp: cursor.cursor.timestamp
+                 }"
+             />
         <div v-if="!loading">
             <div
                 v-if="!boardStore.board?.data.items"
