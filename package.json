@@ -32,7 +32,10 @@
     "tailwindcss-primeui": "^0.6.1",
     "unstorage": "^1.15.0",
     "vue-draggable-next": "^2.2.1",
-    "wavesurfer.js": "^7.9.4"
+    "wavesurfer.js": "^7.9.4",
+    "y-indexeddb": "^9.0.12",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.27"
   },
   "devDependencies": {
     "@primeuix/themes": "^1.1.1",

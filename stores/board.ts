@@ -44,7 +44,11 @@ export const useBoardStore = defineStore("board", () => {
   const showPasswordDialog = ref(false);
   const boards = useLocalStorage<Boards>("boards", {});
   const settings = useLocalStorage<BoardSettings>("settings", {});
-
+  const board_id = ref(null)
+  const boardActions = computed(() => {
+    if (!board_id.value) return null
+    return useYjsBoard(board_id.value)
+  })
   let itemsCounter: Record<string, number> = {};
 
   function initializeCounter(items: Map<string, BoardItem>) {
@@ -194,6 +198,7 @@ export const useBoardStore = defineStore("board", () => {
       } else {
         isEncrypted.value = false;
         board.value = deserializeBoardUniversal(boardData);
+        board_id.value = boardData.board_id;
       }
 
       if (!board.value) {
@@ -382,6 +387,7 @@ export const useBoardStore = defineStore("board", () => {
     const curItem = board.value.data.items.get(selectedId.value);
 
     if (curItem) {
+      boardActions.value?.removeItem(selectedId.value);
       board.value.data.items.delete(selectedId.value);
 
       if (
@@ -517,10 +523,21 @@ export const useBoardStore = defineStore("board", () => {
       getDisplayName(
         (item.kind === "tacklet" && item.content.tackletId) || item.kind,
       );
+
     board.value.data.items.set(item.id, item);
+    boardActions.value?.addItem(item);
     debouncedSaveBoard();
   }
-
+  const updateBoardItem = async(itemId,item)=>{
+    if (!board.value) return;
+    board.value.data.items.set(itemId, item);
+    boardActions.value?.updateItem(itemId, item);
+    debouncedSaveBoard();
+  }
+  const updateBoardItems = async (items) => {
+    if (!board.value && !board.value.data) return;
+    board.value.data.items = items;
+  };
   async function backupBoards(boardsToExport: any) {
     const res = await fetch("/api/backup/export", {
       method: "POST",
@@ -587,6 +604,7 @@ export const useBoardStore = defineStore("board", () => {
     if (!board.value?.data.items) return [];
     return itemsMapToArray(board.value.data.items);
   });
+
   return {
     // State
     board,
@@ -635,7 +653,9 @@ export const useBoardStore = defineStore("board", () => {
     toggleEncryption,
     addBoardItem,
     backupBoards,
-
+    // updataBoardYjs
+    updateBoardItems,
+    updateBoardItem,
     // Access Control Actions
     fetchAccessDetails,
     updateUserRole,

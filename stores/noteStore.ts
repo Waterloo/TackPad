@@ -57,7 +57,8 @@ export const useNoteStore = defineStore('notes', () => {
         }
       };
 
-      boardStore.board.data.items.set(noteId, updatedNote);
+      // boardStore.board.data.items.set(noteId, updatedNote);
+      boardStore.updateBoardItem(noteId, updatedNote);
       boardStore.debouncedSaveBoard();
     }
   }

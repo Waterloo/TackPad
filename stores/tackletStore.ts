@@ -60,7 +60,7 @@ export const useTackletStore = defineStore('tacklets', () => {
         }
       };
 
-      boardStore.board.data.items.set(itemId, updatedItem);
+      boardStore.updateBoardItem(itemId, updatedItem);
       boardStore.debouncedSaveBoard();
     }
   }

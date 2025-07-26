@@ -78,23 +78,23 @@ onMounted(async () => {
 
 let eventSource: EventSource;
 
-onMounted(() => {
-    const id = route.params.id as string;
-    const server = getSSEServer(id);
-    server.pathname = "/sse";
-    server.searchParams.set("room", id);
-    eventSource = new EventSource(server);
+// onMounted(() => {
+//     const id = route.params.id as string;
+//     const server = getSSEServer(id);
+//     server.pathname = "/sse";
+//     server.searchParams.set("room", id);
+//     eventSource = new EventSource(server);
 
-    eventSource.onmessage = (event) => {
-        if (event.data === "update") {
-            boardStore.initializeBoard(id);
-        }
-    };
-});
+//     eventSource.onmessage = (event) => {
+//         if (event.data === "update") {
+//             boardStore.initializeBoard(id);
+//         }
+//     };
+// });
 
-onUnmounted(() => {
-    eventSource && eventSource.close();
-});
+// onUnmounted(() => {
+//     eventSource && eventSource.close();
+// });
 
 // Initialize global shortcuts
 const showDeleteConfirmation = () => {
@@ -141,8 +141,61 @@ const updateDisplayName = (id: string, displayName: string) => {
     updateItemDisplayName(id, displayName);
     console.log(id, displayName);
 };
+// YJS
+// Initialize Yjs
+const boardId = route.params.id as string;
+
+const { activeUsers } = useYjsUser(boardId)
+const { connectionStatus } = useYjsConnection(boardId)
 </script>
 <template>
+<div class="fixed bottom-5 right-5 z-50">
+  <!-- Minimal User Status Widget -->
+  <div
+    class="bg-white rounded-full shadow-lg border border-gray-200 p-2 flex items-center gap-1 hover:rounded-lg hover:p-3 transition-all duration-200 group cursor-pointer"
+    v-tooltip.left="connectionStatus === 'connected' ? `${activeUsers?.length || 0} users online` : 'Disconnected'"
+  >
+    <!-- Connection Status Dot -->
+    <div
+      :class="[
+        'w-2 h-2 rounded-full flex-shrink-0',
+        connectionStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'
+      ]"
+    ></div>
+
+    <!-- User Avatars -->
+    <div class="flex -space-x-1">
+      <div
+        v-for="user in activeUsers?.slice(0, 3)"
+        :key="user.id"
+        class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white border border-white flex-shrink-0"
+        :style="{ backgroundColor: user.color }"
+        :title="user.name"
+      >
+        {{ user.name?.charAt(0)?.toUpperCase() || '?' }}
+      </div>
+
+      <!-- More users indicator -->
+      <div
+        v-if="activeUsers && activeUsers.length > 3"
+        class="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-xs font-medium text-white border border-white"
+        :title="`+${activeUsers.length - 3} more`"
+      >
+        +{{ activeUsers.length - 3 }}
+      </div>
+    </div>
+
+    <!-- Expanded details on hover -->
+    <div class="hidden group-hover:block ml-2 min-w-0">
+      <div class="text-xs font-medium text-gray-700 capitalize truncate">
+        {{ connectionStatus }}
+      </div>
+      <div v-if="activeUsers && activeUsers.length > 0" class="text-xs text-gray-500">
+        {{ activeUsers.length }} online
+      </div>
+    </div>
+  </div>
+</div>
     <div
         ref="boardRef"
         :class="`board fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden transition-none ease-in-out`"

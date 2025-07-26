@@ -56,7 +56,7 @@ export const useTextWidgetStore = defineStore('textWidgets', () => {
         }
       };
 
-      boardStore.board.data.items.set(widgetId, updatedWidget);
+      boardStore.updateBoardItem(widgetId, updatedWidget);
       boardStore.debouncedSaveBoard();
     }
   }

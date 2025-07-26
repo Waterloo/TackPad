@@ -51,7 +51,7 @@ export const useTodoStore = defineStore('todos', () => {
           title
         }
       };
-      boardStore.board.data.items.set(listId, updatedList);
+      boardStore.updateBoardItem(listId, updatedList);
       boardStore.debouncedSaveBoard();
     }
   }
@@ -91,7 +91,7 @@ export const useTodoStore = defineStore('todos', () => {
       }
     };
 
-    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.updateBoardItem(listId, updatedList);
     boardStore.debouncedSaveBoard();
     return newTask;
   }
@@ -118,7 +118,7 @@ export const useTodoStore = defineStore('todos', () => {
       }
     };
 
-    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.updateBoardItem(listId, updatedList);
     boardStore.debouncedSaveBoard();
   }
 
@@ -144,7 +144,7 @@ export const useTodoStore = defineStore('todos', () => {
       }
     };
 
-    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.updateBoardItem(listId, updatedList);
     boardStore.debouncedSaveBoard();
   }
 
@@ -167,7 +167,7 @@ export const useTodoStore = defineStore('todos', () => {
       }
     };
 
-    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.updateBoardItem(listId, updatedList);
     boardStore.debouncedSaveBoard();
   }
 
@@ -191,7 +191,7 @@ export const useTodoStore = defineStore('todos', () => {
       }
     };
 
-    boardStore.board.data.items.set(listId, updatedList);
+    boardStore.updateBoardItem(listId, updatedList);
     boardStore.debouncedSaveBoard();
   }
 
@@ -236,8 +236,8 @@ export const useTodoStore = defineStore('todos', () => {
     };
 
     // Update both lists in the Map
-    boardStore.board.data.items.set(sourceListId, updatedSourceList);
-    boardStore.board.data.items.set(targetListId, updatedTargetList);
+    boardStore.updateBoardItem(sourceListId, updatedSourceList);
+    boardStore.updateBoardItem(targetListId, updatedTargetList);
 
     // Save the board
     boardStore.debouncedSaveBoard();

@@ -53,7 +53,7 @@ export const useTimerStore = defineStore('timers', () => {
         }
       };
 
-      boardStore.board.data.items.set(timerId, updatedTimer);
+      boardStore.updateBoardItem(timerId, updatedTimer);
       boardStore.debouncedSaveBoard();
     }
   }
