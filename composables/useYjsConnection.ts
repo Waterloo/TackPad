@@ -22,7 +22,8 @@ export function useYjsConnection(boardId: string) {
 
   // 1) Create the Y.Doc + providers once
   const ydoc = new Y.Doc()
-  const provider = new WebsocketProvider(`ws://localhost:1234`, boardId, ydoc)
+  const config = useRuntimeConfig()
+  const provider = new WebsocketProvider(config.public.websocketUrl, boardId, ydoc)
   const persistence = new IndexeddbPersistence(boardId, ydoc)
   const ready = ref(false)
   const wsReady = ref(false)
