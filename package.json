@@ -12,10 +12,10 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
-    "@nuxt/fonts": "^0.10.2",
-    "@nuxthub/core": "^0.8.7",
-    "@nuxtjs/tailwindcss": "^6.11.4",
-    "@pinia/nuxt": "^0.5.1",
+    "@nuxt/fonts": "^0.10.3",
+    "@nuxthub/core": "^0.8.18",
+    "@nuxtjs/tailwindcss": "^6.13.2",
+    "@pinia/nuxt": "^0.5.5",
     "@tiptap/pm": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",
     "@tiptap/vue-3": "^2.11.5",
@@ -23,16 +23,16 @@
     "aws4fetch": "^1.0.20",
     "drizzle-orm": "^0.40.1",
     "lodash": "^4.17.21",
-    "nanoid": "^5.0.9",
-    "nuxt": "^3.13.0",
-    "nuxt-auth-utils": "^0.5.16",
-    "penpal": "^7.0.0",
-    "pinia": "^2.1.7",
+    "nanoid": "^5.1.5",
+    "nuxt": "^3.16.1",
+    "nuxt-auth-utils": "^0.5.17",
+    "penpal": "^7.0.4",
+    "pinia": "^2.3.1",
     "primevue": "^4.3.5",
     "tailwindcss-primeui": "^0.6.1",
     "unstorage": "^1.15.0",
     "vue-draggable-next": "^2.2.1",
-    "wavesurfer.js": "^7.9.4",
+    "wavesurfer.js": "^7.9.5",
     "y-indexeddb": "^9.0.12",
     "y-websocket": "^3.0.0",
     "yjs": "^13.6.27"
@@ -42,11 +42,11 @@
     "@primevue/forms": "^4.3.5",
     "@primevue/nuxt-module": "^4.3.5",
     "@tailwindcss/typography": "^0.5.16",
-    "@types/lodash": "^4.17.13",
+    "@types/lodash": "^4.17.16",
     "@types/uuid": "^9.0.8",
     "drizzle-kit": "^0.28.1",
-    "sass": "^1.85.1",
-    "sass-embedded": "^1.85.1",
-    "wrangler": "^3.91.0"
+    "sass": "^1.86.0",
+    "sass-embedded": "^1.86.0",
+    "wrangler": "^3.114.2"
   }
 }
