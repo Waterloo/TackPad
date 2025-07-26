@@ -1,4 +1,5 @@
 // composables/useYjsBoard.ts
+import * as Y from 'yjs'
 import { useYjsConnection } from './useYjsConnection'
 import { useBoardStore } from '@/stores/board'
 import { watchEffect, ref } from 'vue'
@@ -8,7 +9,12 @@ const boards = new Map<string, {
   updateItem: (id: string, patch: Partial<BoardItem>) => void,
   addItem: (item: BoardItem) => void,
   removeItem: (id: string) => void,
-  isInitialized: ReturnType<typeof ref>
+  isInitialized: ReturnType<typeof ref>,
+  undoManager: Y.UndoManager,
+  undo: () => void,
+  redo: () => void,
+  canUndo: () => boolean,
+  canRedo: () => boolean
 }>()
 
 export function useYjsBoard(boardId: string) {
@@ -23,6 +29,12 @@ export function useYjsBoard(boardId: string) {
   const yItemsMap = ydoc.getMap<BoardItem>('items')
   const boardStore = useBoardStore()
   const isInitialized = ref(false)
+
+  // Initialize UndoManager for the items map
+  const undoManager = new Y.UndoManager(yItemsMap)
+
+  // Set up scope for undo operations (optional: can include other user's operations)
+  undoManager.addToScope([yItemsMap])
 
   // 1) Wait for both IndexedDB and WebSocket to be ready (only once)
   watchEffect(() => {
@@ -91,8 +103,44 @@ export function useYjsBoard(boardId: string) {
       console.error('Error removing item:', error)
     }
   }
+  // Undo/Redo functions
+  function undo() {
+    try {
+      undoManager.undo()
+      console.log('Undo operation performed')
+    } catch (error) {
+      console.error('Error performing undo:', error)
+    }
+  }
 
-  const boardInstance = { updateItem, addItem, removeItem, isInitialized }
+  function redo() {
+    try {
+      undoManager.redo()
+      console.log('Redo operation performed')
+    } catch (error) {
+      console.error('Error performing redo:', error)
+    }
+  }
+
+  function canUndo(): boolean {
+    return undoManager.undoStack.length > 0
+  }
+
+  function canRedo(): boolean {
+    return undoManager.redoStack.length > 0
+  }
+
+  const boardInstance = {
+    updateItem,
+    addItem,
+    removeItem,
+    isInitialized,
+    undoManager,
+    undo,
+    redo,
+    canUndo,
+    canRedo
+  }
   boards.set(boardId, boardInstance)
 
   return boardInstance

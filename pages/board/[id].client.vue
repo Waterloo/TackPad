@@ -147,8 +147,78 @@ const boardId = route.params.id as string;
 
 const { activeUsers } = useYjsUser(boardId)
 const { connectionStatus } = useYjsConnection(boardId)
+const { undo, redo, canUndo, canRedo } = useYjsBoard(boardId)
+
+// Undo/Redo keyboard shortcuts
+const handleKeydown = (event: KeyboardEvent) => {
+  // Cmd+Z (Mac) or Ctrl+Z (Windows/Linux) for undo
+  if ((event.metaKey || event.ctrlKey) && event.key === 'z' && !event.shiftKey) {
+    event.preventDefault()
+    if (canUndo()) {
+      undo()
+    }
+  }
+
+  // Cmd+Shift+Z (Mac) or Ctrl+Y (Windows/Linux) for redo
+  if (((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'Z') ||
+      ((event.ctrlKey) && event.key === 'y')) {
+    event.preventDefault()
+    if (canRedo()) {
+      redo()
+    }
+  }
+}
+
+// Add keyboard event listener
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+
 </script>
 <template>
+<div class="fixed top-20 right-4 z-50">
+  <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex flex-col items-center gap-1">
+    <!-- Undo Button -->
+    <button
+      @click="undo()"
+      :disabled="!canUndo()"
+      :class="[
+        'p-2 rounded-md transition-colors duration-200',
+        canUndo()
+          ? 'text-gray-700 hover:bg-gray-100 cursor-pointer'
+          : 'text-gray-300 cursor-not-allowed'
+      ]"
+      v-tooltip.top="canUndo() ? 'Undo (Cmd+Z)' : 'Nothing to undo'"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+      </svg>
+    </button>
+
+    <!-- Redo Button -->
+    <button
+      @click="redo()"
+      :disabled="!canRedo()"
+      :class="[
+        'p-2 rounded-md transition-colors duration-200',
+        canRedo()
+          ? 'text-gray-700 hover:bg-gray-100 cursor-pointer'
+          : 'text-gray-300 cursor-not-allowed'
+      ]"
+      v-tooltip.top="canRedo() ? 'Redo (Cmd+Shift+Z)' : 'Nothing to redo'"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 10H11a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6"/>
+      </svg>
+    </button>
+  </div>
+</div>
 <div class="fixed bottom-5 right-5 z-50">
   <!-- Minimal User Status Widget -->
   <div
