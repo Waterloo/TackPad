@@ -162,3 +162,18 @@ export const USAGE_QUOTA = sqliteTable("usage_quota", {
   limit: integer("limit").default(25000000),
   updated_at: text("updated_at"),
 });
+
+export const API_TOKENS = sqliteTable(
+  "api_tokens",
+  {
+    id: text("id").primaryKey(),
+    token: text("token").unique(),
+    profile_id: text("profile_id").references(() => PROFILE.id, { onDelete: "cascade" }),
+    expires_at: text("expires_at"),
+    created_at: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
+  },
+  (table) => ({
+    token_idx: index("token_idx").on(table.token),
+    profile_idx: index("api_token_profile_idx").on(table.profile_id),
+  }),
+);
