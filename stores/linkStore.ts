@@ -86,7 +86,7 @@ export const useLinkStore = defineStore('links', () => {
           width: updatedDimensions.width || 400,
           height: updatedDimensions.height || 200
         };
-        boardStore.board.data.items.set(initialLinkItem.id, updatedItem);
+        boardStore.updateBoardItem(initialLinkItem.id, updatedItem);
         boardStore.debouncedSaveBoard();
         return updatedItem;
       }
@@ -105,7 +105,7 @@ export const useLinkStore = defineStore('links', () => {
             description: `A link to ${hostname}`
           }
         };
-        boardStore.board.data.items.set(initialLinkItem.id, fallbackItem);
+        boardStore.updateBoardItem(initialLinkItem.id, fallbackItem);
         boardStore.debouncedSaveBoard();
         return fallbackItem;
       }

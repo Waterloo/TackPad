@@ -24,7 +24,7 @@ export const useItemStore = defineStore('items', () => {
     if (item) {
       // Create updated item and set it back to the Map
       const updatedItem = Object.assign({}, item, updates)
-      boardStore.board.data.items.set(itemId, updatedItem)
+      boardStore.updateBoardItem(itemId, updatedItem)
       boardStore.debouncedSaveBoard()
     }
   }
@@ -47,7 +47,7 @@ export const useItemStore = defineStore('items', () => {
       if (position.height !== undefined) updatedItem.height = position.height
 
       // Set the updated item back to the Map
-      boardStore.board.data.items.set(itemId, updatedItem)
+      boardStore.updateBoardItem(itemId, updatedItem)
       boardStore.debouncedSaveBoard()
     }
   }

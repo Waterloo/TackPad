@@ -167,3 +167,12 @@ export interface BoardMetadata {
 export type Boards = {
   [key: string]: BoardMetadata;
 };
+
+export interface User {
+  id: string
+  name: string
+  color: string
+  access?: 'viewer' | 'editor' | 'admin'
+}
+
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error'

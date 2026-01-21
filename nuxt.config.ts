@@ -32,6 +32,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || "/api",
+      websocketUrl: process.env.NUXT_PUBLIC_WEBSOCKET_URL || "ws://localhost:1234",
     },
     oauth: {
       google: {
