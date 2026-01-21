@@ -36,9 +36,6 @@ export const usePiPWindow = () => {
                     id: options.id
                 }, "*");
             }
-
-            // Bring window to front if possible (browser dependent, often not allowed without user gesture but worth a try or just logic update)
-            // Note: window.focus() on pip window often doesn't work as expected for bringing to foreground if not initiated by user gesture.
         } else {
             // Create new PiP window
             try {
@@ -49,28 +46,42 @@ export const usePiPWindow = () => {
 
                 pipWindow.value = win;
 
-                // Copy styles
-                // We'll just add basic reset and layout styles for now as per previous implementation
-                const style = document.createElement("style");
-                style.innerHTML = `
-                    * { margin:0; box-sizing: border-box; }
-                    html, body { width: 100vw; height: 100vh; overflow: hidden; }
-                    body {
-                        display: flex;
-                        flex-direction: column; 
-                        background: #f0f2f5; 
+                // Copy all styles from main window
+                [...document.styleSheets].forEach((styleSheet) => {
+                    try {
+                        const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join("");
+                        const style = document.createElement("style");
+                        style.textContent = cssRules;
+                        win.document.head.appendChild(style);
+                    } catch (e) {
+                        const link = document.createElement("link");
+                        link.rel = "stylesheet";
+                        link.type = styleSheet.type;
+                        link.media = styleSheet.media.toString();
+                        link.href = styleSheet.href || "";
+                        win.document.head.appendChild(link);
                     }
-                    iframe {
-                        flex: 1;
-                        width: 100%;
-                        border: none;
-                    }
-                `;
-                win.document.head.append(style);
+                });
+
+                // Copy all style tags
+                Array.from(document.querySelectorAll('style')).forEach(styleTag => {
+                    win.document.head.appendChild(styleTag.cloneNode(true));
+                });
+
+                // Copy all link stylesheets
+                Array.from(document.querySelectorAll('link[rel="stylesheet"]')).forEach(linkTag => {
+                    win.document.head.appendChild(linkTag.cloneNode(true));
+                });
+
 
                 const iframe = document.createElement("iframe");
                 iframe.src = url;
+                iframe.style.width = "100%";
+                iframe.style.height = "100%";
+                iframe.style.border = "none";
                 win.document.body.append(iframe);
+                // Ensure body has no margin/padding
+                win.document.body.style.margin = "0";
 
                 // Handle closing
                 win.addEventListener("pagehide", () => {
