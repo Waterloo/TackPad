@@ -54,11 +54,19 @@ onMounted(async () => {
         }
     }
 
-    window.addEventListener("message", (event) => {
+    window.addEventListener("message", async (event) => {
         console.log(event.data);
         if (event.data.type === "append" && event.data.id) {
             if (!itemIds.value.includes(event.data.id)) {
                 itemIds.value.push(event.data.id);
+
+                await nextTick();
+
+                const widgetsContainer = document.getElementById("widgets-container");
+                widgetsContainer?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'end'
+                });
             }
         }
     });
@@ -77,9 +85,10 @@ onMounted(async () => {
             <p class="text-gray-600">The requested items could not be found.</p>
         </div>
     </div>
-    <div v-else class="h-full">
-        <Draggable v-model="visibleItems" class="flex flex-col gap-4 p-4 min-h-full" handle=".drag-handle"
-            ghost-class="ghost" :animation="200" @start="isDragging = true" @end="isDragging = false">
+    <div v-else class="h-full" id="widgets-container">
+        <Draggable v-model="visibleItems" class="flex flex-col gap-4 min-h-full transition-all duration-300 ease-in-out"
+            handle=".drag-handle" ghost-class="ghost" :animation="200" @start="isDragging = true"
+            @end="isDragging = false" :class="{ 'p-4': itemIds.length > 1 }">
             <div v-for="item in visibleItems" :key="item.id">
                 <PiPWidgetWrapper :item-id="item.id" @remove="removeItem(item.id)" :interaction-disabled="isDragging">
                     <StickyNote v-if="item.kind === 'note'" :item-id="item.id" :initial-text="item.content.text"
@@ -116,7 +125,6 @@ onMounted(async () => {
             </div>
         </Draggable>
     </div>
-    <div> {{ itemIds }}</div>
 </template>
 <style>
 html,

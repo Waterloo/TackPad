@@ -76,8 +76,8 @@ export const usePiPWindow = () => {
 
                 const iframe = document.createElement("iframe");
                 iframe.src = url;
-                iframe.style.width = "100%";
-                iframe.style.height = "100%";
+                iframe.style.width = "100vw";
+                iframe.style.height = "100vh";
                 iframe.style.border = "none";
                 win.document.body.append(iframe);
                 // Ensure body has no margin/padding

@@ -15,33 +15,23 @@ const isHoveringClose = ref(false);
     <div
         class="pip-widget-wrapper relative group bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
         <!-- Controls Header -->
+        <!-- Drag Handle (Pill) -->
         <div
-            class="absolute top-0 left-0 right-0 h-8 bg-gray-50/90 backdrop-blur-sm border-b border-gray-100 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-[100]">
-            <!-- Drag Handle -->
-            <div class="drag-handle cursor-move p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="9" cy="12" r="1"></circle>
-                    <circle cx="9" cy="5" r="1"></circle>
-                    <circle cx="9" cy="19" r="1"></circle>
-                    <circle cx="15" cy="12" r="1"></circle>
-                    <circle cx="15" cy="5" r="1"></circle>
-                    <circle cx="15" cy="19" r="1"></circle>
-                </svg>
-            </div>
-
-            <!-- Remove Button -->
-            <button @click.stop="$emit('remove', itemId)" @mousedown.stop @touchstart.stop
-                @mouseenter="isHoveringClose = true" @mouseleave="isHoveringClose = false"
-                class="p-2 -mr-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-colors duration-200"
-                title="Remove from PiP">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
+            class="drag-handle drag-handle-horizontal opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-[100]">
+            <div class="visible-handle"></div>
         </div>
+
+        <!-- Remove Button (Floating) -->
+        <button @click.stop="$emit('remove', itemId)" @mousedown.stop @touchstart.stop
+            @mouseenter="isHoveringClose = true" @mouseleave="isHoveringClose = false"
+            class="absolute top-0 right-0  hover:bg-gray-100 rounded-bl-lg text-gray-400 hover:text-red-500 transition-all duration-200 z-[101] opacity-0 group-hover:opacity-100 bg-white/80 backdrop-blur-sm shadow-sm border-l border-b border-gray-100 border-transparent hover:border-gray-200"
+            title="Remove from PiP">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
 
         <!-- Content -->
         <div class="widget-content" :class="{ 'pointer-events-none': interactionDisabled || isHoveringClose }">
@@ -56,5 +46,34 @@ const isHoveringClose = ref(false);
 <style scoped>
 .widget-content {
     min-height: 100px;
+}
+
+.drag-handle-horizontal {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 20px;
+    border-radius: 4px;
+    cursor: grab;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Ensure it's draggable if the parent expects a class or region */
+    -webkit-app-region: drag;
+}
+
+.drag-handle-horizontal .visible-handle {
+    background: rgba(0, 0, 0, 0.2);
+    width: 40px;
+    height: 6px;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.drag-handle-horizontal:active {
+    cursor: grabbing;
 }
 </style>
