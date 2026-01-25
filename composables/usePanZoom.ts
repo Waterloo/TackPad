@@ -1,4 +1,5 @@
 import { ref, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useEventListener } from '@vueuse/core';
 import { useGesture } from './useGesture';
 import { useBoardStore } from '~/stores/board';
@@ -16,7 +17,7 @@ const ZOOM_THRESHOLDS = [
 
 export function usePanZoom() {
   const boardStore = useBoardStore();
-  
+
   // Use the scale from the board store instead of a local ref
   const scale = computed({
     get: () => boardStore.scale,
@@ -26,18 +27,18 @@ export function usePanZoom() {
       updateZoomLevel(value);
     }
   });
-  
+
   // Use translateX and translateY from the board store
   const translateX = computed({
     get: () => boardStore.translateX,
     set: (value) => boardStore.setTranslateX(value)
   });
-  
+
   const translateY = computed({
     get: () => boardStore.translateY,
     set: (value) => boardStore.setTranslateY(value)
   });
-  
+
   const isPanning = ref(false);
   const lastScale = ref(1);
   const initialDistance = ref(0);
@@ -45,7 +46,7 @@ export function usePanZoom() {
   const lastX = ref(0);
   const lastY = ref(0);
   const isTouchDevice = ref(false);
-  
+
   // Use gesture for better touch handling
   const gesture = useGesture();
 
@@ -53,7 +54,7 @@ export function usePanZoom() {
   const updateZoomLevel = (scaleValue: number) => {
     // Find the appropriate zoom level based on the scale
     let newZoomLevel = 0;
-    
+
     // Find the highest threshold that's less than or equal to the current scale
     for (let i = ZOOM_THRESHOLDS.length - 1; i >= 0; i--) {
       if (scaleValue >= ZOOM_THRESHOLDS[i].scale) {
@@ -61,7 +62,7 @@ export function usePanZoom() {
         break;
       }
     }
-    
+
     // Update the zoom level in the store if it's different
     if (boardStore.ZOOM_LEVEL !== newZoomLevel) {
       boardStore.setZoomLevel(newZoomLevel);
@@ -85,7 +86,7 @@ export function usePanZoom() {
   const handleZoom = (e: WheelEvent) => {
     if (!e.ctrlKey && e.deltaY % 1 === 0) return;
     e.preventDefault();
-    
+
     const zoomSpeedFactor = 0.018; // Adjust this value to control zoom speed
     const delta = e.deltaY > 0 ? 1 - zoomSpeedFactor : 1 + zoomSpeedFactor;
     updateZoom(delta, e.clientX, e.clientY);
@@ -94,7 +95,7 @@ export function usePanZoom() {
   const updateZoom = (delta: number, centerX: number, centerY: number) => {
     const newScale = Math.min(Math.max(MIN_ZOOM, scale.value * delta), MAX_ZOOM);
     if (newScale === scale.value) return;
-    
+
     const zoomPoint = {
       x: (centerX - translateX.value) / scale.value,
       y: (centerY - translateY.value) / scale.value
@@ -110,14 +111,14 @@ export function usePanZoom() {
     // Find the target scale for the requested level
     const targetLevel = ZOOM_THRESHOLDS.find(threshold => threshold.level === level);
     if (!targetLevel) return;
-    
+
     // Calculate the center point of the viewport
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
-    
+
     // Calculate the zoom delta to reach the target scale
     const delta = targetLevel.scale / scale.value;
-    
+
     // Apply the zoom
     updateZoom(delta, centerX, centerY);
   };
@@ -133,7 +134,7 @@ export function usePanZoom() {
   const startPan = (e: MouseEvent | TouchEvent) => {
     if (e instanceof TouchEvent) {
       isTouchDevice.value = true;
-      
+
       // Handle two-finger touch (existing pinch-zoom logic)
       if (e.touches.length === 2) {
         initialDistance.value = Math.hypot(
@@ -150,19 +151,19 @@ export function usePanZoom() {
         lastY.value = pos.y;
         return;
       }
-      
+
       // Handle single-finger touch
       if (e.touches.length === 1) {
         // Get the element that was touched
         const target = e.target as HTMLElement;
-        
+
         // Check if touch target is the board or container (not a widget)
         const boardElement = document.querySelector('.board');
         const containerElement = document.querySelector('.board-container');
-        
+
         // Only enable panning if touched directly on board or container
         if (target === boardElement || target === containerElement ||
-            target.classList.contains('board') || target.classList.contains('board-container')) {
+          target.classList.contains('board') || target.classList.contains('board-container')) {
           isPanning.value = true;
           lastX.value = e.touches[0].clientX;
           lastY.value = e.touches[0].clientY;
@@ -171,7 +172,7 @@ export function usePanZoom() {
       }
       return;
     }
-  
+
     // Mouse interaction logic (unchanged)
     if (e.button !== 0 || !spacePressed.value) return;
     isPanning.value = true;
@@ -189,7 +190,7 @@ export function usePanZoom() {
           e.touches[1].clientX - e.touches[0].clientX,
           e.touches[1].clientY - e.touches[0].clientY
         );
-        
+
         if (initialDistance.value > 0) {
           const delta = currentDistance / initialDistance.value;
           if (Math.abs(delta - lastScale.value) > 0.01) {
@@ -209,24 +210,24 @@ export function usePanZoom() {
       if (e.touches.length === 1 && isPanning.value) {
         const dx = e.touches[0].clientX - lastX.value;
         const dy = e.touches[0].clientY - lastY.value;
-        
+
         translateX.value += dx;
         translateY.value += dy;
-        
+
         lastX.value = e.touches[0].clientX;
         lastY.value = e.touches[0].clientY;
-        
+
         // Prevent default to avoid scrolling
         e.preventDefault();
         return;
       }
       return;
-      
+
     }
 
     // Mouse interaction - require space key
     if (!isPanning.value || !spacePressed.value) return;
-    
+
     gesture.move(e);
     translateX.value += gesture.delta.value.x;
     translateY.value += gesture.delta.value.y;
@@ -242,17 +243,24 @@ export function usePanZoom() {
   // Initialize zoom level based on current scale
   updateZoomLevel(scale.value);
 
-  // Set up event listeners
-  useEventListener(window, 'keydown', handleKeyDown);
-  useEventListener(window, 'keyup', handleKeyUp);
-  useEventListener(window, 'wheel', handleZoom, { passive: false });
-  useEventListener(window, 'wheel', handleWheel, { passive: false });
-  useEventListener(window, 'mousemove', pan);
-  useEventListener(window, 'touchmove', pan, { passive: false });
-  useEventListener(window, 'mouseup', endPan);
-  useEventListener(window, 'mouseleave', endPan);
-  useEventListener(window, 'touchend', endPan);
-  useEventListener(window, 'touchcancel', endPan);
+
+  const route = useRoute();
+  const isPiP = computed(() => route.path.startsWith('/pip'));
+
+  // Set up event listeners only if not in PiP mode
+  if (!isPiP.value) {
+    useEventListener(window, 'keydown', handleKeyDown);
+    useEventListener(window, 'keyup', handleKeyUp);
+    useEventListener(window, 'wheel', handleZoom, { passive: false });
+    useEventListener(window, 'wheel', handleWheel, { passive: false });
+    useEventListener(window, 'mousemove', pan);
+    useEventListener(window, 'touchmove', pan, { passive: false });
+    useEventListener(window, 'mouseup', endPan);
+    useEventListener(window, 'mouseleave', endPan);
+    useEventListener(window, 'touchend', endPan);
+    useEventListener(window, 'touchcancel', endPan);
+  }
+
 
   return {
     scale,

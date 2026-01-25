@@ -126,6 +126,7 @@ onMounted(async () => {
             </div>
         </Draggable>
     </div>
+    <BoardCommandPalette />
 </template>
 <style>
 html,
