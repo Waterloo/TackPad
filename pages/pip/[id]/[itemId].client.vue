@@ -118,7 +118,8 @@ onMounted(async () => {
                     <ImageWidget v-else-if="item.kind === 'image'" :item-id="item.id" :src="item.content.url"
                         :title="item.title" :is-selected="boardStore.selectedId === item.id" />
                     <Tacklet v-else-if="item.kind === 'tacklet'" :item-id="item.id"
-                        :is-selected="boardStore.selectedId === item.id" :content="item.content" @update:content="
+                        :is-selected="boardStore.selectedId === item.id" :content="item.content" :containerType="'pip'"
+                        @update:content="
                             (content) => tackletStore.updateTackletContent(item.id, content)
                         " @widgetInteraction="boardStore.setSelectedId(item.id)" />
                 </PiPWidgetWrapper>

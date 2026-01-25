@@ -3,7 +3,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { WindowMessenger, connect } from 'penpal';
 import type { Tacklet } from '~/types/board';
 
-type Prop = Pick<Tacklet, 'content'> & {isSelected: boolean, itemId: string}
+type Prop = Pick<Tacklet, 'content'> & { isSelected: boolean, itemId: string, containerType: 'board' | 'pip' }
 const props = defineProps<Prop>();
 const emit = defineEmits(['update:content', 'widgetInteraction']);
 
@@ -15,28 +15,29 @@ const isLoading = ref(true);
 const remoteTacklet = ref<any>(null);
 
 const tackletURL = computed(() => {
-   const url =  new URL(props.content.url)
-   url.searchParams.set('node_id', props.itemId);
-   return url.toString();
+  const url = new URL(props.content.url)
+  url.searchParams.set('node_id', props.itemId);
+  url.searchParams.set('container_type', props.containerType);
+  return url.toString();
 });
 
 // Set up the Penpal connection to the iframe
 const setupConnection = () => {
   if (!iframeRef.value || !iframeRef.value.contentWindow) return;
-    console.log('Setting up connection');
+  console.log('Setting up connection');
   try {
     // Create a dedicated messenger for this iframe
     const targetOrigin = new URL(props.content.url).origin;
     messenger.value = new WindowMessenger({
       remoteWindow: iframeRef.value.contentWindow,
       // Allow only the specific origin of the iframe
-      allowedOrigins:["*"],
+      allowedOrigins: ["*"],
     });
 
     // Create a connection with methods our parent exposes to the iframe
     // We use a unique channel based on the widget ID to avoid conflicts
     const channelId = props.itemId;
-    
+
     connection.value = connect({
       messenger: messenger.value,
       channel: channelId,
@@ -49,7 +50,7 @@ const setupConnection = () => {
           console.log('Widget registered');
         },
         setWidgetData: (id: string, data: any) => {
-            console.log(data);
+          console.log(data);
           // Update the widget data and emit the change
           emit('update:content', data);
           return true;
@@ -58,7 +59,7 @@ const setupConnection = () => {
           emit('widgetInteraction', action, data);
         },
         getWidgetId: () => props.itemId,
-        
+
         getTheme: () => 'light', // You could make this dynamic based on your app theme
       }
     });
@@ -94,7 +95,7 @@ const destroyConnection = () => {
 };
 
 const handleIframeLoad = () => {
-    console.log('Iframe loaded');
+  console.log('Iframe loaded');
   // Set up the connection once the iframe has loaded
   setupConnection();
 };
@@ -116,16 +117,10 @@ watch(() => props.isSelected, async (val) => {
     <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-50 z-10">
       <span class="inline-block w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></span>
     </div>
-    
-    <iframe 
-      ref="iframeRef"
-      :src="tackletURL" 
-      frameborder="0" 
-      class="w-full h-full"
-      @load="handleIframeLoad"
+
+    <iframe ref="iframeRef" :src="tackletURL" frameborder="0" class="w-full h-full" @load="handleIframeLoad"
       allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone; midi"
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-    ></iframe>
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
   </div>
 </template>
 
