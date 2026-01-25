@@ -151,123 +151,102 @@ const { undo, redo, canUndo, canRedo } = useYjsBoard(boardId)
 
 // Undo/Redo keyboard shortcuts
 const handleKeydown = (event: KeyboardEvent) => {
-  // Cmd+Z (Mac) or Ctrl+Z (Windows/Linux) for undo
-  if ((event.metaKey || event.ctrlKey) && event.key === 'z' && !event.shiftKey) {
-    event.preventDefault()
-    if (canUndo()) {
-      undo()
+    // Cmd+Z (Mac) or Ctrl+Z (Windows/Linux) for undo
+    if ((event.metaKey || event.ctrlKey) && event.key === 'z' && !event.shiftKey) {
+        event.preventDefault()
+        if (canUndo()) {
+            undo()
+        }
     }
-  }
 
-  // Cmd+Shift+Z (Mac) or Ctrl+Y (Windows/Linux) for redo
-  if (((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'Z') ||
-      ((event.ctrlKey) && event.key === 'y')) {
-    event.preventDefault()
-    if (canRedo()) {
-      redo()
+    // Cmd+Shift+Z (Mac) or Ctrl+Y (Windows/Linux) for redo
+    if (((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'Z') ||
+        ((event.ctrlKey) && event.key === 'y')) {
+        event.preventDefault()
+        if (canRedo()) {
+            redo()
+        }
     }
-  }
 }
 
 // Add keyboard event listener
 onMounted(() => {
-  document.addEventListener('keydown', handleKeydown)
+    document.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
+    document.removeEventListener('keydown', handleKeydown)
 })
 
 </script>
 <template>
-<div class="fixed top-20 right-4 z-50">
-  <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex flex-col items-center gap-1">
-    <!-- Undo Button -->
-    <button
-      @click="undo()"
-      :disabled="!canUndo()"
-      :class="[
-        'p-2 rounded-md transition-colors duration-200',
-        canUndo()
-          ? 'text-gray-700 hover:bg-gray-100 cursor-pointer'
-          : 'text-gray-300 cursor-not-allowed'
-      ]"
-      v-tooltip.top="canUndo() ? 'Undo (Cmd+Z)' : 'Nothing to undo'"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-      </svg>
-    </button>
+    <div class="fixed top-20 right-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex flex-col items-center gap-1">
+            <!-- Undo Button -->
+            <button @click="undo()" :disabled="!canUndo()" :class="[
+                'p-2 rounded-md transition-colors duration-200',
+                canUndo()
+                    ? 'text-gray-700 hover:bg-gray-100 cursor-pointer'
+                    : 'text-gray-300 cursor-not-allowed'
+            ]" v-tooltip.top="canUndo() ? 'Undo (Cmd+Z)' : 'Nothing to undo'">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                </svg>
+            </button>
 
-    <!-- Redo Button -->
-    <button
-      @click="redo()"
-      :disabled="!canRedo()"
-      :class="[
-        'p-2 rounded-md transition-colors duration-200',
-        canRedo()
-          ? 'text-gray-700 hover:bg-gray-100 cursor-pointer'
-          : 'text-gray-300 cursor-not-allowed'
-      ]"
-      v-tooltip.top="canRedo() ? 'Redo (Cmd+Shift+Z)' : 'Nothing to redo'"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M21 10H11a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6"/>
-      </svg>
-    </button>
-  </div>
-</div>
-<div class="fixed bottom-5 right-5 z-50">
-  <!-- Minimal User Status Widget -->
-  <div
-    class="bg-white rounded-full shadow-lg border border-gray-200 p-2 flex items-center gap-1 hover:rounded-lg hover:p-3 transition-all duration-200 group cursor-pointer"
-    v-tooltip.left="connectionStatus === 'connected' ? `${activeUsers?.length || 0} users online` : 'Disconnected'"
-  >
-    <!-- Connection Status Dot -->
-    <div
-      :class="[
-        'w-2 h-2 rounded-full flex-shrink-0',
-        connectionStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'
-      ]"
-    ></div>
-
-    <!-- User Avatars -->
-    <div class="flex -space-x-1">
-      <div
-        v-for="user in activeUsers?.slice(0, 3)"
-        :key="user.id"
-        class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white border border-white flex-shrink-0"
-        :style="{ backgroundColor: user.color }"
-        :title="user.name"
-      >
-        {{ user.name?.charAt(0)?.toUpperCase() || '?' }}
-      </div>
-
-      <!-- More users indicator -->
-      <div
-        v-if="activeUsers && activeUsers.length > 3"
-        class="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-xs font-medium text-white border border-white"
-        :title="`+${activeUsers.length - 3} more`"
-      >
-        +{{ activeUsers.length - 3 }}
-      </div>
+            <!-- Redo Button -->
+            <button @click="redo()" :disabled="!canRedo()" :class="[
+                'p-2 rounded-md transition-colors duration-200',
+                canRedo()
+                    ? 'text-gray-700 hover:bg-gray-100 cursor-pointer'
+                    : 'text-gray-300 cursor-not-allowed'
+            ]" v-tooltip.top="canRedo() ? 'Redo (Cmd+Shift+Z)' : 'Nothing to redo'">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 10H11a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6" />
+                </svg>
+            </button>
+        </div>
     </div>
+    <div class="fixed bottom-5 right-5 z-50">
+        <!-- Minimal User Status Widget -->
+        <div class="bg-white rounded-full shadow-lg border border-gray-200 p-2 flex items-center gap-1 hover:rounded-lg hover:p-3 transition-all duration-200 group cursor-pointer"
+            v-tooltip.left="connectionStatus === 'connected' ? `${activeUsers?.length || 0} users online` : 'Disconnected'">
+            <!-- Connection Status Dot -->
+            <div :class="[
+                'w-2 h-2 rounded-full flex-shrink-0',
+                connectionStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'
+            ]"></div>
 
-    <!-- Expanded details on hover -->
-    <div class="hidden group-hover:block ml-2 min-w-0">
-      <div class="text-xs font-medium text-gray-700 capitalize truncate">
-        {{ connectionStatus }}
-      </div>
-      <div v-if="activeUsers && activeUsers.length > 0" class="text-xs text-gray-500">
-        {{ activeUsers.length }} online
-      </div>
+            <!-- User Avatars -->
+            <div class="flex -space-x-1">
+                <div v-for="user in activeUsers?.slice(0, 3)" :key="user.id"
+                    class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white border border-white flex-shrink-0"
+                    :style="{ backgroundColor: user.color }" :title="user.name">
+                    {{ user.name?.charAt(0)?.toUpperCase() || '?' }}
+                </div>
+
+                <!-- More users indicator -->
+                <div v-if="activeUsers && activeUsers.length > 3"
+                    class="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-xs font-medium text-white border border-white"
+                    :title="`+${activeUsers.length - 3} more`">
+                    +{{ activeUsers.length - 3 }}
+                </div>
+            </div>
+
+            <!-- Expanded details on hover -->
+            <div class="hidden group-hover:block ml-2 min-w-0">
+                <div class="text-xs font-medium text-gray-700 capitalize truncate">
+                    {{ connectionStatus }}
+                </div>
+                <div v-if="activeUsers && activeUsers.length > 0" class="text-xs text-gray-500">
+                    {{ activeUsers.length }} online
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
-    <div
-        ref="boardRef"
+    <div ref="boardRef"
         :class="`board fixed inset-0 bg-gray-100 bg-[radial-gradient(circle_at_1px_1px,#D1D5DB_1px,transparent_1px)] bg-[size:24px_24px] overflow-hidden transition-none ease-in-out`"
         :style="{
             '--dot-scale': computedDotScale,
@@ -280,229 +259,143 @@ onUnmounted(() => {
             userSelect: 'none',
             webkitUserSelect: 'none',
             msUserSelect: 'none',
-        }"
-        @pointerdown.stop="startPan"
-        @pointermove.stop="pan"
-        @pointerup.stop="endPan"
-        @pointerleave.stop="endPan"
-        @wheel.ctrl.prevent="handleZoom"
-        @touchstart.stop="
+        }" @pointerdown.stop="startPan" @pointermove.stop="pan" @pointerup.stop="endPan" @pointerleave.stop="endPan"
+        @wheel.ctrl.prevent="handleZoom" @touchstart.stop="
             (e) => {
                 startPan(e);
                 if (e.target.classList.contains('board')) {
                     handleDeselect();
                 }
             }
-        "
-        @touchmove.stop.prevent="pan"
-        @touchend.stop="endPan"
-        @touchcancel.stop="endPan"
-        @click.stop="handleDeselect"
-        tabindex="0"
-    >
-        <div
-            class="board-container absolute origin-center"
-            :style="{
-                transform: `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`,
-                transition: !isPanning ? 'transform 0.3s ease' : 'none',
-                width: '20000px',
-                height: '20000px',
-                left: '-10000px',
-                top: '-10000px',
-                willChange: 'transform',
-            }"
-        >
-            <div
-                class="absolute w-full h-full pointer-events-none"
-                :style="{ transform: 'translate(50%, 50%)' }"
-            >
+        " @touchmove.stop.prevent="pan" @touchend.stop="endPan" @touchcancel.stop="endPan" @click.stop="handleDeselect"
+        tabindex="0">
+        <div class="board-container absolute origin-center" :style="{
+            transform: `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`,
+            transition: !isPanning ? 'transform 0.3s ease' : 'none',
+            width: '20000px',
+            height: '20000px',
+            left: '-10000px',
+            top: '-10000px',
+            willChange: 'transform',
+        }">
+            <div class="absolute w-full h-full pointer-events-none" :style="{ transform: 'translate(50%, 50%)' }">
                 <template v-if="boardStore.board?.data.items">
-                    <WidgetWrapper
-                        v-for="item in boardStore.boardItemsArray"
-                        :key="item.id"
-                        :item-id="item.id"
-                        :display-name="item.displayName"
-                        :position="{
+                    <WidgetWrapper v-for="item in boardStore.boardItemsArray" :key="item.id" :item-id="item.id"
+                        :display-name="item.displayName" :position="{
                             x: item.x_position,
                             y: item.y_position,
                             width: item.width,
                             height: item.height,
-                        }"
-                        :scale="scale"
-                        :contrast-color="
-                            item.kind === 'image' ? item.contrastColor : false
-                        "
-                        :kind="item.kind"
-                        :is-selected="boardStore.selectedId === item.id"
-                        :is-locked="item.lock"
-                        @select="boardStore.setSelectedId"
-                        @update:position="
+                        }" :scale="scale" :contrast-color="item.kind === 'image' ? item.contrastColor : false
+                            " :kind="item.kind" :is-selected="boardStore.selectedId === item.id" :is-locked="item.lock"
+                        @select="boardStore.setSelectedId" @update:position="
                             (updates: Object) =>
                                 updateItemPosition(item.id, updates)
-                        "
-                        :shadow="item.kind !== 'text'"
-                        @delete="showDeleteConfirmation"
-                        @lock="(locked: boolean) => toggleLock(item.id, locked)"
-                        v-slot="{ startMove }"
+                        " :shadow="item.kind !== 'text'" @delete="showDeleteConfirmation"
+                        @lock="(locked: boolean) => toggleLock(item.id, locked)" v-slot="{ startMove }"
                         @update:displayName="
                             (value) => updateDisplayName(item.id, value!)
-                        "
-                    >
-                        <StickyNote
-                            v-if="item.kind === 'note'"
-                            :item-id="item.id"
-                            :initial-text="item.content.text"
-                            :initial-color="item.content.color"
-                            :is-selected="boardStore.selectedId === item.id"
+                        ">
+                        <StickyNote v-if="item.kind === 'note'" :item-id="item.id" :initial-text="item.content.text"
+                            :initial-color="item.content.color" :is-selected="boardStore.selectedId === item.id"
                             @update:text="
                                 (text: string) =>
                                     noteStore.updateNoteContent(item.id, {
                                         text,
                                     })
-                            "
-                            @update:color="
+                            " @update:color="
                                 (color: string) =>
                                     noteStore.updateNoteContent(item.id, {
                                         color,
                                     })
-                            "
-                        />
-                        <TodoList
-                            v-else-if="item.kind === 'todo'"
-                            :list="item"
-                            :is-selected="boardStore.selectedId === item.id"
-                            @update:title="
+                            " />
+                        <TodoList v-else-if="item.kind === 'todo'" :list="item"
+                            :is-selected="boardStore.selectedId === item.id" @update:title="
                                 (title: string) =>
                                     todoStore.updateTodoTitle(item.id, title)
-                            "
-                            @add:task="
+                            " @add:task="
                                 (content: string) =>
                                     todoStore.addTask(item.id, content)
-                            "
-                            @update:task="
+                            " @update:task="
                                 (taskId: string, content: string) =>
                                     todoStore.updateTask(
                                         item.id,
                                         taskId,
                                         content,
                                     )
-                            "
-                            @toggle:task="
+                            " @toggle:task="
                                 (taskId: string) =>
                                     todoStore.toggleTaskCompletion(
                                         item.id,
                                         taskId,
                                     )
-                            "
-                            @delete:task="
+                            " @delete:task="
                                 (taskId: string) =>
                                     todoStore.deleteTask(item.id, taskId)
-                            "
-                        />
-                        <LinkItem
-                            v-else-if="item.kind === 'link'"
-                            :item="item"
-                            :is-selected="boardStore.selectedId === item.id"
-                        />
-                        <Timer
-                            v-else-if="item.kind === 'timer'"
-                            :is-selected="boardStore.selectedId === item.id"
+                            " />
+                        <LinkItem v-else-if="item.kind === 'link'" :item="item"
+                            :is-selected="boardStore.selectedId === item.id" />
+                        <Timer v-else-if="item.kind === 'timer'" :is-selected="boardStore.selectedId === item.id"
                             @update:settings="
                                 (settings) =>
                                     timerStore.updateTimerSettings(
                                         item.id,
                                         settings,
                                     )
-                            "
-                        />
-                        <TextWidget
-                            v-else-if="item.kind === 'text'"
-                            :item-id="item.id"
-                            :initial-text="item.content.text"
-                            :is-selected="boardStore.selectedId === item.id"
+                            " />
+                        <TextWidget v-else-if="item.kind === 'text'" :item-id="item.id"
+                            :initial-text="item.content.text" :is-selected="boardStore.selectedId === item.id"
                             @update:text="
                                 (text: string) =>
                                     textWidgetStore.updateTextWidgetContent(
                                         item.id,
                                         text,
                                     )
-                            "
-                            @pointerdown.stop.prevent="startMove"
-                        />
-                        <ImageWidget
-                            v-else-if="item.kind === 'image'"
-                            :item-id="item.id"
-                            :src="item.content.url"
-                            :title="item.title"
-                            :is-selected="boardStore.selectedId === item.id"
-                        />
-                        <Tacklet
-                            v-else-if="item.kind === 'tacklet'"
-                            :item-id="item.id"
-                            :is-selected="boardStore.selectedId === item.id"
-                            :content="item.content"
-                            @update:content="
+                            " @pointerdown.stop.prevent="startMove" />
+                        <ImageWidget v-else-if="item.kind === 'image'" :item-id="item.id" :src="item.content.url"
+                            :title="item.title" :is-selected="boardStore.selectedId === item.id" />
+                        <Tacklet v-else-if="item.kind === 'tacklet'" :item-id="item.id"
+                            :is-selected="boardStore.selectedId === item.id" :content="item.content"
+                            :container-type="'board'" @update:content="
                                 (content) =>
                                     tackletStore.updateTackletContent(
                                         item.id,
                                         content,
                                     )
-                            "
-                            @widgetInteraction="
+                            " @widgetInteraction="
                                 boardStore.setSelectedId(item.id)
-                            "
-                        />
-                        <AudioWidget
-                            v-else-if="item.kind === 'audio'"
-                            :item-id="item.id"
-                            :title="item.title"
-                            :audio-url="item.content.url"
-                            :is-selected="boardStore.selectedId === item.id"
-                        />
-                        <FileWidget
-                            v-else-if="item.kind === 'file'"
-                            :item-id="item.id"
-                            :title="item.title"
-                            :file-type="item.content.fileType"
-                            :file-size="item.content.fileSize"
-                            :file-url="item.content.url"
-                            :is-selected="boardStore.selectedId === item.id"
-                        />
+                                " />
+                        <AudioWidget v-else-if="item.kind === 'audio'" :item-id="item.id" :title="item.title"
+                            :audio-url="item.content.url" :is-selected="boardStore.selectedId === item.id" />
+                        <FileWidget v-else-if="item.kind === 'file'" :item-id="item.id" :title="item.title"
+                            :file-type="item.content.fileType" :file-size="item.content.fileSize"
+                            :file-url="item.content.url" :is-selected="boardStore.selectedId === item.id" />
                     </WidgetWrapper>
                 </template>
             </div>
         </div>
         <div v-if="!loading">
-            <div
-                v-if="!boardStore.board?.data.items"
-                class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
-            >
+            <div v-if="!boardStore.board?.data.items"
+                class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
                 <!-- Sticky Note -->
                 <div class="relative">
                     <!-- Note Shadow -->
-                    <div
-                        class="absolute -bottom-3 -right-3 w-[380px] h-[380px] bg-yellow-600/20 rounded-sm rotate-2"
-                    ></div>
+                    <div class="absolute -bottom-3 -right-3 w-[380px] h-[380px] bg-yellow-600/20 rounded-sm rotate-2">
+                    </div>
 
                     <!-- Main Sticky Note -->
                     <div
-                        class="w-[380px] h-[380px] bg-yellow-400 rounded-sm shadow-lg p-6 flex flex-col transform -rotate-1 transition-all hover:rotate-0 hover:scale-[1.01]"
-                    >
+                        class="w-[380px] h-[380px] bg-yellow-400 rounded-sm shadow-lg p-6 flex flex-col transform -rotate-1 transition-all hover:rotate-0 hover:scale-[1.01]">
                         <!-- Sticky Note Top Strip -->
-                        <div
-                            class="absolute -top-2 left-0 right-0 h-4 bg-yellow-500/50 mx-8 rounded-t"
-                        ></div>
+                        <div class="absolute -top-2 left-0 right-0 h-4 bg-yellow-500/50 mx-8 rounded-t"></div>
 
                         <!-- Content Container -->
                         <div class="flex flex-col h-full">
                             <!-- Logo Section -->
                             <div class="flex items-center justify-center mb-6">
-                                <div
-                                    class="flex items-center gap-2 text-2xl font-bold text-indigo-800"
-                                >
+                                <div class="flex items-center gap-2 text-2xl font-bold text-indigo-800">
                                     <div
-                                        class="w-10 h-10 bg-indigo-700 rounded-lg flex items-center justify-center text-white shadow-inner"
-                                    >
+                                        class="w-10 h-10 bg-indigo-700 rounded-lg flex items-center justify-center text-white shadow-inner">
                                         T
                                     </div>
                                     <span class="tracking-tight">Tackpad</span>
@@ -510,24 +403,15 @@ onUnmounted(() => {
                             </div>
 
                             <!-- Message Section -->
-                            <div
-                                class="flex-grow flex flex-col items-center justify-center mb-6"
-                            >
-                                <div
-                                    v-if="boardStore.error"
-                                    class="font-medium text-white bg-red-600 rounded-lg text-xl text-center mb-4 px-4"
-                                >
+                            <div class="flex-grow flex flex-col items-center justify-center mb-6">
+                                <div v-if="boardStore.error"
+                                    class="font-medium text-white bg-red-600 rounded-lg text-xl text-center mb-4 px-4">
                                     {{ boardStore.error }}
                                 </div>
-                                <div
-                                    v-else
-                                    class="font-medium text-indigo-900 text-xl text-center mb-4 px-4"
-                                >
+                                <div v-else class="font-medium text-indigo-900 text-xl text-center mb-4 px-4">
                                     Welcome to your creative space!
                                 </div>
-                                <p
-                                    class="text-indigo-800/80 text-center text-sm px-8"
-                                >
+                                <p class="text-indigo-800/80 text-center text-sm px-8">
                                     Choose one of the options below to get
                                     started with your whiteboard project.
                                 </p>
@@ -535,52 +419,32 @@ onUnmounted(() => {
 
                             <!-- Action Buttons -->
                             <div class="flex gap-4 justify-center">
-                                <router-link
-                                    to="/home"
-                                    class="px-5 py-3 bg-white/70 hover:bg-white text-indigo-700 rounded-md shadow transition-all hover:shadow-md flex items-center gap-2 font-medium"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-5 w-5"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                    >
+                                <router-link to="/home"
+                                    class="px-5 py-3 bg-white/70 hover:bg-white text-indigo-700 rounded-md shadow transition-all hover:shadow-md flex items-center gap-2 font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                        fill="currentColor">
                                         <path
-                                            d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"
-                                        />
+                                            d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
                                     </svg>
                                     Home
                                 </router-link>
-                                <router-link
-                                    to="/board/create"
-                                    class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow transition-all hover:shadow-md flex items-center gap-2 font-medium"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-5 w-5"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                    >
-                                        <path
-                                            fill-rule="evenodd"
+                                <router-link to="/board/create"
+                                    class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow transition-all hover:shadow-md flex items-center gap-2 font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                        fill="currentColor">
+                                        <path fill-rule="evenodd"
                                             d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                            clip-rule="evenodd"
-                                        />
+                                            clip-rule="evenodd" />
                                     </svg>
                                     New Board
                                 </router-link>
                             </div>
 
                             <!-- Pin -->
-                            <div
-                                class="absolute -top-3 left-1/2 transform -translate-x-1/2"
-                            >
-                                <div
-                                    class="w-6 h-6 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 shadow"
-                                ></div>
-                                <div
-                                    class="w-2 h-2 rounded-full bg-white/40 absolute top-1 left-1"
-                                ></div>
+                            <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                                <div class="w-6 h-6 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 shadow">
+                                </div>
+                                <div class="w-2 h-2 rounded-full bg-white/40 absolute top-1 left-1"></div>
                             </div>
                         </div>
                     </div>
@@ -588,26 +452,18 @@ onUnmounted(() => {
 
                 <!-- Decorative Elements -->
                 <div class="absolute -z-10 inset-0 pointer-events-none">
-                    <div
-                        class="absolute top-16 left-[15%] w-4 h-4 bg-indigo-200 rounded-full opacity-40"
-                    ></div>
-                    <div
-                        class="absolute bottom-24 right-[20%] w-6 h-6 bg-yellow-200 rounded-full opacity-50"
-                    ></div>
-                    <div
-                        class="absolute top-[40%] right-[15%] w-3 h-3 bg-green-200 rounded-full opacity-30"
-                    ></div>
+                    <div class="absolute top-16 left-[15%] w-4 h-4 bg-indigo-200 rounded-full opacity-40"></div>
+                    <div class="absolute bottom-24 right-[20%] w-6 h-6 bg-yellow-200 rounded-full opacity-50"></div>
+                    <div class="absolute top-[40%] right-[15%] w-3 h-3 bg-green-200 rounded-full opacity-30"></div>
                 </div>
             </div>
         </div>
 
         <BoardHeader v-show="!isPanning" />
         <BoardToolbar v-show="!isPanning" />
-        <TackletsDirectory
-            v-if="isOpen"
+        <TackletsDirectory v-if="isOpen"
             class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 translate-y-1/2 sm:translate-y-0 transition-all duration-500"
-            @wheel.stop
-        />
+            @wheel.stop />
 
         <!-- <BoardHeader />
 
@@ -619,13 +475,8 @@ onUnmounted(() => {
         <OfflineIndicator />
         <DeleteItemConfirm v-model="deleteItemConfirm" @delete="handleDelete" />
         <ZoomControls class="fixed right-2 bottom-16 z-10" />
-        <ErrorModal
-            v-model="isErrorModalVisible"
-            :title="errorTitle"
-            :message="errorMessage"
-            @confirm="handleConfirm"
-            @cancel="handleCancel"
-        />
+        <ErrorModal v-model="isErrorModalVisible" :title="errorTitle" :message="errorMessage" @confirm="handleConfirm"
+            @cancel="handleCancel" />
 
         <BoardCommandPalette />
     </div>
@@ -670,7 +521,8 @@ body {
 
 .board,
 .board-container {
-    touch-action: none; /* This is crucial for removing delay */
+    touch-action: none;
+    /* This is crucial for removing delay */
     -webkit-touch-callout: none;
 }
 </style>
