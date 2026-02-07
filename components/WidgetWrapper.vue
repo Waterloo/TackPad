@@ -162,7 +162,7 @@ const showTitle = computed(() => {
                         <button @click.stop="handleMenuAction('lock', $event)" class="menu-item">
                             <img v-if="isLocked" src="public/icons/Unlock.svg" alt="Unlock"
                                 class="w-4 h-4 sm:h-4 sm:w-4" />
-                            <img v-else src="public/icons/Lock.svg" alt="Lock" class="w-4 h-4 sm:h-4 sm:w-4" />
+                            <img v-else src="public/icons/lock.svg" alt="Lock" class="w-4 h-4 sm:h-4 sm:w-4" />
                         </button>
                         <button v-if="isPipAvailable" @click.stop="pip" class="menu-item">
                             <img src="public/icons/PIP-1.svg" alt="PIP" class="w-4 h-4 sm:h-4 sm:w-4" />

@@ -168,12 +168,52 @@ export const API_TOKENS = sqliteTable(
   {
     id: text("id").primaryKey(),
     token: text("token").unique(),
-    profile_id: text("profile_id").references(() => PROFILE.id, { onDelete: "cascade" }),
+    profile_id: text("profile_id").references(() => PROFILE.id, {
+      onDelete: "cascade",
+    }),
     expires_at: text("expires_at"),
     created_at: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
   },
   (table) => ({
     token_idx: index("token_idx").on(table.token),
     profile_idx: index("api_token_profile_idx").on(table.profile_id),
+  }),
+);
+
+// --- OAUTH Tables for Third-Party App Integration ---
+export const OAUTH_APPS = sqliteTable(
+  "oauth_apps",
+  {
+    client_id: text("client_id").primaryKey(),
+    client_secret: text("client_secret").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    redirect_uris: text("redirect_uris").notNull(), // JSON array of allowed redirect URIs
+    created_at: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
+    updated_at: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`),
+  },
+  (table) => ({
+    client_secret_idx: index("oauth_apps_secret_idx").on(table.client_secret),
+  }),
+);
+
+export const OAUTH_TOKENS = sqliteTable(
+  "oauth_tokens",
+  {
+    token: text("token").primaryKey(),
+    client_id: text("client_id")
+      .notNull()
+      .references(() => OAUTH_APPS.client_id, { onDelete: "cascade" }),
+    profile_id: text("profile_id")
+      .notNull()
+      .references(() => PROFILE.id, { onDelete: "cascade" }),
+    expires_at: text("expires_at").notNull(),
+    created_at: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
+    last_used_at: text("last_used_at"),
+  },
+  (table) => ({
+    token_client_idx: index("oauth_token_client_idx").on(table.client_id),
+    token_profile_idx: index("oauth_token_profile_idx").on(table.profile_id),
+    token_expires_idx: index("oauth_token_expires_idx").on(table.expires_at),
   }),
 );
