@@ -1,7 +1,7 @@
 import { ref, computed, unref } from "vue";
 import { defineStore } from "pinia";
 import { useLocalStorage } from "@vueuse/core";
-import { assign, debounce } from "lodash";
+import { assign, debounce } from "lodash-es";
 import { useRoute } from "vue-router";
 
 // import type { EncryptedData } from '~/types/encryption'
@@ -44,11 +44,11 @@ export const useBoardStore = defineStore("board", () => {
   const showPasswordDialog = ref(false);
   const boards = useLocalStorage<Boards>("boards", {});
   const settings = useLocalStorage<BoardSettings>("settings", {});
-  const board_id = ref(null)
+  const board_id = ref(null);
   const boardActions = computed(() => {
-    if (!board_id.value) return null
-    return useYjsBoard(board_id.value)
-  })
+    if (!board_id.value) return null;
+    return useYjsBoard(board_id.value);
+  });
   let itemsCounter: Record<string, number> = {};
 
   function initializeCounter(items: Map<string, BoardItem>) {
@@ -528,12 +528,12 @@ export const useBoardStore = defineStore("board", () => {
     boardActions.value?.addItem(item);
     debouncedSaveBoard();
   }
-  const updateBoardItem = async(itemId,item)=>{
+  const updateBoardItem = async (itemId, item) => {
     if (!board.value) return;
     board.value.data.items.set(itemId, item);
     boardActions.value?.updateItem(itemId, item);
     debouncedSaveBoard();
-  }
+  };
   const updateBoardItems = async (items) => {
     if (!board.value && !board.value.data) return;
     board.value.data.items = items;

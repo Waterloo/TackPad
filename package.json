@@ -24,6 +24,7 @@
     "aws4fetch": "^1.0.20",
     "drizzle-orm": "^0.40.1",
     "lodash": "^4.17.21",
+    "lodash-es": "^4.17.23",
     "nanoid": "^5.1.5",
     "nuxt": "^3.17.7",
     "nuxt-auth-utils": "^0.5.17",
