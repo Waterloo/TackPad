@@ -1,9 +1,16 @@
 import { defineEventHandler, createError, readFormData } from "h3";
 import { useDrizzle, tables, eq, and, sql } from "~/server/utils/drizzle";
-import { generateItemId, ITEM_DIMENSIONS, checkOAuthEditPermission, loadBoardData, saveBoardData, getExtension } from "~/server/utils/oauth";
+import {
+  generateItemId,
+  ITEM_DIMENSIONS,
+  checkOAuthEditPermission,
+  loadBoardData,
+  saveBoardData,
+  getExtension,
+} from "~/server/utils/oauth";
 import { findAvailablePosition } from "~/shared/board";
 import { nanoid } from "nanoid";
-import { USER_UPLOADS, USAGE_QUOTA } from "~/server/database/schema";
+import { USER_UPLOADS, USAGE_QUOTA } from "~/server/db/schema";
 
 export default defineEventHandler(async (event) => {
   if (event.method !== "POST") {
@@ -21,7 +28,10 @@ export default defineEventHandler(async (event) => {
   const file = body.get("file") as File;
 
   if (!board_id || !file) {
-    throw createError({ statusCode: 400, message: "board_id and file are required" });
+    throw createError({
+      statusCode: 400,
+      message: "board_id and file are required",
+    });
   }
 
   try {
@@ -30,7 +40,10 @@ export default defineEventHandler(async (event) => {
 
     const canEdit = await checkOAuthEditPermission(db, board_id, profileId);
     if (!canEdit) {
-      throw createError({ statusCode: 403, message: "No edit permission for this board" });
+      throw createError({
+        statusCode: 403,
+        message: "No edit permission for this board",
+      });
     }
 
     const board = await loadBoardData(db, board_id);
@@ -42,7 +55,7 @@ export default defineEventHandler(async (event) => {
     const fileName = `${nanoid()}.${getExtension(file)}`;
     await useStorage("tackpad").setItemRaw(
       fileName,
-      Buffer.from(await file.arrayBuffer())
+      Buffer.from(await file.arrayBuffer()),
     );
 
     const fileUrl = `https://assets.tackpad.xyz/${fileName}`;
@@ -100,6 +113,9 @@ export default defineEventHandler(async (event) => {
     return { success: true, item_id: itemId, url: fileUrl };
   } catch (error: any) {
     console.error("[OAuth Add Image] Error:", error);
-    throw createError({ statusCode: error.statusCode || 500, message: error.message || "Failed to add image" });
+    throw createError({
+      statusCode: error.statusCode || 500,
+      message: error.message || "Failed to add image",
+    });
   }
 });

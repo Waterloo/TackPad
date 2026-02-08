@@ -7,7 +7,7 @@ import {
   PROFILE,
   BoardAccessRole,
   BoardAccessLevel,
-} from "~/server/database/schema";
+} from "~/server/db/schema";
 import { useDrizzle } from "~/server/utils/drizzle";
 import { eq, and, sql } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
@@ -32,7 +32,10 @@ export default defineEventHandler(async (event) => {
 
   // --- INPUT VALIDATION ---
   const profileId = event.context.session?.secure?.profileId;
-  if (profileId !== undefined && (typeof profileId !== 'string' || !profileId.trim())) {
+  if (
+    profileId !== undefined &&
+    (typeof profileId !== "string" || !profileId.trim())
+  ) {
     throw createError({
       statusCode: 401,
       message: "Invalid session data",
@@ -52,10 +55,10 @@ export default defineEventHandler(async (event) => {
   if (requestedId !== "create") {
     boardId = makeUrlSafe(requestedId);
     if (!boardId) {
-        throw createError({
-          statusCode: 400,
-          message: "Board ID is required and cannot be empty",
-        });
+      throw createError({
+        statusCode: 400,
+        message: "Board ID is required and cannot be empty",
+      });
     }
 
     console.debug(`[Board GET] Looking up board: ${boardId}`);
@@ -64,9 +67,8 @@ export default defineEventHandler(async (event) => {
       .from(BOARDS)
       .where(eq(BOARDS.board_id, boardId))
       .limit(1);
-     boardData = result[0] ?? null;
-
-   }else {
+    boardData = result[0] ?? null;
+  } else {
     boardData = null; // Signal that we need to create
   }
 
@@ -80,42 +82,58 @@ export default defineEventHandler(async (event) => {
 
     if (!boardData.owner_id) {
       isOrphanedBoard = true;
-      console.log(`[Board GET] Found orphaned board (no owner_id): ${boardData.board_id}`);
+      console.log(
+        `[Board GET] Found orphaned board (no owner_id): ${boardData.board_id}`,
+      );
     } else {
       // Check if owner profile exists
       try {
         const ownerProfile = await db.query.PROFILE.findFirst({
-          where: eq(PROFILE.id, boardData.owner_id)
+          where: eq(PROFILE.id, boardData.owner_id),
         });
         if (!ownerProfile) {
           isOrphanedBoard = true;
-          console.log(`[Board GET] Found orphaned board (invalid owner_id): ${boardData.board_id}`);
+          console.log(
+            `[Board GET] Found orphaned board (invalid owner_id): ${boardData.board_id}`,
+          );
         }
       } catch (error: any) {
-        console.error(`[Board GET] Error checking owner profile for board ${boardData.board_id}:`, error.message);
+        console.error(
+          `[Board GET] Error checking owner profile for board ${boardData.board_id}:`,
+          error.message,
+        );
         // Treat as orphaned if we can't verify the owner
         isOrphanedBoard = true;
-        console.log(`[Board GET] Treating board as orphaned due to profile lookup error: ${boardData.board_id}`);
+        console.log(
+          `[Board GET] Treating board as orphaned due to profile lookup error: ${boardData.board_id}`,
+        );
       }
     }
 
     // --- CLAIM ORPHANED BOARD if authenticated ---
     if (isOrphanedBoard && profileId) {
-      console.log(`[Board GET] Claiming orphaned board ${boardData.board_id} for profile ${profileId}`);
+      console.log(
+        `[Board GET] Claiming orphaned board ${boardData.board_id} for profile ${profileId}`,
+      );
 
       try {
         // Use conditional update - only claim if still orphaned
-        const claimResult = await db.update(BOARDS)
+        const claimResult = await db
+          .update(BOARDS)
           .set({ owner_id: profileId })
-          .where(and(
-            eq(BOARDS.board_id, boardData.board_id),
-            sql`owner_id IS NULL` // Only update if still null
-          ))
+          .where(
+            and(
+              eq(BOARDS.board_id, boardData.board_id),
+              sql`owner_id IS NULL`, // Only update if still null
+            ),
+          )
           .returning();
 
         if (claimResult.length > 0) {
           boardData = claimResult[0];
-          console.log(`[Board GET] Successfully claimed board ${boardData.board_id}`);
+          console.log(
+            `[Board GET] Successfully claimed board ${boardData.board_id}`,
+          );
         } else {
           // Board was already claimed, re-fetch current state
           console.log(`[Board GET] Board was already claimed by someone else`);
@@ -127,7 +145,10 @@ export default defineEventHandler(async (event) => {
           boardData = refreshedResult[0];
         }
       } catch (claimError: any) {
-        console.error(`[Board GET] Error during board claiming:`, claimError.message);
+        console.error(
+          `[Board GET] Error during board claiming:`,
+          claimError.message,
+        );
         // Re-fetch current state on error
         const refreshedResult = await db
           .select()
@@ -187,7 +208,10 @@ export default defineEventHandler(async (event) => {
         if (isOwner) {
           // Owner always gets OWNER role
           role = BoardAccessRole.OWNER;
-        } else if (existingAccess?.role && existingAccess.role !== BoardAccessRole.OWNER) {
+        } else if (
+          existingAccess?.role &&
+          existingAccess.role !== BoardAccessRole.OWNER
+        ) {
           // Preserve existing role for non-owners (but never allow OWNER for non-owners)
           role = existingAccess.role;
         } else {
@@ -253,7 +277,8 @@ export default defineEventHandler(async (event) => {
       console.debug(
         `[Board GET] No profileId identified. Cannot fetch/update access record.`,
       );
-    }  } else {
+    }
+  } else {
     // --- Scenario: Board Does Not Exist (Create Request or Invalid ID) ---
 
     // Handle case where a specific ID was requested but not found
@@ -372,11 +397,13 @@ async function createAndSaveNewBoard(
   const todoItemId = `TODO-${nanoid(10)}`;
 
   const defaultItemsMap = new Map([
-    [stickyNoteId, {
-      id: stickyNoteId,
-      kind: "note",
-      content: {
-        text: ` <h1>Welcome to your board!</h1>
+    [
+      stickyNoteId,
+      {
+        id: stickyNoteId,
+        kind: "note",
+        content: {
+          text: ` <h1>Welcome to your board!</h1>
     <p>Try adding more notes and todo lists.</p>
     <h2>Quick Tips:</h2>
     <ul>
@@ -384,33 +411,37 @@ async function createAndSaveNewBoard(
         <p>Double-click to edit notes</p>
       </li>
       </ul>`,
-        color: "#FFD700",
+          color: "#FFD700",
+        },
+        x_position: 100,
+        y_position: 48,
+        width: 300,
+        height: 300,
       },
-      x_position: 100,
-      y_position: 48,
-      width: 300,
-      height: 300,
-    }],
-    [todoItemId, {
-      id: todoItemId,
-      kind: "todo",
-      content: {
-        title: "Getting Started",
-        tasks: [
-          { task_id: "1", content: "Add a new note", completed: false },
-          { task_id: "2", content: "Create a todo list", completed: false },
-          {
-            task_id: "3",
-            content: "Try panning and zooming",
-            completed: false,
-          },
-        ],
+    ],
+    [
+      todoItemId,
+      {
+        id: todoItemId,
+        kind: "todo",
+        content: {
+          title: "Getting Started",
+          tasks: [
+            { task_id: "1", content: "Add a new note", completed: false },
+            { task_id: "2", content: "Create a todo list", completed: false },
+            {
+              task_id: "3",
+              content: "Try panning and zooming",
+              completed: false,
+            },
+          ],
+        },
+        x_position: 420,
+        y_position: 48,
+        width: 300,
+        height: 400,
       },
-      x_position: 420,
-      y_position: 48,
-      width: 300,
-      height: 400,
-    }]
+    ],
   ]);
 
   const newBoardData: NewBoard = {
@@ -434,7 +465,6 @@ async function createAndSaveNewBoard(
   }
   return result[0];
 }
-
 
 /**
  * Checks if a user has access to view a board based on access level and permissions
@@ -512,8 +542,8 @@ async function canEditBoard(
           eq(BOARD_ACCESS.profile_id, profileId),
           or(
             eq(BOARD_ACCESS.role, BoardAccessRole.EDITOR),
-            eq(BOARD_ACCESS.role, BoardAccessRole.OWNER)
-          )
+            eq(BOARD_ACCESS.role, BoardAccessRole.OWNER),
+          ),
         ),
       });
       return !!editorAccessRecord;

@@ -1,4 +1,4 @@
-import { BOARDS, BOARD_ACCESS, USER_UPLOADS } from "~/server/database/schema";
+import { BOARDS, BOARD_ACCESS, USER_UPLOADS } from "~/server/db/schema";
 import { useDrizzle } from "~/server/utils/drizzle";
 import { eq } from "drizzle-orm";
 import { defineEventHandler, createError, setResponseStatus } from "h3";

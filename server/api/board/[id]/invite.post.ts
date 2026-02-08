@@ -4,7 +4,7 @@ import {
   BOARD_ACCESS,
   BOARDS,
   BoardAccessRole,
-} from "~/server/database/schema";
+} from "~/server/db/schema";
 import { useDrizzle, eq, and } from "~/server/utils/drizzle";
 
 export default defineEventHandler(async (event) => {

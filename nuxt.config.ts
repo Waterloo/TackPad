@@ -32,7 +32,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || "/api",
-      websocketUrl: process.env.NUXT_PUBLIC_WEBSOCKET_URL || "ws://localhost:1234",
+      websocketUrl:
+        process.env.NUXT_PUBLIC_WEBSOCKET_URL || "ws://localhost:1234",
     },
     oauth: {
       google: {
@@ -48,7 +49,7 @@ export default defineNuxtConfig({
     region: process.env.NUXT_REGION,
   },
   hub: {
-    database: true,
+    db: "sqlite",
   },
   app: {
     head: {

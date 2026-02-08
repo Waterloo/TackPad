@@ -1,4 +1,4 @@
-import { BOARDS } from "~/server/database/schema";
+import { BOARDS } from "~/server/db/schema";
 import { inArray } from "drizzle-orm";
 import { useDrizzle } from "~/server/utils/drizzle";
 interface ExportRequestBody {

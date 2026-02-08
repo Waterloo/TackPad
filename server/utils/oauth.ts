@@ -5,7 +5,7 @@ import {
   BOARD_ACCESS,
   BoardAccessLevel,
   BoardAccessRole,
-} from "~/server/database/schema";
+} from "~/server/db/schema";
 
 const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", 10);
 

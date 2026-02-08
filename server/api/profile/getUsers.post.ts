@@ -1,6 +1,6 @@
 // TackPad/server/api/profile/getUsers.post.ts
 
-import { PROFILE } from "~/server/database/schema"; // Your schema import
+import { PROFILE } from "~/server/db/schema"; // Your schema import
 import { useDrizzle, inArray } from "~/server/utils/drizzle"; // Drizzle utilities
 
 export default defineEventHandler(async (event) => {

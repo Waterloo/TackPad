@@ -1,5 +1,5 @@
 // server/api/boards/[boardId]/access/[profileId].delete.ts
-import { BOARD_ACCESS, BOARDS } from "~/server/database/schema";
+import { BOARD_ACCESS, BOARDS } from "~/server/db/schema";
 import { useDrizzle, eq, and } from "~/server/utils/drizzle";
 
 export default defineEventHandler(async (event) => {

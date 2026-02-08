@@ -3,7 +3,7 @@ import {
   USAGE_QUOTA,
   USER_UPLOADS,
   type InsertUserUpload,
-} from "~/server/database/schema";
+} from "~/server/db/schema";
 import { sql } from "drizzle-orm";
 
 function getExtension(file: File) {

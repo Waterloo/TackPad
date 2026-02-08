@@ -5,7 +5,7 @@ import {
   BOARD_ACCESS,
   BoardAccessLevel,
   BoardAccessRole,
-} from "~/server/database/schema";
+} from "~/server/db/schema";
 import { getSSEServer } from "~/shared/board";
 import type { Board } from "~/types/board";
 

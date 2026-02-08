@@ -2,7 +2,7 @@ import { defineEventHandler, createError, readBody } from "h3";
 import { useDrizzle, tables, eq } from "~/server/utils/drizzle";
 import { getRandomBoardName } from "~/server/utils/boardNames";
 import { generateBoardId, generateItemId } from "~/server/utils/oauth";
-import { BOARD_ACCESS, BoardAccessRole } from "~/server/database/schema";
+import { BOARD_ACCESS, BoardAccessRole } from "~/server/db/schema";
 
 export default defineEventHandler(async (event) => {
   if (event.method !== "POST") {
@@ -63,7 +63,11 @@ export default defineEventHandler(async (event) => {
           tasks: [
             { task_id: "1", content: "Add a new note", completed: false },
             { task_id: "2", content: "Create a todo list", completed: false },
-            { task_id: "3", content: "Try panning and zooming", completed: false },
+            {
+              task_id: "3",
+              content: "Try panning and zooming",
+              completed: false,
+            },
           ],
         },
         x_position: 420,

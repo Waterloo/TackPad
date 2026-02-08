@@ -1,4 +1,4 @@
-import { USAGE_QUOTA, USER_UPLOADS } from "~/server/database/schema";
+import { USAGE_QUOTA, USER_UPLOADS } from "~/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 
 export default defineEventHandler(async (event) => {

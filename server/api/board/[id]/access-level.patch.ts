@@ -1,8 +1,4 @@
-import {
-  BOARDS,
-  BOARD_ACCESS,
-  BoardAccessLevel,
-} from "~/server/database/schema";
+import { BOARDS, BOARD_ACCESS, BoardAccessLevel } from "~/server/db/schema";
 import { useDrizzle, eq, and, ne } from "~/server/utils/drizzle";
 
 export default defineEventHandler(async (event) => {

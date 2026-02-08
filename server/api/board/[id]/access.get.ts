@@ -1,5 +1,5 @@
 // server/api/boards/[boardId]/access.get.ts
-import { PROFILE, BOARD_ACCESS, BOARDS } from "~/server/database/schema";
+import { PROFILE, BOARD_ACCESS, BOARDS } from "~/server/db/schema";
 import { useDrizzle, eq, and } from "~/server/utils/drizzle";
 
 export default defineEventHandler(async (event) => {

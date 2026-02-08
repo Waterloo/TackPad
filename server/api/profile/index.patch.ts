@@ -1,4 +1,4 @@
-import { PROFILE } from "~/server/database/schema";
+import { PROFILE } from "~/server/db/schema";
 import { useDrizzle, eq } from "~/server/utils/drizzle";
 
 export default defineEventHandler(async (event) => {
