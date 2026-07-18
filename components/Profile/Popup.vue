@@ -1,12 +1,16 @@
+
 <script setup lang="ts">
 import UserTab from "./UserTab.vue";
 import SettingsTab from "./SettingsTab.vue";
-import Modal from "../UI/Modal.vue";
 import { useProfileStore } from "~/stores/profileStore";
 
 const profileStore = useProfileStore();
 
-const activeTab = computed(() => profileStore.activeTab);
+// Convert activeTab to work with PrimeVue Tabs
+const activeTabValue = computed({
+    get: () => profileStore.activeTab,
+    set: (value) => profileStore.switchTab(value)
+});
 </script>
 
 <template>
@@ -31,62 +35,42 @@ const activeTab = computed(() => profileStore.activeTab);
         </svg>
     </button>
 
-    <!-- Use Modal component instead of custom implementation -->
-
-    <Dialog
+    <!-- Drawer coming from right -->
+    <Drawer
         v-model:visible="profileStore.isProfileOpen"
-        :modal="true"
-        :closable="true"
-        :closeOnEscape="true"
-        :style="{ width: '50rem' }"
-        :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+        position="right"
+        class="!w-full md:!w-[24rem] lg:!w-[24rem]"
+        @wheel.stop
     >
         <template #header>
             <div class="flex items-center justify-between w-full">
-                <div class="flex items-center space-x-4">
-                    <button
-                        @click="
-                            () => {
-                                profileStore.switchTab('user');
-                            }
-                        "
-                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors"
-                        :class="{
-                            'bg-blue-900 text-blue-300': activeTab === 'user',
-                            'text-gray-600 hover:text-blue-300  hover:bg-gray-100 dark:hover:bg-gray-700':
-                                activeTab !== 'user',
-                        }"
-                    >
-                        Profile
-                    </button>
-                    <button
-                        @click="
-                            () => {
-                                profileStore.switchTab('settings');
-                            }
-                        "
-                        class="px-3 py-1 rounded-full text-sm font-medium transition-colors"
-                        :class="{
-                            'bg-blue-900 text-blue-300':
-                                activeTab === 'settings',
-                            'text-gray-600 hover:text-blue-300  hover:bg-gray-100 dark:hover:bg-gray-700':
-                                activeTab !== 'settings',
-                        }"
-                    >
-                        Settings
-                    </button>
-                </div>
+                <h2 class="text-lg font-semibold">Profile</h2>
             </div>
         </template>
 
-        <!-- Content area -->
-        <div class="flex-1 overflow-y-auto" @wheel.stop>
-            <!-- User profile tab -->
-            <UserTab v-if="activeTab === 'user'" />
+        <!-- Tabs -->
+        <div class="h-full flex flex-col">
+            <Tabs v-model:value="activeTabValue" class="flex-1 flex flex-col">
+                <TabList class="mb-4">
+                    <Tab value="user" class="flex-1">
+                        <i class="pi pi-user mr-2"></i>
+                        Accounts
+                    </Tab>
+                    <Tab value="settings" class="flex-1">
+                        <i class="pi pi-cog mr-2"></i>
+                        Settings
+                    </Tab>
+                </TabList>
 
-            <!-- Settings tab -->
-            <SettingsTab v-else-if="activeTab === 'settings'" />
+                <TabPanels class="flex-1 overflow-y-auto">
+                    <TabPanel value="user" class="h-full">
+                        <UserTab />
+                    </TabPanel>
+                    <TabPanel value="settings" class="h-full">
+                        <SettingsTab />
+                    </TabPanel>
+                </TabPanels>
+            </Tabs>
         </div>
-    </Dialog>
-
+    </Drawer>
 </template>

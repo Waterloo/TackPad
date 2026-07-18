@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useItemManagement } from "@/composables/useItemManagement";
-import Modal from "../UI/Modal.vue";
 import { useLinkStore } from "~/stores/linkStore";
 import { useBoardStore } from "~/stores/board";
 
@@ -179,39 +178,46 @@ const handleError = (error:string) => {
                 />
             </button>
         </div>
-        <Modal v-model:model-value="bookmarkOpen" title="Add Bookmark">
-            <div>
+        <Dialog
+            v-model:visible="bookmarkOpen"
+            header="Add Bookmark"
+            :modal="true"
+            :style="{ width: '25rem' }"
+            :breakpoints="{ '575px': '90vw' }"
+        >
+            <div class="space-y-4">
                 <p class="text-gray-600 mb-4">
-                    Please a link you want to bookmark
+                    Please enter a link you want to bookmark
                 </p>
-                <input
+                <InputText
                     v-model="link"
-                    type="text"
                     placeholder="Enter url"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                    fluid
+                    :invalid="!!errMsg"
                     autofocus
+                    @keyup.enter="addBookmark"
                 />
-                <div class="text-sm text-red-400 p-3">
+                <div v-if="errMsg" class="text-sm text-red-400">
                     {{ errMsg }}
                 </div>
             </div>
             <template #footer>
-                <div class="bg-gray-50 rounded-b-lg flex justify-end space-x-3">
-                    <button
+                <div class="flex justify-end space-x-3">
+                    <Button
+                        label="Cancel"
+                        severity="secondary"
+                        variant="outlined"
                         @click="bookmarkOpen = false"
-                        class="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
-                    >
-                        Cancel
-                    </button>
-                    <button
+                    />
+                    <Button
+                        label="Confirm"
                         @click="addBookmark"
-                        class="px-4 py-2 bg-[#4F46E5] text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition"
-                    >
-                        Confirm
-                    </button>
+                    />
                 </div>
             </template>
-        </Modal>
+        </Dialog>
+
+
         <UploadPopover
             v-if="boardStore.isFilePickerVisible"
             class="tacklet-directory fixed sm:bottom-20 shadow-lg left-1/2 transform -translate-x-1/2 bottom-1/2 -translate-y-1/2 md:-translate-y-0 transition-all duration-500"

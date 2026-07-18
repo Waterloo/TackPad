@@ -1,5 +1,8 @@
+
 <script setup lang="ts">
-import Modal from './UI/Modal.vue'
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import { computed } from 'vue';
 
 const props = withDefaults(defineProps<{
   modelValue?: boolean
@@ -13,6 +16,11 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
 
+const isVisible = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value)
+});
+
 function onCancel() {
   emit('update:modelValue', false)
   emit('cancel')
@@ -25,34 +33,32 @@ function onConfirm() {
 </script>
 
 <template>
-  <Modal 
-    v-if="modelValue"
-    :model-value="modelValue"
-    @update:model-value="(value) => emit('update:modelValue', value)"
-    :title="title" 
-    :show-close-button="false" 
-    :close-on-backdrop-click="false" 
-    :close-on-esc="false"
+  <Dialog
+    v-model:visible="isVisible"
+    :header="title"
+    :modal="true"
+    :closable="false"
+    :close-on-escape="false"
+    :style="{ width: '25rem' }"
+    :breakpoints="{ '575px': '90vw' }"
   >
-    <div class="">
-      <p class="text-gray-600 mb-4">{{ message }}</p>
+    <div class="py-2">
+      <p class="text-gray-600">{{ message }}</p>
     </div>
-    
+
     <template #footer>
-      <div class="bg-gray-50 rounded-b-lg flex justify-end space-x-3">
-        <button 
-          @click="onCancel" 
-          class="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
-        >
-          Cancel
-        </button>
-        <button 
-          @click="onConfirm" 
-          class="px-4 py-2 bg-[#4F46E5] text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition"
-        >
-          ok
-        </button>
+      <div class="flex justify-end space-x-3">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          variant="outlined"
+          @click="onCancel"
+        />
+        <Button
+          label="OK"
+          @click="onConfirm"
+        />
       </div>
     </template>
-  </Modal>
+  </Dialog>
 </template>
