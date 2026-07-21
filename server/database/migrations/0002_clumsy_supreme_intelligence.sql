@@ -1,1 +1,0 @@
-ALTER TABLE `Profile` ADD `providerID` text;

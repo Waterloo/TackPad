@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design tokens ────────────────────────────────────────────────────────── */
+/* Z-index stack — reference these custom properties instead of magic numbers.
+   Layers (low → high):
+     --z-widget          widgets on the canvas
+     --z-widget-selected selected widget floats above its peers
+     --z-drawing-toolbar floating drawing toolbar
+     --z-ui-chrome       header, main toolbars, zoom controls
+     --z-minimap         minimap sits just below UI chrome
+     --z-modal           command palette, overlays, dialogs
+*/
+:root {
+  --z-widget:           1;
+  --z-widget-selected:  11;
+  --z-drawing-toolbar:  30;
+  --z-minimap:          49;
+  --z-ui-chrome:        50;
+  --z-modal:            200;
+
+  /* Brand colors — use these instead of hardcoded hex values in components */
+  --color-primary:        #2563EB;
+  --color-primary-hover:  #1D4ED8;
+  --color-primary-light:  #DBEAFE;
+  --color-primary-text:   #3B82F6;
+  --color-danger:         #EF4444;
+  --color-danger-light:   #FEE2E2;
+  --color-success:        #22C55E;
+  --color-success-light:  #DCFCE7;
+}

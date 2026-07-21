@@ -1,63 +1,73 @@
-import { PROFILE } from '~/server/database/schema';
-import { useDrizzle, eq } from '~/server/utils/drizzle';
+import { eq } from 'drizzle-orm'
+import { useDrizzle, schema } from '../../utils/db'
+
+interface ProfilePatchBody {
+  firstName?: string
+  username?: string
+  email?: string
+}
 
 export default defineEventHandler(async (event) => {
-  // Get profileId from context (added by auth middleware)
-  const profileId = event.context.session?.secure?.profileId;
-  
-  if (!profileId) {
-    throw createError({
-      statusCode: 401,
-      message: 'Not authenticated or no profile found'
-    });
-  }
-  
-  // Get the data from request body
-  const body = await readBody(event);
-  
-  // Validate required fields
-  if (!body || Object.keys(body).length === 0) {
-    throw createError({
-      statusCode: 400,
-      message: 'Request body is required'
-    });
-  }
-  
-  // Create an update object with only allowed fields
-  const updateData: Record<string, any> = {};
-  
-  // Only allow updating firstName field
-  if (body.firstName !== undefined) updateData.firstName = body.firstName;
-  
-  // Check if profile exists
-  const db = useDrizzle();
-  const existingProfile = await db.select().from(PROFILE).where(eq(PROFILE.id, profileId)).limit(1);
-  
-  if (!existingProfile.length) {
-    throw createError({
-      statusCode: 404,
-      message: 'Profile not found'
-    });
+  const { profileId } = event.context.session
+  const body = await readBody<ProfilePatchBody>(event)
+
+  const db = useDrizzle(event)
+
+  const profile = await db
+    .select()
+    .from(schema.profiles)
+    .where(eq(schema.profiles.id, profileId))
+    .get()
+
+  if (!profile) {
+    throw createError({ statusCode: 404, message: 'Profile not found' })
   }
 
-  // Allow updating email for GitHub users with empty email
-  if (body.email !== undefined && 
-      existingProfile[0].authProvider === 'github' && 
-      (!existingProfile[0].email || existingProfile[0].email === '')) {
-    updateData.email = body.email;
+  const updates: Partial<typeof schema.profiles.$inferInsert> = {}
+
+  if (body.firstName !== undefined) {
+    updates.firstName = body.firstName
   }
-  
-  // Update the profile
-  await db.update(PROFILE)
-    .set(updateData)
-    .where(eq(PROFILE.id, profileId));
-  
-  // Return the updated profile
-  const updatedProfile = await db.select().from(PROFILE).where(eq(PROFILE.id, profileId)).limit(1);
+
+  // username is set-once
+  if (body.username !== undefined) {
+    if (profile.username) {
+      throw createError({ statusCode: 400, message: 'Username has already been set and cannot be changed' })
+    }
+    // Check uniqueness
+    const existing = await db
+      .select({ id: schema.profiles.id })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.username, body.username))
+      .get()
+    if (existing) {
+      throw createError({ statusCode: 409, message: 'Username is already taken' })
+    }
+    updates.username = body.username
+  }
+
+  // email is set-once
+  if (body.email !== undefined) {
+    if (profile.email) {
+      throw createError({ statusCode: 400, message: 'Email has already been set and cannot be changed' })
+    }
+    updates.email = body.email
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw createError({ statusCode: 400, message: 'No valid fields to update' })
+  }
+
+  const [updated] = await db
+    .update(schema.profiles)
+    .set(updates)
+    .where(eq(schema.profiles.id, profileId))
+    .returning()
+
   return {
-    id: updatedProfile[0].id,
-    firstName: updatedProfile[0].firstName,
-    email: updatedProfile[0].email,
-    createdAt: updatedProfile[0].createdAt,
+    id: updated.id,
+    firstName: updated.firstName,
+    username: updated.username,
+    email: updated.email,
   }
-});
+})

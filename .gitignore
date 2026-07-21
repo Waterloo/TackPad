@@ -11,3 +11,11 @@ dist
 playwright-report
 test-results
 pnpm-lock.yaml
+
+# Local env files
+.env
+.env.*
+!.env.example
+secrets.json
+.wrangler
+.pnpm_store/
