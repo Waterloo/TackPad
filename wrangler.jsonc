@@ -22,8 +22,8 @@
   "d1_databases": [
     {
       "binding": "tackpad_db",
-      "database_name": "tackpad-db",
-      "database_id": "8662fb7e-ce0a-42a0-9927-15d540553d1f",
+      "database_name": "tackpad-scratch",
+      "database_id": "2ab27075-9bd2-4f38-bfcc-0653e8989afb",
       "migrations_dir": "server/db/migrations"
     }
   ],
@@ -31,8 +31,8 @@
   "r2_buckets": [
     {
       "binding": "TACKPAD_ASSETS",
-      "bucket_name": "tackpad-assets",
-      "preview_bucket_name": "tackpad-assets",
+      "bucket_name": "tackpad-scratch-assets",
+      "preview_bucket_name": "tackpad-scratch-assets",
       "remote": true
     }
   ]
