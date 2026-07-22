@@ -1,5 +1,6 @@
 {
   "name": "tackpad-scratch",
+  "packageManager": "pnpm@10.29.3",
   "type": "module",
   "private": true,
   "scripts": {
