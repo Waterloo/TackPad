@@ -28,6 +28,16 @@
     }
   ],
 
+  // Real-time collaboration relay (one DO per board, WebSocket Hibernation)
+  "durable_objects": {
+    "bindings": [
+      { "name": "BOARD_RELAY", "class_name": "BoardRelay" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["BoardRelay"] }
+  ],
+
   "r2_buckets": [
     {
       "binding": "TACKPAD_ASSETS",

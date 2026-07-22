@@ -10,6 +10,7 @@ declare module 'h3' {
         tackpad_db: D1Database
         ASSETS: Fetcher
         TACKPAD_ASSETS: R2Bucket
+        BOARD_RELAY: DurableObjectNamespace
       }
       context: ExecutionContext
     }

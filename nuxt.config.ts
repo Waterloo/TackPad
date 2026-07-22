@@ -60,7 +60,9 @@ export default defineNuxtConfig({
     bucket: process.env.NUXT_BUCKET ?? '',
     // Public
     public: {
-      websocketUrl: process.env.NUXT_PUBLIC_WEBSOCKET_URL ?? 'ws://localhost:1234',
+      // Empty = derive same-origin wss://<host>/api/collab (the in-house DO relay).
+      // Set NUXT_PUBLIC_WEBSOCKET_URL to override (e.g. a local y-websocket in dev).
+      websocketUrl: process.env.NUXT_PUBLIC_WEBSOCKET_URL ?? '',
       tackletsV2Enabled: process.env.NUXT_PUBLIC_TACKLETS_V2_ENABLED !== 'false',
       tackletsRegistryUrl: process.env.NUXT_PUBLIC_TACKLETS_REGISTRY_URL ?? 'https://tacklets.tackpad.xyz/directory/tacklets.json',
       tackletsAllowedOrigins: process.env.NUXT_PUBLIC_TACKLETS_ALLOWED_ORIGINS ?? '',

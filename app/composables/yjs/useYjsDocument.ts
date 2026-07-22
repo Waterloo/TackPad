@@ -29,7 +29,11 @@ const docCache = new Map<string, YjsDocumentEntry>()
  */
 export function useYjsDocument(boardId: string) {
   const config = useRuntimeConfig()
-  const wsUrl = config.public.websocketUrl as string
+  // Default: same-origin in-house DO relay. WebsocketProvider appends `/${boardId}`,
+  // so this becomes wss://<host>/api/collab/<boardId>, authenticated by the session cookie.
+  const override = config.public.websocketUrl as string
+  const wsUrl = override
+    || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/collab`
 
   if (!docCache.has(boardId)) {
     const doc = new Y.Doc()
